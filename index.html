@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Desbroce de Carreteras - Gestor de Rutas</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS Local -->
+    <link rel="stylesheet" href="libs/leaflet.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css?v=0.1.1">
+    <!-- PWA Manifest & Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#09090b">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Panel -->
+        <aside class="sidebar" id="sidebar">
+            <header class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">🚜</span>
+                    <h1>DesbroceApp</h1>
+                    <span id="debugWarningDot" style="width: 8px; height: 8px; border-radius: 50%; background-color: #10b981; display: inline-block; margin-left: 0.5rem; flex-shrink: 0; cursor: pointer; transition: transform 0.2s;" title="Ver consola de diagnóstico" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='scale(1)'"></span>
+                </div>
+                <button class="close-sidebar-btn" id="closeSidebar" aria-label="Cerrar Panel">×</button>
+            </header>
+
+            <!-- Consola de Diagnóstico Colapsable -->
+            <div id="appDebugContent" style="display: none; background: rgba(9, 9, 11, 0.98); border-bottom: 1px solid var(--border-color); padding: 12px; font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto; box-sizing: border-box;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 4px;">
+                    <span style="font-weight: bold; color: #a1a1aa; font-size: 10px;">CONSOLA DE DIAGNÓSTICO</span>
+                    <button onclick="event.stopPropagation(); document.getElementById('appDebugLog').innerHTML = 'Consola limpia. Sin errores.'; document.getElementById('debugWarningDot').style.backgroundColor = '#10b981';" style="background: #27272a; color: #fff; border: 1px solid #3f3f46; cursor: pointer; padding: 2px 6px; font-size: 9px; border-radius: 4px;">Limpiar</button>
+                </div>
+                <!-- Monitor de Rendimiento Temporal para Pruebas -->
+                <div id="perfMonitorContainer" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 8px; margin-bottom: 10px; font-size: 10px; color: #a1a1aa; display: flex; flex-direction: column; gap: 4px; line-height: 1.4;">
+                    <div style="font-weight: bold; color: #3b82f6; border-bottom: 1px solid rgba(59,130,246,0.2); padding-bottom: 2px; margin-bottom: 4px; display: flex; justify-content: space-between;">
+                        <span>⚙️ RENDIMIENTO EN TIEMPO REAL</span>
+                        <span id="perfStatusGps">GPS: Inactivo</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Batería:</span> <strong id="perfBattery" style="color: #fff;">Cargando...</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Cómputo CPU GPS:</span> <strong id="perfCpuTime" style="color: #fff;">0.00 ms</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>RAM JS Usada:</span> <strong id="perfRam" style="color: #fff;">0.0 MB</strong>
+                    </div>
+                </div>
+                <div id="appDebugLog" style="color: #e4e4e7; line-height: 1.3;">Ningún error registrado. La app está funcionando.</div>
+            </div>
+
+            <!-- Stats Quick View Carousel -->
+            <section class="stats-panel" id="statsCarousel">
+                <div class="carousel-track">
+                    <!-- Tarjeta 1: Progreso % -->
+                    <div class="carousel-card" id="cardProgress">
+                        <span class="stat-label">Progreso</span>
+                        <div class="carousel-card-body">
+                            <span class="stat-value" id="statsPercent">0%</span>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Tarjeta 2: Kilómetros de la Jornada (Hoy) -->
+                    <div class="carousel-card" id="cardToday">
+                        <span class="stat-label">Jornada</span>
+                        <div class="carousel-card-body">
+                            <span class="stat-value-sub" id="statsTodayKm" style="color: #10b981; font-weight: bold;">0.0 km</span>
+                        </div>
+                    </div>
+                    <!-- Tarjeta 3: Kilómetros Totales -->
+                    <div class="carousel-card" id="cardTotal">
+                        <span class="stat-label">Total Ruta</span>
+                        <div class="carousel-card-body">
+                            <span class="stat-value-sub" id="statsTotalKm">0.0 km</span>
+                        </div>
+                    </div>
+                    <!-- Tarjeta 4: Kilómetros Completados Históricos -->
+                    <div class="carousel-card" id="cardDone">
+                        <span class="stat-label">Finalizado</span>
+                        <div class="carousel-card-body">
+                            <span class="stat-value-sub" id="statsDoneKm">0.0 km</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Navigation Tabs -->
+            <nav class="tabs-nav">
+                <button class="tab-btn active" data-tab="tabCarga"><i data-lucide="folder-open" style="width: 15px; height: 15px; vertical-align: -2px; margin-right: 6px;"></i>Carga</button>
+                <button class="tab-btn" data-tab="tabPlan"><i data-lucide="route" style="width: 15px; height: 15px; vertical-align: -2px; margin-right: 6px;"></i>Ruta</button>
+                <button class="tab-btn" data-tab="tabTramos"><i data-lucide="map" style="width: 15px; height: 15px; vertical-align: -2px; margin-right: 6px;"></i>Tramos</button>
+            </nav>
+
+            <!-- Tab Contents -->
+            <div class="tab-content-container">
+                <!-- TAB 1: Carga y Exportación -->
+                <div class="tab-content active" id="tabCarga">
+                    <div class="card">
+                        <h3>Importar KML / KMZ</h3>
+                        <p class="card-desc">Carga el archivo generado en Google Earth con los tramos a desbrozar.</p>
+                        
+                        <div class="file-drop-area" id="dropArea">
+                            <span class="upload-icon"><i data-lucide="upload-cloud" style="width: 32px; height: 32px; color: var(--accent);"></i></span>
+                            <span class="upload-text">Arrastra tu archivo aquí o</span>
+                            <label class="btn btn-secondary btn-sm" style="cursor: pointer;">
+                                Seleccionar archivo
+                                <input type="file" id="fileInput" accept=".kml,.kmz" style="display: none;">
+                            </label>
+                        </div>
+                        <div class="loaded-files-container">
+                            <ul class="loaded-files-list" id="loadedFilesList">
+                                <li class="loaded-file-empty">Ningún archivo cargado</li>
+                            </ul>
+                        </div>
+                    </div>
+
+
+                    <div class="card">
+                        <h3>Leyenda de Colores</h3>
+                        <p class="card-desc">Los tramos se colorean según la semana en que se completaron.</p>
+                        <div class="legend-list" id="legendList">
+                            <div class="legend-item">
+                                <span class="color-indicator pending"></span>
+                                <span>Pendiente (Gris)</span>
+                            </div>
+                            <!-- Dinámicamente se añadirán aquí las semanas completadas -->
+                        </div>
+                    </div>
+                    
+                    <div class="card text-center" style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                        <button class="btn btn-danger btn-sm" id="resetAppBtn"><i data-lucide="trash-2" style="width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px;"></i>Borrar todos los datos</button>
+                    </div>
+                </div>
+
+                <!-- TAB 2: Tareas Pendientes -->
+                <div class="tab-content" id="tabPlan">
+                    <div class="card">
+                        <div class="card-header-flex">
+                            <h3>Tareas Pendientes</h3>
+                            <span class="badge" id="routeStats">0 tramos</span>
+                        </div>
+                        <p class="card-desc" id="routeDesc">Carreteras pendientes de desbrozar, ordenadas por cercanía si el GPS está activo.</p>
+                        <div class="plan-route-info" id="routeTotalTravel">Quedan 0 tramos (0.00 km pendientes)</div>
+                        <ul class="route-list" id="routeList">
+                            <li class="route-list-empty">Carga un archivo KML/KMZ para ver las tareas.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- TAB 3: Lista de Tramos -->
+                <div class="tab-content" id="tabTramos">
+                    <div class="card search-card">
+                        <input type="text" id="searchTramo" placeholder="🔍 Buscar carretera o tramo...">
+                        <div class="filter-buttons">
+                            <button class="btn-filter active" data-filter="all">Todos</button>
+                            <button class="btn-filter" data-filter="pending">Pendientes</button>
+                            <button class="btn-filter" data-filter="done">Finalizados</button>
+                        </div>
+                    </div>
+
+                    <div class="export-card-tramos" style="margin: 0.25rem 0 0.75rem 0; padding: 0 4px;">
+                        <button class="btn btn-primary w-100" id="exportKmlBtn" disabled style="height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.82rem;"><i data-lucide="download" style="width: 15px; height: 15px;"></i> Exportar Avance Semanal (KML)</button>
+                    </div>
+
+                    <div class="tramos-list-container">
+                        <ul class="tramos-list" id="tramosList">
+                            <li class="tramos-list-empty">No hay carreteras cargadas.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Toggle Panel Button -->
+        <button class="menu-toggle-btn" id="menuToggle" aria-label="Abrir Panel"><i data-lucide="menu" style="width: 18px; height: 18px;"></i></button>
+
+        <!-- GPS Floating Button -->
+        <button class="gps-btn" id="gpsToggle" title="Centrar GPS">
+            <svg viewBox="0 0 24 24" width="24" height="24">
+                <path fill="currentColor" d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.06 3.52 6.37 3.06 10.54H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h-2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+            </svg>
+        </button>
+
+
+
+        <!-- Map Layer Toggle Floating Button -->
+        <button class="layer-toggle-btn" id="mapLayerToggle" title="Cambiar capa de mapa">
+            <i data-lucide="globe" style="width: 22px; height: 22px;"></i>
+        </button>
+
+        <!-- Map Area -->
+        <main class="map-container" id="map"></main>
+
+
+        <!-- Active Work Mode Banner -->
+        <div id="activeWorkBanner" class="active-work-banner" style="display: none;">
+            <div class="active-work-header">
+                <span class="active-work-title">
+                    <i data-lucide="scissors" class="spin-icon" style="color: #10b981; width: 16px; height: 16px;"></i> 
+                    TRABAJANDO: <span id="activeWorkTramoName" style="color: #10b981;">-</span>
+                </span>
+                <span class="active-work-speed" id="activeWorkSpeed" style="font-size: 0.9rem; padding: 4px 10px; border-radius: 6px;">0.0 km/h</span>
+            </div>
+            <div class="active-work-body" style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
+                <div class="margin-selector-container" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="margin-label" style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">Margen activo:</span>
+                    <div class="margin-toggle-buttons" style="display: flex; gap: 8px;">
+                        <button class="btn-margin-toggle active" id="btnMarginRight" onclick="setActiveWorkMargin('right')" 
+                                style="padding: 10px 18px; font-size: 0.85rem; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.05); color: var(--text-secondary); cursor: pointer; transition: all 0.2s; font-weight: bold;">
+                            Derecho
+                        </button>
+                        <button class="btn-margin-toggle" id="btnMarginLeft" onclick="setActiveWorkMargin('left')" 
+                                style="padding: 10px 18px; font-size: 0.85rem; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.05); color: var(--text-secondary); cursor: pointer; transition: all 0.2s; font-weight: bold;">
+                            Izquierdo
+                        </button>
+                    </div>
+                </div>
+                <div class="active-work-progress-container" style="display: flex; flex-direction: column; gap: 6px;">
+                    <div class="progress-info" style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-primary); font-weight: bold;">
+                        <span id="activeWorkProgressText">Progreso: 0%</span>
+                        <span id="activeWorkProgressDistance">Quedan: - m</span>
+                    </div>
+                    <div class="active-work-progress-bar-bg" style="width: 100%; height: 10px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
+                        <div class="active-work-progress-bar" id="activeWorkProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #10b981, #3b82f6); border-radius: 6px; transition: width 0.3s ease;"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Botones de Acción de Trabajo (Gran tamaño) -->
+            <div class="active-work-actions" style="display: flex; gap: 8px; margin-top: 10px;">
+                <button class="btn btn-success" onclick="completeActiveWorkPass()" 
+                        style="flex: 2; font-size: 0.9rem; padding: 12px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-weight: bold; border-radius: 8px;">
+                    <i data-lucide="check" style="width: 16px; height: 16px;"></i> Finalizar Pasada
+                </button>
+                <button class="btn btn-danger" onclick="cancelActiveWork()" 
+                        style="flex: 1; font-size: 0.9rem; padding: 12px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-weight: bold; border-radius: 8px;"
+                        title="Cancelar desbroce activo">
+                    <i data-lucide="x" style="width: 16px; height: 16px;"></i> Cancelar
+                </button>
+            </div>
+        </div>
+
+        <!-- Nearby Tramo Suggestion Banner -->
+        <div id="nearbySuggestionBanner" class="nearby-suggestion-banner" style="display: none;">
+            <div class="suggestion-content" style="display: flex; align-items: center; gap: 8px;">
+                <span class="suggestion-icon" style="font-size: 1.1rem;">🚜</span>
+                <div class="suggestion-text" style="display: flex; flex-direction: column;">
+                    <span class="suggestion-title" style="font-size: 0.78rem; font-weight: bold; color: var(--text-primary);">Tramo cercano detectado</span>
+                    <span class="suggestion-desc" id="nearbyTramoName" style="font-size: 0.7rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;">-</span>
+                </div>
+            </div>
+            <div class="suggestion-actions" style="display: flex; gap: 4px; align-items: center;">
+                <button class="btn-suggestion-action accept" onclick="startSuggestedWork()" style="padding: 4px 8px; font-size: 0.7rem; border-radius: 4px; border: none; background: #10b981; color: white; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 3px;"><i data-lucide="play" style="width: 10px; height: 10px;"></i> Comenzar</button>
+                <button class="btn-suggestion-action reject" onclick="dismissNearbySuggestion()" style="padding: 4px; font-size: 0.7rem; border-radius: 4px; border: none; background: rgba(255,255,255,0.1); color: var(--text-secondary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center;"><i data-lucide="x" style="width: 12px; height: 12px;"></i></button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Context Panel / Selected Road Popup (Fijo en la raíz del body para evitar conflictos flexbox) -->
+    <div class="road-detail-overlay" id="roadDetailOverlay"></div>
+    <!-- PWA Installation Banner -->
+    <div id="pwaInstallBanner" class="pwa-install-banner" style="display: none;">
+        <div class="pwa-banner-content">
+            <span class="pwa-banner-icon">🚜</span>
+            <div class="pwa-banner-text">
+                <strong style="font-weight: 600;">Instalar DesbroceApp</strong>
+                <span>Accede rápido y trabaja sin conexión a Internet</span>
+            </div>
+        </div>
+        <div class="pwa-banner-actions">
+            <button class="btn btn-primary btn-sm" id="btnPwaInstall">Instalar</button>
+            <button class="btn-pwa-close" id="btnPwaClose" aria-label="Cerrar banner">×</button>
+        </div>
+    </div>
+    <!-- JSZip Local -->
+    <script src="libs/jszip.min.js"></script>
+    <!-- Leaflet JS Local -->
+    <script src="libs/leaflet.js"></script>
+    <!-- Leaflet Rotate Plugin -->
+    <script src="libs/leaflet-rotate.js"></script>
+    <!-- Lucide Icons Local -->
+    <script src="libs/lucide.min.js"></script>
+    <!-- Custom APP JS -->
+    <script src="app.js?v=0.1.1"></script>
+    <!-- Grabación de Notas de Voz para Feedback (Desacoplado) -->
+    <script src="feedback-recorder.js"></script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => {
+                        console.log('PWA Service Worker registrado con éxito:', reg.scope);
+                        // Forzar comprobación de actualizaciones en cada carga
+                        reg.update();
+                    })
+                    .catch(err => console.error('Error al registrar PWA Service Worker:', err));
+            });
+
+            // Detectar actualizaciones en vivo y recargar automáticamente mostrando un aviso elegante
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshing) return;
+                refreshing = true;
+                if (typeof appAlert === 'function') {
+                    appAlert("Nueva versión instalada con éxito. La aplicación se reiniciará para aplicar las mejoras.", "success")
+                        .then(() => {
+                            window.location.reload();
+                        });
+                } else {
+                    window.location.reload();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
