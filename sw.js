@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.1';
-const VERSION = '0.1.1';
-const UPDATE_NOTES = 'Integrado sistema de alertas de actualizacion detalladas y correccion de eventos de cierre del menu.';
+const CACHE_NAME = 'road-clearing-cache-v0.1.2';
+const VERSION = '0.1.2';
+const UPDATE_NOTES = 'Añadida pantalla de bloqueo informativa al instalar la app en el navegador y solucionado el zoom tactil simultaneo.';
 
 const ASSETS = [
   './',

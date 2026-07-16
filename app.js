@@ -141,12 +141,12 @@ function initMap() {
         maxZoom: 21,
         minZoom: 5,
         rotate: true,
-        touchRotate: false,
+        touchRotate: true,
         rotateControl: {
             closeOnZeroBearing: false,
             position: 'bottomleft'
         },
-        zoomAnimation: true
+        zoomAnimation: false
     }).setView([40.416775, -3.703790], 6);
 
     // Añadir el control de zoom en la parte inferior izquierda
