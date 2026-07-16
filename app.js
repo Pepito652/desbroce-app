@@ -136,16 +136,17 @@ document.addEventListener('DOMContentLoaded', () => {
 function initMap() {
     // Coordenadas por defecto (Centro de España por si no hay datos)
     map = L.map('map', {
+        preferCanvas: true,
         zoomControl: false,
         maxZoom: 21,
         minZoom: 5,
         rotate: true,
-        touchRotate: true,
+        touchRotate: false,
         rotateControl: {
             closeOnZeroBearing: false,
             position: 'bottomleft'
         },
-        zoomAnimation: false
+        zoomAnimation: true
     }).setView([40.416775, -3.703790], 6);
 
     // Añadir el control de zoom en la parte inferior izquierda

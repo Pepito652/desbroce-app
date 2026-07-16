@@ -52,6 +52,9 @@
                     <div style="display: flex; justify-content: space-between;">
                         <span>RAM JS Usada:</span> <strong id="perfRam" style="color: #fff;">0.0 MB</strong>
                     </div>
+                    <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 4px; margin-top: 2px;">
+                        <span>Código de control:</span> <strong style="color: #60a5fa;">#7842</strong>
+                    </div>
                 </div>
                 <div id="appDebugLog" style="color: #e4e4e7; line-height: 1.3;">Ningún error registrado. La app está funcionando.</div>
             </div>
@@ -297,29 +300,103 @@
     <!-- PWA Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
+            let refreshing = false;
+            let alerted = false;
+            let updateWorker = null;
+
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
                     .then(reg => {
                         console.log('PWA Service Worker registrado con éxito:', reg.scope);
+                        
+                        // 1. Si ya hay un SW en espera al cargar la página
+                        if (reg.waiting) {
+                            updateWorker = reg.waiting;
+                            showUpdatePrompt();
+                        }
+                        
+                        // 2. Si se detecta una nueva versión en camino
+                        reg.addEventListener('updatefound', () => {
+                            const newWorker = reg.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed') {
+                                    if (navigator.serviceWorker.controller) {
+                                        // Es una actualización real porque ya existía un controlador anterior
+                                        updateWorker = newWorker;
+                                        showUpdatePrompt();
+                                    }
+                                }
+                            });
+                        });
+
                         // Forzar comprobación de actualizaciones en cada carga
                         reg.update();
                     })
                     .catch(err => console.error('Error al registrar PWA Service Worker:', err));
             });
 
-            // Detectar actualizaciones en vivo y recargar automáticamente mostrando un aviso elegante
-            let refreshing = false;
+            // Función para mostrar el aviso de actualización
+            function showUpdatePrompt() {
+                if (alerted || !updateWorker) return;
+                alerted = true;
+                
+                // Extraer el mensaje descriptivo si estuviera disponible, o un texto por defecto
+                const desc = "Hay una nueva versión de la aplicación lista para instalar. ¿Quieres actualizar ahora para aplicar las mejoras?";
+                
+                if (typeof appAlertConfirm === 'function') {
+                    appAlertConfirm("Actualización Disponible", desc, "Actualizar ahora", "Cancelar")
+                        .then((confirmed) => {
+                            if (confirmed) {
+                                updateWorker.postMessage({ action: 'skipWaiting' });
+                            } else {
+                                showUpdateMenuButton();
+                            }
+                        });
+                } else {
+                    if (confirm("Nueva versión disponible. ¿Deseas actualizar ahora?")) {
+                        updateWorker.postMessage({ action: 'skipWaiting' });
+                    } else {
+                        showUpdateMenuButton();
+                    }
+                }
+            }
+
+            // Inyectar el botón en el menú lateral encima del botón de borrar datos
+            function showUpdateMenuButton() {
+                const resetBtn = document.getElementById('resetAppBtn');
+                if (resetBtn && !document.getElementById('updateAppBtn') && updateWorker) {
+                    const updateBtn = document.createElement('button');
+                    updateBtn.id = 'updateAppBtn';
+                    updateBtn.className = 'btn btn-primary btn-sm';
+                    updateBtn.style.marginBottom = '12px';
+                    updateBtn.style.width = '100%';
+                    updateBtn.style.display = 'flex';
+                    updateBtn.style.alignItems = 'center';
+                    updateBtn.style.justifyContent = 'center';
+                    updateBtn.style.background = 'rgba(59,130,246,0.15)';
+                    updateBtn.style.border = '1px solid rgba(59,130,246,0.3)';
+                    updateBtn.style.color = '#60a5fa';
+                    updateBtn.style.fontWeight = '500';
+                    updateBtn.style.fontSize = '11px';
+                    updateBtn.innerHTML = '<i data-lucide="refresh-cw" style="width: 13px; height: 13px; margin-right: 6px;"></i>Actualización disponible';
+                    
+                    resetBtn.parentNode.insertBefore(updateBtn, resetBtn);
+                    
+                    if (typeof refreshLucideIcons === 'function') {
+                        refreshLucideIcons();
+                    }
+                    
+                    updateBtn.addEventListener('click', () => {
+                        updateWorker.postMessage({ action: 'skipWaiting' });
+                    });
+                }
+            }
+
+            // Recarga automática cuando cambia el controlador del Service Worker
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 if (refreshing) return;
                 refreshing = true;
-                if (typeof appAlert === 'function') {
-                    appAlert("Nueva versión instalada con éxito. La aplicación se reiniciará para aplicar las mejoras.", "success")
-                        .then(() => {
-                            window.location.reload();
-                        });
-                } else {
-                    window.location.reload();
-                }
+                window.location.reload();
             });
         }
     </script>

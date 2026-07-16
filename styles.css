@@ -1755,5 +1755,12 @@ body, html {
     }
 }
 
+/* Forzar que la capa de vectores/canvas de Leaflet acompañe el escalado 3D simultáneamente durante el zoom */
+.leaflet-zoom-anim .leaflet-zoom-animated,
+.leaflet-zoom-anim .leaflet-overlay-pane {
+    will-change: transform;
+    transition: transform 0.25s cubic-bezier(0,0,0.25,1) !important;
+}
+
 
 

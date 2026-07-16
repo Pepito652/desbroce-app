@@ -1,4 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.0';
+const CACHE_NAME = 'road-clearing-cache-v0.1.1';
+const VERSION = '0.1.1';
+const UPDATE_NOTES = 'Integrado sistema de alertas de actualizacion detalladas y correccion de eventos de cierre del menu.';
 
 const ASSETS = [
   './',
@@ -30,11 +32,11 @@ self.addEventListener('install', (e) => {
           });
         })
       );
-    }).then(() => self.skipWaiting())
+    })
   );
 });
 
-// Activate Event - Clean up older caches
+// Activate Event - Clean up older caches and notify clients of new version
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) => {
@@ -46,6 +48,17 @@ self.addEventListener('activate', (e) => {
           }
         })
       );
+    }).then(() => {
+      // Notificar a las pestañas abiertas sobre la nueva versión
+      return self.clients.matchAll().then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({
+            type: 'NEW_VERSION_INSTALLED',
+            version: VERSION,
+            notes: UPDATE_NOTES
+          });
+        });
+      });
     }).then(() => self.clients.claim())
   );
 });
@@ -76,4 +89,11 @@ self.addEventListener('fetch', (e) => {
       });
     })
   );
+});
+
+// Message Event - Permitir skipWaiting manual desde el cliente web
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.action === 'skipWaiting') {
+    self.skipWaiting();
+  }
 });
