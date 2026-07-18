@@ -1105,29 +1105,31 @@ function getTramoOverallStatus(tramo) {
 // Comprobar dinámicamente si un tramo tiene bloqueos/alertas en ambos extremos (inaccesible)
 function isTramoFullyBlocked(tramo) {
     if (!tramo.coordinates || tramo.coordinates.length < 2) return false;
-    if (!tramo.observaciones || tramo.observaciones.length < 2) return false;
-    
+
     const coords = tramo.coordinates;
     const startCoord = coords[0];
     const endCoord = coords[coords.length - 1];
-    
+
     let hasStartBlock = false;
     let hasEndBlock = false;
-    
-    tramo.observaciones.forEach(obs => {
-        const distToStart = getHaversineDistance(obs.lat, obs.lng, startCoord[0], startCoord[1]);
-        const distToEnd = getHaversineDistance(obs.lat, obs.lng, endCoord[0], endCoord[1]);
-        
-        if (distToStart < 30) {
-            hasStartBlock = true;
-        }
-        if (distToEnd < 30) {
-            hasEndBlock = true;
-        }
+
+    // Buscar en TODOS los tramos del mapa, no solo en las obs propias del tramo.
+    // Así detectamos el tramo del medio entre dos bloqueos de tramos hermanos.
+    const allTramos = (state && state.tramos) ? state.tramos : [];
+    allTramos.forEach(t => {
+        if (!t.observaciones) return;
+        t.observaciones.forEach(obs => {
+            if (!obs.isBlockSplit) return; // Solo alertas de corte por bloqueo
+            const distToStart = getHaversineDistance(obs.lat, obs.lng, startCoord[0], startCoord[1]);
+            const distToEnd   = getHaversineDistance(obs.lat, obs.lng, endCoord[0], endCoord[1]);
+            if (distToStart < 30) hasStartBlock = true;
+            if (distToEnd   < 30) hasEndBlock   = true;
+        });
     });
-    
+
     return hasStartBlock && hasEndBlock;
 }
+
 
 function renderTramosOnMap() {
     tramosLayerGroup.clearLayers();
