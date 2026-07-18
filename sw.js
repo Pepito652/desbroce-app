@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.8';
-const VERSION = '0.1.8';
-const UPDATE_NOTES = 'Liberada v0.1.8: Interceptacion de clics precisa en alertas manuales y cursores de mira crosshair configurados.';
+const CACHE_NAME = 'road-clearing-cache-v0.1.9';
+const VERSION = '0.1.9';
+const UPDATE_NOTES = 'Liberada v0.1.9: Correccion del sentido de la marcha al cortar tramos y marcacion de tramos bloqueados en color rojo.';
 
 const ASSETS = [
   './',
