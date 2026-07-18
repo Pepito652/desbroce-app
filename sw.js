@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.10';
-const VERSION = '0.1.10';
-const UPDATE_NOTES = 'Liberada v0.1.10: Control de trabajo activo al dividir tramos por bloqueo y correccion de estados manuales.';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11';
+const VERSION = '0.1.11';
+const UPDATE_NOTES = 'Liberada v0.1.11: Fusion silenciosa de tramos al eliminar alertas de bloqueo y personalizacion de color bloqueado en leyenda.';
 
 const ASSETS = [
   './',

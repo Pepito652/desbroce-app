@@ -46,7 +46,7 @@ window.onunhandledrejection = function(event) {
     logDebug(`Promesa fallida sin catch: ${event.reason ? event.reason.message || event.reason : event}`, 'error');
 };
 
-const APP_VERSION = '0.1.10';
+const APP_VERSION = '0.1.11';
 
 let state = {
     fileLoaded: false,
@@ -94,6 +94,9 @@ function getPendingColor() {
 }
 function getPartialColor() {
     return state && state.customColors && state.customColors['partial'] ? state.customColors['partial'] : '#fbbf24';
+}
+function getBlockedColor() {
+    return state && state.customColors && state.customColors['blocked'] ? state.customColors['blocked'] : '#b91c1c';
 }
 const COLOR_COMPLETED_DEFAULT = '#10b981'; // Verde por defecto
 const COLOR_GPS = '#3b82f6';
@@ -1138,7 +1141,7 @@ function renderTramosOnMap() {
         let dashArray = '10, 10';
         
         if (isBlocked) {
-            color = '#b91c1c'; // Rojo carmesí oscuro para tramos bloqueados
+            color = getBlockedColor(); // Dinámico en base a la leyenda
             dashArray = '4, 4'; // Trazo discontinuo tupido de advertencia
         } else if (isCompleted) {
             color = tramo.color || COLOR_COMPLETED_DEFAULT;
@@ -1344,7 +1347,15 @@ function updateStats() {
 function updateLegend() {
     const legendList = document.getElementById('legendList');
     
-    // Limpiar salvo el pendiente y el parcial
+    // Limpiar e incluir los colores del sistema, incluyendo tramos bloqueados
+    let blockedLength = 0;
+    state.tramos.forEach(t => {
+        if (isTramoFullyBlocked(t)) {
+            blockedLength += t.length;
+        }
+    });
+    const blockedKmStr = (blockedLength / 1000).toFixed(2);
+
     legendList.innerHTML = `
         <div class="legend-item">
             <input type="color" class="color-picker-legend" value="${getPendingColor()}" onchange="changeSystemColor('pending', this.value)" title="Cambiar color de pendiente">
@@ -1353,6 +1364,10 @@ function updateLegend() {
         <div class="legend-item">
             <input type="color" class="color-picker-legend" value="${getPartialColor()}" onchange="changeSystemColor('partial', this.value)" title="Cambiar color de parcial">
             <span>Parcial (Línea discontinua larga)</span>
+        </div>
+        <div class="legend-item">
+            <input type="color" class="color-picker-legend" value="${getBlockedColor()}" onchange="changeSystemColor('blocked', this.value)" title="Cambiar color de bloqueados">
+            <span style="font-weight: bold;">Bloqueado / Inaccesible (${blockedKmStr} km)</span>
         </div>
     `;
 
@@ -1439,13 +1454,17 @@ function changeSystemColor(type, newColor) {
     try {
         state.customColors[type] = newColor;
 
-        // Propagar el color a todos los tramos de este tipo
+        // Propagar el color a todos los tramos de este tipo respetando los bloqueados
         state.tramos.forEach(t => {
-            if (type === 'pending' && t.status === 'pending') {
+            if (type === 'pending' && t.status === 'pending' && !isTramoFullyBlocked(t)) {
                 if (t.mapLayer) {
                     t.mapLayer.setStyle({ color: newColor });
                 }
-            } else if (type === 'partial' && t.status === 'partial') {
+            } else if (type === 'partial' && t.status === 'partial' && !isTramoFullyBlocked(t)) {
+                if (t.mapLayer) {
+                    t.mapLayer.setStyle({ color: newColor });
+                }
+            } else if (type === 'blocked' && isTramoFullyBlocked(t)) {
                 if (t.mapLayer) {
                     t.mapLayer.setStyle({ color: newColor });
                 }
@@ -4996,7 +5015,8 @@ function splitTramoOnObstacle(tramoId, latlng, obsData) {
             type: obsData.type,
             label: `${obsData.label} (Corte por bloqueo)`,
             comment: obsData.comment || 'Tractorista dio la vuelta en este punto.',
-            date: Date.now()
+            date: Date.now(),
+            isBlockSplit: true  // Marca que esta obs causó la división del tramo
         };
 
         // Verificar si hay un desbroce en curso activo sobre este tramo
@@ -5109,24 +5129,143 @@ function splitTramoOnObstacle(tramoId, latlng, obsData) {
     }
 }
 
+// ─── Fusión silenciosa al eliminar una observación que causó la división ─────
+// Recibe el tramo del que se acaba de quitar la obs y el obsId ya eliminado.
+// Si ese tramo tiene un hermano (mismo parentInfo.id + mismo timestamp) y el
+// obs eliminada era la única que los mantenía "separados lógicamente", une
+// ambos tramos sin pedir confirmación. Devuelve el id del tramo resultante o null.
+function tryMergeAfterObsRemoval(tramo, removedObs) {
+    try {
+        // Solo actuar si la alerta eliminada es la que causó la división
+        if (!removedObs || !removedObs.isBlockSplit) return null;
+
+        // Necesitamos que el tramo provenga de una división (tenga parentInfo)
+        let parentId = null;
+        let partPrefix = null;
+        let timestamp = null;
+
+        if (tramo.parentInfo && tramo.parentInfo.id) {
+            parentId = tramo.parentInfo.id;
+            const match = tramo.id.match(/(.+)(_p[12]_)(\d+)$/);
+            if (match) { partPrefix = match[2]; timestamp = match[3]; }
+        } else {
+            const match = tramo.id.match(/(.+)(_p[12]_)(\d+)$/);
+            if (match) { parentId = match[1]; partPrefix = match[2]; timestamp = match[3]; }
+        }
+
+        if (!parentId || !partPrefix || !timestamp) return null;
+
+        // Localizar al hermano
+        const partnerId = partPrefix === '_p1_' ? `${parentId}_p2_${timestamp}` : `${parentId}_p1_${timestamp}`;
+        const partner = state.tramos.find(t => t.id === partnerId);
+        if (!partner) return null;
+
+        const part1 = partPrefix === '_p1_' ? tramo : partner;
+        const part2 = partPrefix === '_p1_' ? partner : tramo;
+
+        // Unir coordenadas (el último punto de part1 es idéntico al primero de part2)
+        const mergedCoords = [...part1.coordinates.slice(0, -1), ...part2.coordinates];
+
+        // Fusionar observaciones de ambas partes (ya sin la obs eliminada)
+        const mergedObs = [
+            ...(part1.observaciones || []),
+            ...(part2.observaciones || [])
+        ];
+
+        // Cálculo conservador de márgenes: solo se marca completado si ambas partes lo tenían
+        const mergeMarginStatus = (s1, s2) => {
+            if (s1 === 'completed' && s2 === 'completed') return 'completed';
+            if (s1 === 'pending' && s2 === 'pending') return 'pending';
+            return 'partial';
+        };
+        const mergedRight = mergeMarginStatus(part1.rightMarginStatus, part2.rightMarginStatus);
+        const mergedLeft  = mergeMarginStatus(part1.leftMarginStatus,  part2.leftMarginStatus);
+        const mergedStatus = getTramoOverallStatus({ rightMarginStatus: mergedRight, leftMarginStatus: mergedLeft });
+
+        // Reconstruir el tramo padre
+        const parentTramo = {
+            id: parentId,
+            name: tramo.parentInfo ? tramo.parentInfo.name : tramo.name.replace(/\s*\(Parte\s+[12]\)$/, ''),
+            fileId: tramo.fileId,
+            coordinates: mergedCoords,
+            originalCoordinates: mergedCoords.map(c => [...c]),
+            length: calculateLineLength(mergedCoords),
+            status: mergedStatus,
+            rightMarginStatus: mergedRight,
+            leftMarginStatus: mergedLeft,
+            dateCompleted: tramo.parentInfo ? tramo.parentInfo.dateCompleted : null,
+            color: tramo.parentInfo ? tramo.parentInfo.color : null,
+            weekNumber: tramo.parentInfo ? tramo.parentInfo.weekNumber : null,
+            weekCompleted: tramo.parentInfo ? tramo.parentInfo.weekCompleted : null,
+            observaciones: mergedObs,
+            mapLayer: null
+        };
+
+        // Conservar parentInfo del abuelo si existía (recursividad multinivel)
+        if (tramo.parentInfo && tramo.parentInfo.parentInfo) {
+            parentTramo.parentInfo = tramo.parentInfo.parentInfo;
+        }
+
+        // Reemplazar los dos hijos por el padre en state.tramos
+        const idx1 = state.tramos.findIndex(t => t.id === part1.id);
+        const idx2 = state.tramos.findIndex(t => t.id === part2.id);
+        if (idx1 !== -1 && idx2 !== -1) {
+            const minIdx = Math.min(idx1, idx2);
+            const maxIdx = Math.max(idx1, idx2);
+            state.tramos.splice(maxIdx, 1);
+            state.tramos.splice(minIdx, 1, parentTramo);
+        }
+
+        // Reemplazar en routeOrder
+        const rIdx1 = state.routeOrder.indexOf(part1.id);
+        const rIdx2 = state.routeOrder.indexOf(part2.id);
+        if (rIdx1 !== -1 && rIdx2 !== -1) {
+            const rMinIdx = Math.min(rIdx1, rIdx2);
+            const rMaxIdx = Math.max(rIdx1, rIdx2);
+            state.routeOrder.splice(rMaxIdx, 1);
+            state.routeOrder.splice(rMinIdx, 1, parentTramo.id);
+        }
+
+        // Limpiar capas del mapa de ambos hijos
+        if (part1.mapLayer && map) tramosLayerGroup.removeLayer(part1.mapLayer);
+        if (part2.mapLayer && map) tramosLayerGroup.removeLayer(part2.mapLayer);
+
+        return parentTramo.id;
+    } catch (e) {
+        console.error('Error en tryMergeAfterObsRemoval:', e);
+        return null;
+    }
+}
+
 // Eliminar un marcador de advertencia/observación
 function removeObservation(tramoId, obsId) {
     try {
         const tramo = state.tramos.find(t => t.id === tramoId);
         if (!tramo) return;
 
+        // Guardar la obs que se va a eliminar antes de quitarla
+        const removedObs = (tramo.observaciones || []).find(o => o.id === obsId);
+
         tramo.observaciones = tramo.observaciones.filter(o => o.id !== obsId);
 
         // Cerrar popups de Leaflet que puedan estar abiertos
         map.closePopup();
 
+        // Intentar fusión silenciosa si la obs era un bloqueo y el tramo viene de una división
+        const mergedId = tryMergeAfterObsRemoval(tramo, removedObs);
+
         saveToLocalStorage();
         renderTramosOnMap();
         appAlert("Observación eliminada del tramo.", "info");
 
-        // Si la bottom sheet de detalles estaba abierta, refrescarla
-        if (state.selectedTramoId === tramoId) {
-            openRoadDetail(tramoId);
+        // Si la bottom sheet de detalles estaba abierta, refrescarla con el tramo resultante
+        const refreshId = mergedId || tramoId;
+        if (state.selectedTramoId === tramoId || state.selectedTramoId === refreshId) {
+            const exists = state.tramos.find(t => t.id === refreshId);
+            if (exists) {
+                state.selectedTramoId = refreshId;
+                openRoadDetail(refreshId);
+            }
         }
     } catch (err) {
         console.error("Error en removeObservation:", err);
