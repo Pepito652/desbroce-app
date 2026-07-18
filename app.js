@@ -1193,10 +1193,10 @@ function renderTramosOnMap() {
         // Pintar las observaciones de este tramo si existen
         if (tramo.observaciones && Array.isArray(tramo.observaciones)) {
             tramo.observaciones.forEach(obs => {
-                let iconHtml = '<div class="pulse-orange"></div><div class="dot-orange">⚠️</div>';
-                if (obs.type === 'vehicles') iconHtml = '<div class="pulse-orange"></div><div class="dot-orange">🚗</div>';
-                else if (obs.type === 'branches') iconHtml = '<div class="pulse-orange"></div><div class="dot-orange">🌳</div>';
-                else if (obs.type === 'cables') iconHtml = '<div class="pulse-orange"></div><div class="dot-orange">⚡</div>';
+                let iconHtml = '<div class="dot-orange">⚠️</div>';
+                if (obs.type === 'vehicles') iconHtml = '<div class="dot-orange">🚗</div>';
+                else if (obs.type === 'branches') iconHtml = '<div class="dot-orange">🌳</div>';
+                else if (obs.type === 'cables') iconHtml = '<div class="dot-orange">⚡</div>';
                 
                 const obsIcon = L.divIcon({
                     className: 'obs-map-marker',
