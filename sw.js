@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-6219';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Liberada v0.1.11: Fusion silenciosa de tramos al eliminar alertas de bloqueo y personalizacion de color bloqueado en leyenda.';
+const UPDATE_NOTES = 'Hotfix #6219: botones refrescar/actualizar en consola, sin parpadeo en alertas, deteccion tramos bloqueados corregida.';
 
 const ASSETS = [
   './',
