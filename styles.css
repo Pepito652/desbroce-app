@@ -1819,9 +1819,6 @@ body, html {
 }
 
 /* Badge rojo parpadeante de actualización disponible en botón hamburguesa */
-.menu-toggle-btn {
-    position: relative;
-}
 
 .menu-toggle-btn.has-update::after {
     content: '';

@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.6';
-const VERSION = '0.1.6';
-const UPDATE_NOTES = 'Liberada v0.1.6: Comprobacion manual forzada de actualizaciones y punto rojo indicador sobre el menu Toggle.';
+const CACHE_NAME = 'road-clearing-cache-v0.1.7';
+const VERSION = '0.1.7';
+const UPDATE_NOTES = 'Liberada v0.1.7: Correccion de layout en menu, banners responsives adaptados a movil y marcado de alertas manuales.';
 
 const ASSETS = [
   './',

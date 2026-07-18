@@ -46,7 +46,7 @@ window.onunhandledrejection = function(event) {
     logDebug(`Promesa fallida sin catch: ${event.reason ? event.reason.message || event.reason : event}`, 'error');
 };
 
-const APP_VERSION = '0.1.6';
+const APP_VERSION = '0.1.7';
 
 let state = {
     fileLoaded: false,
@@ -2498,30 +2498,34 @@ function startSplitTramoMode(tramoId) {
             splitBanner.id = 'splitBanner';
             splitBanner.style.cssText = `
                 position: absolute;
-                top: 20px;
+                top: 15px;
                 left: 50%;
                 transform: translateX(-50%);
                 z-index: 10000;
-                background: rgba(20, 20, 22, 0.95);
+                background: rgba(20, 20, 22, 0.98);
                 border: 1px solid var(--warning);
-                border-radius: 8px;
+                border-radius: 12px;
                 color: #e4e4e7;
-                padding: 10px 20px;
-                font-family: var(--font-family);
-                font-size: 0.85rem;
+                padding: 12px 16px;
+                font-family: 'Outfit', sans-serif;
+                font-size: 0.82rem;
                 font-weight: 600;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+                box-shadow: 0 8px 30px rgba(0,0,0,0.6);
                 display: flex;
                 align-items: center;
+                justify-content: space-between;
                 gap: 12px;
+                width: 92%;
+                max-width: 480px;
+                box-sizing: border-box;
                 pointer-events: auto;
                 transition: all 0.3s ease;
             `;
             document.body.appendChild(splitBanner);
         }
         splitBanner.innerHTML = `
-            <span>✂️ Modo de división activo. Haz clic sobre la carretera en el mapa para dividirla en dos tramos.</span>
-            <button id="cancelSplitBtn" style="background: #ef4444; color: white; border: none; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 0.8rem; font-weight: bold; transition: background-color 0.2s;">Cancelar</button>
+            <span style="flex: 1; line-height: 1.35; text-align: left;">✂️ Modo de división activo. Haz clic sobre la carretera en el mapa para dividirla.</span>
+            <button id="cancelSplitBtn" style="background: #ef4444; color: white; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 0.8rem; font-weight: bold; flex-shrink: 0; transition: background-color 0.2s;">Cancelar</button>
         `;
 
         const polyline = tramo.mapLayer;
@@ -4507,29 +4511,126 @@ async function addObservationAtGps() {
     }
 }
 
-// Añadir observación tocando un punto en el mapa para un tramo
+// Añadir observación tocando un punto en el mapa para un tramo (Modo interactivo con banner responsive)
 function addManualObservation(tramoId) {
     try {
         const tramo = state.tramos.find(t => t.id === tramoId);
         if (!tramo) return;
 
-        // Cerrar panel de detalles momentáneamente
+        // Cerrar panel de detalles y popups para interactuar sin molestias
         closeRoadDetail();
+        map.closePopup();
 
-        appAlert("Toca el punto de la carretera en el mapa donde se encuentra el obstáculo.", "info");
+        // 1. Mostrar banner de instrucciones arriba (con diseño responsive y botón de Cancelar)
+        let obsBanner = document.getElementById('obsManualBanner');
+        if (!obsBanner) {
+            obsBanner = document.createElement('div');
+            obsBanner.id = 'obsManualBanner';
+            obsBanner.style.cssText = `
+                position: absolute;
+                top: 15px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 10000;
+                background: rgba(20, 20, 22, 0.98);
+                border: 1px solid #f59e0b;
+                border-radius: 12px;
+                color: #e4e4e7;
+                padding: 12px 16px;
+                font-family: 'Outfit', sans-serif;
+                font-size: 0.82rem;
+                font-weight: 600;
+                box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                width: 92%;
+                max-width: 480px;
+                box-sizing: border-box;
+                pointer-events: auto;
+                transition: all 0.3s ease;
+            `;
+            document.body.appendChild(obsBanner);
+        }
+        obsBanner.innerHTML = `
+            <span style="flex: 1; line-height: 1.35; text-align: left;">⚠️ Modo de alerta activo. Toca la carretera en el mapa para situar la alerta.</span>
+            <button id="cancelObsBtn" style="background: #ef4444; color: white; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 0.8rem; font-weight: bold; flex-shrink: 0; transition: background-color 0.2s;">Cancelar</button>
+        `;
 
-        // Activar escucha de clic única en el mapa para posicionar la alerta
-        map.once('click', async (e) => {
+        const polyline = tramo.mapLayer;
+        if (!polyline) {
+            appAlert("No se puede visualizar el tramo en el mapa para situar la alerta.", 'error');
+            if (obsBanner) obsBanner.remove();
+            openRoadDetail(tramoId);
+            return;
+        }
+
+        // Guardar el estilo original antes de modificarlo para poder restaurarlo si cancela o termina
+        const originalStyle = {
+            color: polyline.options.color,
+            weight: polyline.options.weight,
+            opacity: polyline.options.opacity
+        };
+
+        // Poner la carretera en un color de advertencia discontinuo llamativo
+        polyline.setStyle({
+            color: '#f59e0b',
+            weight: 8,
+            opacity: 1.0,
+            dashArray: '5, 10'
+        });
+
+        // Cambiar cursor a cruz (crosshair) al pasar sobre la línea y su zona táctil
+        if (polyline.getElement()) {
+            polyline.getElement().style.cursor = 'crosshair';
+        }
+        const clickTarget = tramo.clickTarget;
+        if (clickTarget && clickTarget.getElement()) {
+            clickTarget.getElement().style.cursor = 'crosshair';
+        }
+
+        let clickHandled = false;
+
+        // Limpiador del modo de marcado de alerta
+        const cleanupObsManualMode = () => {
+            clickHandled = true;
+            if (obsBanner) obsBanner.remove();
+            if (polyline) {
+                polyline.setStyle(originalStyle);
+                if (polyline.getElement()) {
+                    polyline.getElement().style.cursor = '';
+                }
+            }
+            if (clickTarget && clickTarget.getElement()) {
+                clickTarget.getElement().style.cursor = '';
+            }
+            map.off('click', handleMapClick);
+        };
+
+        // Manejador del botón cancelar
+        obsBanner.querySelector('#cancelObsBtn').onclick = (e) => {
+            e.stopPropagation();
+            cleanupObsManualMode();
+            openRoadDetail(tramoId);
+        };
+
+        // Manejador del evento clic en el mapa
+        async function handleMapClick(e) {
+            if (clickHandled) return;
             const latlng = e.latlng;
             
             // Verificar si el punto clickeado está cerca de la carretera (máximo 50 metros)
             const proj = projectLatLngToPolyline(latlng.lat, latlng.lng, tramo.coordinates, tramo);
             if (proj.distance > 50) {
-                appAlert("El punto seleccionado está demasiado lejos de la carretera. Marcación cancelada.", "warning");
-                openRoadDetail(tramoId);
+                appAlert("El punto seleccionado está demasiado lejos de la carretera. Inténtalo de nuevo.", "warning");
                 return;
             }
 
+            // Limpieza inmediata del modo interactivo para apagar el listener del mapa
+            cleanupObsManualMode();
+
+            // Abrir formulario rápido de configuración de la alerta
             const obsData = await appObservationDialog("Registrar Alerta en Mapa");
             if (!obsData) {
                 openRoadDetail(tramoId);
@@ -4537,7 +4638,7 @@ function addManualObservation(tramoId) {
             }
 
             if (obsData.action === 'block') {
-                // Caso de bloqueo: Dividir tramo en el punto del mapa clickeado
+                // Caso de bloqueo: Dividir tramo en caliente
                 splitTramoOnObstacle(tramoId, proj.point, obsData);
             } else {
                 // Caso de solo alerta
@@ -4555,10 +4656,14 @@ function addManualObservation(tramoId) {
 
                 saveToLocalStorage();
                 renderTramosOnMap();
-                appAlert(`Alerta "${obsData.label}" guardada en la carretera.`, "success");
+                appAlert(`Alerta "${obsData.label}" guardada con éxito.`, "success");
                 openRoadDetail(tramoId);
             }
-        });
+        }
+
+        // Registrar escucha de un solo clic en el mapa
+        map.on('click', handleMapClick);
+
     } catch (err) {
         console.error("Error en addManualObservation:", err);
     }
