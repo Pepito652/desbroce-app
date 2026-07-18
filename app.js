@@ -1119,7 +1119,9 @@ function isTramoFullyBlocked(tramo) {
     allTramos.forEach(t => {
         if (!t.observaciones) return;
         t.observaciones.forEach(obs => {
-            if (!obs.isBlockSplit) return; // Solo alertas de corte por bloqueo
+            // Detectar obs de bloqueo: flag nuevo (v0.1.11+) O etiqueta legacy (datos anteriores)
+            const isBlockObs = obs.isBlockSplit === true || (obs.label && obs.label.includes('Corte por bloqueo'));
+            if (!isBlockObs) return;
             const distToStart = getHaversineDistance(obs.lat, obs.lng, startCoord[0], startCoord[1]);
             const distToEnd   = getHaversineDistance(obs.lat, obs.lng, endCoord[0], endCoord[1]);
             if (distToStart < 30) hasStartBlock = true;
