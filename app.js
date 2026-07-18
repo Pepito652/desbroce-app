@@ -46,7 +46,7 @@ window.onunhandledrejection = function(event) {
     logDebug(`Promesa fallida sin catch: ${event.reason ? event.reason.message || event.reason : event}`, 'error');
 };
 
-const APP_VERSION = '0.1.9';
+const APP_VERSION = '0.1.10';
 
 let state = {
     fileLoaded: false,
@@ -1087,6 +1087,15 @@ function getHaversineDistance(lat1, lon1, lat2, lon2) {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c; // metros
+}
+
+// Obtener el estado general del tramo basado en el estado de sus márgenes
+function getTramoOverallStatus(tramo) {
+    const rComp = tramo.rightMarginStatus === 'completed';
+    const lComp = tramo.leftMarginStatus === 'completed';
+    if (rComp && lComp) return 'completed';
+    if (rComp || lComp) return 'partial';
+    return 'pending';
 }
 
 // --- DIBUJADO EN EL MAPA ---
@@ -4990,78 +4999,94 @@ function splitTramoOnObstacle(tramoId, latlng, obsData) {
             date: Date.now()
         };
 
-        if (isInverseDirection) {
-            // El operario entró por el final del tramo (Extremo B) y avanzó hacia atrás.
-            // Por tanto, la parte recorrida es PART2 y la parte restante es PART1.
-            
-            // Configurar PART2 (recorrida)
-            if (activeMargin === 'right') {
-                part2.rightMarginStatus = 'completed';
-                part2.rightMarginDate = dateStr;
-            } else {
-                part2.leftMarginStatus = 'completed';
-                part2.leftMarginDate = dateStr;
-            }
-            part2.weekCompleted = `W${week}-${year}`;
-            part2.color = getWeekColor(part2.weekCompleted);
-            if (part2.rightMarginStatus === 'completed' && part2.leftMarginStatus === 'completed') {
-                part2.status = 'completed';
-                part2.dateCompleted = dateStr;
-            } else {
-                part2.status = 'partial';
-                part2.dateCompleted = dateStr;
-            }
+        // Verificar si hay un desbroce en curso activo sobre este tramo
+        const isCurrentlyWorkingOnThisTramo = (state.activeWork.tramoId === tramoId);
 
-            // Configurar PART1 (restante)
-            if (activeMargin === 'right') {
-                part1.rightMarginStatus = 'pending';
-                part1.rightMarginDate = null;
-            } else {
-                part1.leftMarginStatus = 'pending';
-                part1.leftMarginDate = null;
-            }
-            part1.status = 'pending';
-            part1.dateCompleted = null;
-            part1.weekCompleted = null;
-            part1.color = null;
+        if (isCurrentlyWorkingOnThisTramo) {
+            if (isInverseDirection) {
+                // El operario entró por el final del tramo (Extremo B) y avanzó hacia atrás.
+                // Por tanto, la parte recorrida es PART2 y la parte restante es PART1.
+                
+                // Configurar PART2 (recorrida)
+                if (activeMargin === 'right') {
+                    part2.rightMarginStatus = 'completed';
+                    part2.rightMarginDate = dateStr;
+                } else {
+                    part2.leftMarginStatus = 'completed';
+                    part2.leftMarginDate = dateStr;
+                }
+                part2.weekCompleted = `W${week}-${year}`;
+                part2.color = getWeekColor(part2.weekCompleted);
+                if (part2.rightMarginStatus === 'completed' && part2.leftMarginStatus === 'completed') {
+                    part2.status = 'completed';
+                    part2.dateCompleted = dateStr;
+                } else {
+                    part2.status = 'partial';
+                    part2.dateCompleted = dateStr;
+                }
 
-            // La alerta se asocia al final del tramo restante (PART1)
-            part1.observaciones.push(newObs);
+                // Configurar PART1 (restante - hereda del tramo original)
+                if (activeMargin === 'right') {
+                    part1.rightMarginStatus = tramo.rightMarginStatus || 'pending';
+                    part1.rightMarginDate = tramo.rightMarginDate || null;
+                } else {
+                    part1.leftMarginStatus = tramo.leftMarginStatus || 'pending';
+                    part1.leftMarginDate = tramo.leftMarginDate || null;
+                }
+                part1.status = getTramoOverallStatus(part1);
+
+                // La alerta se asocia al final del tramo restante (PART1)
+                part1.observaciones.push(newObs);
+            } else {
+                // Dirección directa normal. PART1 es recorrido, PART2 es restante.
+                
+                // Configurar PART1 (recorrida)
+                if (activeMargin === 'right') {
+                    part1.rightMarginStatus = 'completed';
+                    part1.rightMarginDate = dateStr;
+                } else {
+                    part1.leftMarginStatus = 'completed';
+                    part1.leftMarginDate = dateStr;
+                }
+                part1.weekCompleted = `W${week}-${year}`;
+                part1.color = getWeekColor(part1.weekCompleted);
+                if (part1.rightMarginStatus === 'completed' && part1.leftMarginStatus === 'completed') {
+                    part1.status = 'completed';
+                    part1.dateCompleted = dateStr;
+                } else {
+                    part1.status = 'partial';
+                    part1.dateCompleted = dateStr;
+                }
+
+                // Configurar PART2 (restante - hereda del tramo original)
+                if (activeMargin === 'right') {
+                    part2.rightMarginStatus = tramo.rightMarginStatus || 'pending';
+                    part2.rightMarginDate = tramo.rightMarginDate || null;
+                } else {
+                    part2.leftMarginStatus = tramo.leftMarginStatus || 'pending';
+                    part2.leftMarginDate = tramo.leftMarginDate || null;
+                }
+                part2.status = getTramoOverallStatus(part2);
+
+                // La alerta se asocia al inicio del tramo restante (PART2)
+                part2.observaciones.push(newObs);
+            }
         } else {
-            // Dirección directa normal. PART1 es recorrido, PART2 es restante.
-            
-            // Configurar PART1 (recorrida)
-            if (activeMargin === 'right') {
-                part1.rightMarginStatus = 'completed';
-                part1.rightMarginDate = dateStr;
-            } else {
-                part1.leftMarginStatus = 'completed';
-                part1.leftMarginDate = dateStr;
-            }
-            part1.weekCompleted = `W${week}-${year}`;
-            part1.color = getWeekColor(part1.weekCompleted);
-            if (part1.rightMarginStatus === 'completed' && part1.leftMarginStatus === 'completed') {
-                part1.status = 'completed';
-                part1.dateCompleted = dateStr;
-            } else {
-                part1.status = 'partial';
-                part1.dateCompleted = dateStr;
-            }
+            // Colocación puramente manual desde el mapa de alertas de bloqueo (sin desbroce activo).
+            // Ambas partes conservan intactos todos los márgenes y estado del tramo original.
+            part1.rightMarginStatus = tramo.rightMarginStatus || 'pending';
+            part1.rightMarginDate = tramo.rightMarginDate || null;
+            part1.leftMarginStatus = tramo.leftMarginStatus || 'pending';
+            part1.leftMarginDate = tramo.leftMarginDate || null;
+            part1.status = getTramoOverallStatus(part1);
 
-            // Configurar PART2 (restante)
-            if (activeMargin === 'right') {
-                part2.rightMarginStatus = 'pending';
-                part2.rightMarginDate = null;
-            } else {
-                part2.leftMarginStatus = 'pending';
-                part2.leftMarginDate = null;
-            }
-            part2.status = 'pending';
-            part2.dateCompleted = null;
-            part2.weekCompleted = null;
-            part2.color = null;
+            part2.rightMarginStatus = tramo.rightMarginStatus || 'pending';
+            part2.rightMarginDate = tramo.rightMarginDate || null;
+            part2.leftMarginStatus = tramo.leftMarginStatus || 'pending';
+            part2.leftMarginDate = tramo.leftMarginDate || null;
+            part2.status = getTramoOverallStatus(part2);
 
-            // La alerta se asocia al inicio del tramo restante (PART2)
+            // La alerta se asocia a la parte restante 2 en su punto de corte
             part2.observaciones.push(newObs);
         }
 
