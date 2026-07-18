@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.3';
-const VERSION = '0.1.3';
-const UPDATE_NOTES = 'Liberada v0.1.3: Activación del modal de confirmación integrado y calibración final de rotación táctil.';
+const CACHE_NAME = 'road-clearing-cache-v0.1.4';
+const VERSION = '0.1.4';
+const UPDATE_NOTES = 'Liberada v0.1.4: Implementación del aviso de actualización no invasiva e indicación de versión en el menú lateral.';
 
 const ASSETS = [
   './',

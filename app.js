@@ -46,6 +46,8 @@ window.onunhandledrejection = function(event) {
     logDebug(`Promesa fallida sin catch: ${event.reason ? event.reason.message || event.reason : event}`, 'error');
 };
 
+const APP_VERSION = '0.1.4';
+
 let state = {
     fileLoaded: false,
     loadedFiles: [],    // Array de archivos cargados: { id, name, tramosCount }
@@ -119,6 +121,12 @@ function refreshLucideIcons() {
 window.refreshLucideIcons = refreshLucideIcons;
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Inyectar el número de versión dinámicamente en el menú lateral
+    const versionLabel = document.getElementById('appVersionLabel');
+    if (versionLabel) {
+        versionLabel.innerText = `Versión v${APP_VERSION}`;
+    }
+
     initMap();
     initEventListeners();
     loadFromLocalStorage();
@@ -154,20 +162,9 @@ function initMap() {
         position: 'bottomleft'
     }).addTo(map);
 
-    // Añadir el nombre de la app y versión dinámica como prefijo de atribuciones
+    // Añadir el nombre de la app como prefijo de atribuciones
     if (map.attributionControl) {
         map.attributionControl.setPrefix('DesbroceApp | ');
-        
-        // Buscar la versión activa del Service Worker en el almacenamiento de caché
-        if (typeof caches !== 'undefined') {
-            caches.keys().then(keys => {
-                const cacheKey = keys.find(key => key.startsWith('road-clearing-'));
-                if (cacheKey) {
-                    const version = cacheKey.replace('road-clearing-', '');
-                    map.attributionControl.setPrefix(`DesbroceApp ${version} | `);
-                }
-            }).catch(e => console.warn("No se pudo leer la versión de caché:", e));
-        }
     }
 
     // Capa de mapa oscuro de CartoDB (gratuita, limpia y moderna)
