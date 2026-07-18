@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.5';
-const VERSION = '0.1.5';
-const UPDATE_NOTES = 'Liberada v0.1.5: Sistema de observaciones táctiles y bloqueo en caliente con división de tramos coherente.';
+const CACHE_NAME = 'road-clearing-cache-v0.1.6';
+const VERSION = '0.1.6';
+const UPDATE_NOTES = 'Liberada v0.1.6: Comprobacion manual forzada de actualizaciones y punto rojo indicador sobre el menu Toggle.';
 
 const ASSETS = [
   './',

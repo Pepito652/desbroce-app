@@ -46,7 +46,7 @@ window.onunhandledrejection = function(event) {
     logDebug(`Promesa fallida sin catch: ${event.reason ? event.reason.message || event.reason : event}`, 'error');
 };
 
-const APP_VERSION = '0.1.5';
+const APP_VERSION = '0.1.6';
 
 let state = {
     fileLoaded: false,
@@ -412,6 +412,15 @@ function initEventListeners() {
 
         menuToggle.addEventListener('click', (e) => {
             e.stopPropagation();
+            
+            // Forzar comprobación de actualización de PWA en red al interactuar con el menú
+            if (typeof window.checkForPwaUpdate === 'function') {
+                window.checkForPwaUpdate();
+            }
+            
+            // Quitar el punto rojo indicador, ya que el usuario está abriendo el menú
+            menuToggle.classList.remove('has-update');
+
             if (window.innerWidth > 768) {
                 // En escritorio y tablets horizontales, colapsamos/descolapsamos el sidebar
                 const appContainer = document.querySelector('.app-container');
