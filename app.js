@@ -1124,8 +1124,10 @@ function isTramoFullyBlocked(tramo) {
             if (!isBlockObs) return;
             const distToStart = getHaversineDistance(obs.lat, obs.lng, startCoord[0], startCoord[1]);
             const distToEnd   = getHaversineDistance(obs.lat, obs.lng, endCoord[0], endCoord[1]);
-            if (distToStart < 30) hasStartBlock = true;
-            if (distToEnd   < 30) hasEndBlock   = true;
+            // 80m de margen: obs nuevas están a 0m del nodo exacto; datos legacy podían estar
+            // hasta ~50-60m lejos del nodo (posición del toque del usuario en el mapa)
+            if (distToStart < 80) hasStartBlock = true;
+            if (distToEnd   < 80) hasEndBlock   = true;
         });
     });
 
@@ -5012,10 +5014,13 @@ function splitTramoOnObstacle(tramoId, latlng, obsData) {
         const { week, year } = getISOWeekAndYear(today);
 
         // Crear la Alerta/Observación de bloqueo
+        // IMPORTANTE: usar el nodo exacto del corte (coords[closestIdx]) para que
+        // isTramoFullyBlocked lo detecte siempre a 0m del extremo del tramo partido.
+        const splitNode = coords[closestIdx];
         const newObs = {
             id: 'obs_' + Date.now(),
-            lat: latlng.lat,
-            lng: latlng.lng,
+            lat: splitNode[0],
+            lng: splitNode[1],
             type: obsData.type,
             label: `${obsData.label} (Corte por bloqueo)`,
             comment: obsData.comment || 'Tractorista dio la vuelta en este punto.',
