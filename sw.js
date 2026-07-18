@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.2';
-const VERSION = '0.1.2';
-const UPDATE_NOTES = 'Añadida pantalla de bloqueo informativa al instalar la app en el navegador y solucionado el zoom tactil simultaneo.';
+const CACHE_NAME = 'road-clearing-cache-v0.1.3';
+const VERSION = '0.1.3';
+const UPDATE_NOTES = 'Liberada v0.1.3: Activación del modal de confirmación integrado y calibración final de rotación táctil.';
 
 const ASSETS = [
   './',

@@ -1109,9 +1109,9 @@ function renderTramosOnMap() {
 
         // Línea invisible (gruesa) para capturar los clics del dedo en pantallas táctiles
         const clickTarget = L.polyline(tramo.coordinates, {
-            color: 'transparent',
-            weight: 22, // Área de toque expandida a 22 píxeles
-            opacity: 0,
+            color: '#000000',
+            weight: 24, // Área de toque expandida a 24 píxeles para tractoristas
+            opacity: 0.001, // Prácticamente invisible en pantalla pero activa eventos táctiles bajo Canvas
             lineJoin: 'round',
             lineCap: 'round',
             interactive: true
@@ -2613,7 +2613,10 @@ function splitTramoAtPoint(tramo, latlng) {
             originalCoordinates: coordsPart1.map(c => [...c]),
             length: length1,
             mapLayer: null,
-            parentInfo: parentInfo
+            parentInfo: parentInfo,
+            latLngsCache: undefined,
+            totalLength: undefined,
+            accumLengths: undefined
         };
 
         const part2 = {
@@ -2624,7 +2627,10 @@ function splitTramoAtPoint(tramo, latlng) {
             originalCoordinates: coordsPart2.map(c => [...c]),
             length: length2,
             mapLayer: null,
-            parentInfo: parentInfo
+            parentInfo: parentInfo,
+            latLngsCache: undefined,
+            totalLength: undefined,
+            accumLengths: undefined
         };
 
         // Reemplazar tramo en la lista principal
@@ -3469,7 +3475,7 @@ function saveToLocalStorage() {
             fileLoaded: state.fileLoaded,
             // Guardamos todo salvo las capas del mapa (que tienen referencias circulares)
             tramos: state.tramos.map(t => {
-                const { mapLayer, clickTarget, ...rest } = t;
+                const { mapLayer, clickTarget, latLngsCache, totalLength, accumLengths, ...rest } = t;
                 return rest;
             }),
             routeOrder: state.routeOrder,
@@ -3496,6 +3502,11 @@ function loadFromLocalStorage() {
 
         // Reconstruir originalCoordinates y campos de márgenes para compatibilidad
         state.tramos.forEach(t => {
+            // Eliminar claves de caché serializadas de forma incorrecta como JSON plano
+            delete t.latLngsCache;
+            delete t.totalLength;
+            delete t.accumLengths;
+
             if (!t.originalCoordinates) {
                 t.originalCoordinates = t.coordinates.map(c => [...c]);
             }
