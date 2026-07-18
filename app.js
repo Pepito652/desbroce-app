@@ -46,7 +46,7 @@ window.onunhandledrejection = function(event) {
     logDebug(`Promesa fallida sin catch: ${event.reason ? event.reason.message || event.reason : event}`, 'error');
 };
 
-const APP_VERSION = '0.1.7';
+const APP_VERSION = '0.1.8';
 
 let state = {
     fileLoaded: false,
@@ -66,7 +66,9 @@ let state = {
     },
     customColors: {},   // Colores de la leyenda personalizados por el usuario
     isSplitMode: false, // Indica si está activo el modo de división/corte de tramos
-    splitTramoId: null  // ID del tramo que se está dividiendo actualmente
+    splitTramoId: null,  // ID del tramo que se está dividiendo actualmente
+    isObsMode: false,   // Indica si está activo el modo de marcación de alerta manual
+    obsTramoId: null    // ID del tramo sobre el que se está marcando la alerta
 };
 
 // --- PALETA DE COLORES SEMANALES ---
@@ -1195,6 +1197,12 @@ function handleTramoClick(tramo, latlng) {
             }
         } else {
             appAlert("Por favor, haz clic sobre el tramo seleccionado (naranja y discontinuo) para dividirlo, o pulsa Cancelar.", "warning");
+        }
+    } else if (state.isObsMode) {
+        if (state.obsTramoId === tramo.id) {
+            handleObsManualClick(tramo, latlng);
+        } else {
+            appAlert("Por favor, haz clic sobre el tramo seleccionado (naranja y discontinuo) para situar la alerta, o pulsa Cancelar.", "warning");
         }
     } else {
         openRoadDetail(tramo.id);
@@ -4511,7 +4519,7 @@ async function addObservationAtGps() {
     }
 }
 
-// Añadir observación tocando un punto en el mapa para un tramo (Modo interactivo con banner responsive)
+// Añadir observación tocando un punto en el mapa para un tramo (Modo interactivo con interceptación de clics en carretera)
 function addManualObservation(tramoId) {
     try {
         const tramo = state.tramos.find(t => t.id === tramoId);
@@ -4566,6 +4574,10 @@ function addManualObservation(tramoId) {
             return;
         }
 
+        // Activar estado global del modo observación manual
+        state.isObsMode = true;
+        state.obsTramoId = tramoId;
+
         // Guardar el estilo original antes de modificarlo para poder restaurarlo si cancela o termina
         const originalStyle = {
             color: polyline.options.color,
@@ -4590,11 +4602,10 @@ function addManualObservation(tramoId) {
             clickTarget.getElement().style.cursor = 'crosshair';
         }
 
-        let clickHandled = false;
-
         // Limpiador del modo de marcado de alerta
         const cleanupObsManualMode = () => {
-            clickHandled = true;
+            state.isObsMode = false;
+            state.obsTramoId = null;
             if (obsBanner) obsBanner.remove();
             if (polyline) {
                 polyline.setStyle(originalStyle);
@@ -4605,8 +4616,11 @@ function addManualObservation(tramoId) {
             if (clickTarget && clickTarget.getElement()) {
                 clickTarget.getElement().style.cursor = '';
             }
-            map.off('click', handleMapClick);
+            window.activeObsCleanup = null;
         };
+
+        // Guardar función de limpieza globalmente para acceder desde la resolución de clics
+        window.activeObsCleanup = cleanupObsManualMode;
 
         // Manejador del botón cancelar
         obsBanner.querySelector('#cancelObsBtn').onclick = (e) => {
@@ -4615,57 +4629,55 @@ function addManualObservation(tramoId) {
             openRoadDetail(tramoId);
         };
 
-        // Manejador del evento clic en el mapa
-        async function handleMapClick(e) {
-            if (clickHandled) return;
-            const latlng = e.latlng;
-            
-            // Verificar si el punto clickeado está cerca de la carretera (máximo 50 metros)
-            const proj = projectLatLngToPolyline(latlng.lat, latlng.lng, tramo.coordinates, tramo);
-            if (proj.distance > 50) {
-                appAlert("El punto seleccionado está demasiado lejos de la carretera. Inténtalo de nuevo.", "warning");
-                return;
-            }
-
-            // Limpieza inmediata del modo interactivo para apagar el listener del mapa
-            cleanupObsManualMode();
-
-            // Abrir formulario rápido de configuración de la alerta
-            const obsData = await appObservationDialog("Registrar Alerta en Mapa");
-            if (!obsData) {
-                openRoadDetail(tramoId);
-                return; // Cancelado
-            }
-
-            if (obsData.action === 'block') {
-                // Caso de bloqueo: Dividir tramo en caliente
-                splitTramoOnObstacle(tramoId, proj.point, obsData);
-            } else {
-                // Caso de solo alerta
-                const newObs = {
-                    id: 'obs_' + Date.now(),
-                    lat: proj.point.lat,
-                    lng: proj.point.lng,
-                    type: obsData.type,
-                    label: obsData.label,
-                    comment: obsData.comment,
-                    date: Date.now()
-                };
-                tramo.observaciones = tramo.observaciones || [];
-                tramo.observaciones.push(newObs);
-
-                saveToLocalStorage();
-                renderTramosOnMap();
-                appAlert(`Alerta "${obsData.label}" guardada con éxito.`, "success");
-                openRoadDetail(tramoId);
-            }
-        }
-
-        // Registrar escucha de un solo clic en el mapa
-        map.on('click', handleMapClick);
-
     } catch (err) {
         console.error("Error en addManualObservation:", err);
+    }
+}
+
+// Manejar el clic sobre la carretera cuando el modo alerta está activo
+async function handleObsManualClick(tramo, latlng) {
+    try {
+        const tramoId = tramo.id;
+        
+        // Obtener el punto proyectado exacto sobre la polilínea para situar la alerta con precisión
+        const proj = projectLatLngToPolyline(latlng.lat, latlng.lng, tramo.coordinates, tramo);
+
+        // Desactivar el modo de marcado de alerta (banner y estilos) de forma inmediata
+        if (typeof window.activeObsCleanup === 'function') {
+            window.activeObsCleanup();
+        }
+
+        // Abrir formulario rápido de configuración de la alerta
+        const obsData = await appObservationDialog("Registrar Alerta en Mapa");
+        if (!obsData) {
+            openRoadDetail(tramoId);
+            return; // Cancelado
+        }
+
+        if (obsData.action === 'block') {
+            // Caso de bloqueo: Dividir tramo en caliente
+            splitTramoOnObstacle(tramoId, proj.point, obsData);
+        } else {
+            // Caso de solo alerta
+            const newObs = {
+                id: 'obs_' + Date.now(),
+                lat: proj.point.lat,
+                lng: proj.point.lng,
+                type: obsData.type,
+                label: obsData.label,
+                comment: obsData.comment,
+                date: Date.now()
+            };
+            tramo.observaciones = tramo.observaciones || [];
+            tramo.observaciones.push(newObs);
+
+            saveToLocalStorage();
+            renderTramosOnMap();
+            appAlert(`Alerta "${obsData.label}" guardada con éxito.`, "success");
+            openRoadDetail(tramoId);
+        }
+    } catch (err) {
+        console.error("Error en handleObsManualClick:", err);
     }
 }
 
