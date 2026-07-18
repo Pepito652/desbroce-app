@@ -46,7 +46,7 @@ window.onunhandledrejection = function(event) {
     logDebug(`Promesa fallida sin catch: ${event.reason ? event.reason.message || event.reason : event}`, 'error');
 };
 
-const APP_VERSION = '0.1.4';
+const APP_VERSION = '0.1.5';
 
 let state = {
     fileLoaded: false,
@@ -1125,6 +1125,51 @@ function renderTramosOnMap() {
         tramo.clickTarget = clickTarget;
         tramosLayerGroup.addLayer(polyline);
         tramosLayerGroup.addLayer(clickTarget);
+
+        // Pintar las observaciones de este tramo si existen
+        if (tramo.observaciones && Array.isArray(tramo.observaciones)) {
+            tramo.observaciones.forEach(obs => {
+                let iconHtml = '<div class="pulse-orange"></div><div class="dot-orange">⚠️</div>';
+                if (obs.type === 'vehicles') iconHtml = '<div class="pulse-orange"></div><div class="dot-orange">🚗</div>';
+                else if (obs.type === 'branches') iconHtml = '<div class="pulse-orange"></div><div class="dot-orange">🌳</div>';
+                else if (obs.type === 'cables') iconHtml = '<div class="pulse-orange"></div><div class="dot-orange">⚡</div>';
+                
+                const obsIcon = L.divIcon({
+                    className: 'obs-map-marker',
+                    html: iconHtml,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                });
+                
+                const marker = L.marker([obs.lat, obs.lng], { icon: obsIcon });
+                
+                const dateStr = new Date(obs.date).toLocaleString('es-ES', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                marker.bindPopup(`
+                    <div style="font-family: 'Outfit', sans-serif; color: #f4f4f5; min-width: 180px; padding: 4px;">
+                        <h4 style="margin: 0 0 4px 0; color: #f59e0b; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
+                            ${obs.label}
+                        </h4>
+                        <div style="font-size: 0.72rem; color: #a1a1aa; margin-bottom: 6px;">${dateStr}</div>
+                        ${obs.comment ? `<p style="margin: 0 0 8px 0; font-size: 0.78rem; line-height: 1.3; color: #e4e4e7; background: rgba(255,255,255,0.05); padding: 6px; border-radius: 6px; white-space: pre-wrap;">${obs.comment}</p>` : ''}
+                        <button onclick="removeObservation('${tramo.id}', '${obs.id}')"
+                                style="width: 100%; font-size: 0.7rem; padding: 6px; border-radius: 4px; border: none; background: #ef4444; color: white; font-weight: bold; cursor: pointer; margin-top: 4px;">
+                            Eliminar Alerta
+                        </button>
+                    </div>
+                `, {
+                    closeButton: false,
+                    className: 'obs-popup-custom'
+                });
+                
+                tramosLayerGroup.addLayer(marker);
+            });
+        }
     });
 }
 
@@ -1895,16 +1940,23 @@ function openRoadDetail(tramoId, focusMap = true) {
                     </div>
                     
                     <!-- Fila Secundaria: Utilidades de Mapa y Edición -->
-                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
                         <a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" 
-                           style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 8px; background-color: #3b82f6; color: #fff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 0.8rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: background-color 0.2s;"
+                           style="flex: 1; min-width: 70px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 6px; background-color: #3b82f6; color: #fff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 0.78rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: background-color 0.2s;"
                            onmouseover="this.style.backgroundColor='#2563eb'"
                            onmouseout="this.style.backgroundColor='#3b82f6'">
                             <i data-lucide="navigation" style="width: 13px; height: 13px;"></i> Guiar
                         </a>
 
+                        <button onclick="addManualObservation('${tramo.id}')"
+                                 style="flex: 1; min-width: 70px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 6px; background-color: #d97706; color: #fff; border: none; border-radius: 8px; font-weight: bold; font-size: 0.78rem; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: background-color 0.2s;"
+                                 onmouseover="this.style.backgroundColor='#b45309'"
+                                 onmouseout="this.style.backgroundColor='#d97706'">
+                            <i data-lucide="alert-triangle" style="width: 13px; height: 13px;"></i> Alerta
+                        </button>
+
                         <button onclick="startSplitTramoMode('${tramo.id}')"
-                                 style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 8px; background-color: #f59e0b; color: #fff; border: none; border-radius: 8px; font-weight: bold; font-size: 0.8rem; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: background-color 0.2s;"
+                                 style="flex: 1; min-width: 70px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 6px; background-color: #f59e0b; color: #fff; border: none; border-radius: 8px; font-weight: bold; font-size: 0.78rem; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: background-color 0.2s;"
                                  onmouseover="this.style.backgroundColor='#d97706'"
                                  onmouseout="this.style.backgroundColor='#f59e0b'">
                             <i data-lucide="scissors" style="width: 13px; height: 13px;"></i> Dividir
@@ -1912,7 +1964,7 @@ function openRoadDetail(tramoId, focusMap = true) {
 
                         ${(tramo.parentInfo || tramo.id.includes('_p1_') || tramo.id.includes('_p2_')) ? `
                         <button onclick="undoSplitTramo('${tramo.id}')"
-                                 style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 8px; background-color: #4b5563; color: #fff; border: none; border-radius: 8px; font-weight: bold; font-size: 0.8rem; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: background-color 0.2s;"
+                                 style="flex: 1; min-width: 70px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 6px; background-color: #4b5563; color: #fff; border: none; border-radius: 8px; font-weight: bold; font-size: 0.78rem; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: background-color 0.2s;"
                                  onmouseover="this.style.backgroundColor='#374151'"
                                  onmouseout="this.style.backgroundColor='#4b5563'">
                             <i data-lucide="rotate-ccw" style="width: 13px; height: 13px;"></i> Unir
@@ -3504,6 +3556,8 @@ function loadFromLocalStorage() {
             delete t.totalLength;
             delete t.accumLengths;
 
+            t.observaciones = t.observaciones || [];
+
             if (!t.originalCoordinates) {
                 t.originalCoordinates = t.coordinates.map(c => [...c]);
             }
@@ -4394,4 +4448,464 @@ function initPerformanceMonitor() {
 
 // Iniciar el monitor
 document.addEventListener('DOMContentLoaded', initPerformanceMonitor);
+
+// --- SISTEMA DE OBSERVACIONES Y PUNTOS DE CONFLICTO (v0.1.5) ---
+
+// Añadir observación en la posición actual del GPS (mientras trabaja)
+async function addObservationAtGps() {
+    try {
+        if (!state.activeWork || !state.activeWork.tramoId) {
+            appAlert("No hay ningún tramo activo en desbroce.", "warning");
+            return;
+        }
+
+        const tramoId = state.activeWork.tramoId;
+        const tramo = state.tramos.find(t => t.id === tramoId);
+        if (!tramo) return;
+
+        let loc = state.userLocation;
+        if (!loc) {
+            appAlert("Esperando señal GPS precisa. Inténtalo de nuevo en unos segundos.", "warning");
+            return;
+        }
+
+        const obsData = await appObservationDialog("Registrar Alerta en GPS");
+        if (!obsData) return; // Canceló el diálogo
+
+        if (obsData.action === 'block') {
+            // Caso de bloqueo: Dividir tramo y detener
+            splitTramoOnObstacle(tramoId, loc, obsData);
+        } else {
+            // Caso de solo alerta: Añadir y continuar
+            const newObs = {
+                id: 'obs_' + Date.now(),
+                lat: loc.lat,
+                lng: loc.lng,
+                type: obsData.type,
+                label: obsData.label,
+                comment: obsData.comment,
+                date: Date.now()
+            };
+            tramo.observaciones = tramo.observaciones || [];
+            tramo.observaciones.push(newObs);
+
+            saveToLocalStorage();
+            renderTramosOnMap();
+            appAlert(`Alerta "${obsData.label}" registrada con éxito en el mapa.`, "success");
+        }
+    } catch (err) {
+        console.error("Error en addObservationAtGps:", err);
+    }
+}
+
+// Añadir observación tocando un punto en el mapa para un tramo
+function addManualObservation(tramoId) {
+    try {
+        const tramo = state.tramos.find(t => t.id === tramoId);
+        if (!tramo) return;
+
+        // Cerrar panel de detalles momentáneamente
+        closeRoadDetail();
+
+        appAlert("Toca el punto de la carretera en el mapa donde se encuentra el obstáculo.", "info");
+
+        // Activar escucha de clic única en el mapa para posicionar la alerta
+        map.once('click', async (e) => {
+            const latlng = e.latlng;
+            
+            // Verificar si el punto clickeado está cerca de la carretera (máximo 50 metros)
+            const proj = projectLatLngToPolyline(latlng.lat, latlng.lng, tramo.coordinates, tramo);
+            if (proj.distance > 50) {
+                appAlert("El punto seleccionado está demasiado lejos de la carretera. Marcación cancelada.", "warning");
+                openRoadDetail(tramoId);
+                return;
+            }
+
+            const obsData = await appObservationDialog("Registrar Alerta en Mapa");
+            if (!obsData) {
+                openRoadDetail(tramoId);
+                return; // Cancelado
+            }
+
+            if (obsData.action === 'block') {
+                // Caso de bloqueo: Dividir tramo en el punto del mapa clickeado
+                splitTramoOnObstacle(tramoId, proj.point, obsData);
+            } else {
+                // Caso de solo alerta
+                const newObs = {
+                    id: 'obs_' + Date.now(),
+                    lat: proj.point.lat,
+                    lng: proj.point.lng,
+                    type: obsData.type,
+                    label: obsData.label,
+                    comment: obsData.comment,
+                    date: Date.now()
+                };
+                tramo.observaciones = tramo.observaciones || [];
+                tramo.observaciones.push(newObs);
+
+                saveToLocalStorage();
+                renderTramosOnMap();
+                appAlert(`Alerta "${obsData.label}" guardada en la carretera.`, "success");
+                openRoadDetail(tramoId);
+            }
+        });
+    } catch (err) {
+        console.error("Error en addManualObservation:", err);
+    }
+}
+
+// Diálogo interactivo táctil para observaciones y conflictos
+function appObservationDialog(title = "Registrar Alerta") {
+    return new Promise((resolve) => {
+        const modal = document.createElement('div');
+        modal.className = 'custom-dialog-overlay';
+        
+        modal.innerHTML = `
+            <div class="custom-dialog-card animate-scale-up" style="max-width: 420px; width: 92%; padding: 1.5rem 1.25rem;">
+                <h3 class="dialog-title" style="margin: 0 0 12px 0; font-family: 'Outfit', sans-serif; text-align: center; color: #fff; font-size: 1.1rem;">⚠️ ${title}</h3>
+                
+                <!-- Tipo de Obstáculo (Opciones rápidas gigantes) -->
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 0.75rem; color: #a1a1aa; margin-bottom: 6px; font-weight: 500;">Tipo de obstáculo / peligro:</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;" id="obsTypeGrid">
+                        <button type="button" class="btn-obs-type active" data-type="vehicles" data-label="Vehículo obstaculizando"
+                                style="padding: 10px 4px; font-size: 0.78rem; font-family: 'Outfit', sans-serif; border-radius: 8px; border: 1px solid #f59e0b; background: rgba(245,158,11,0.1); color: #f59e0b; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                            🚗 Vehículos
+                        </button>
+                        <button type="button" class="btn-obs-type" data-type="branches" data-label="Ramas / Cañas bajas"
+                                style="padding: 10px 4px; font-size: 0.78rem; font-family: 'Outfit', sans-serif; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.03); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                            🌳 Ramas Bajas
+                        </button>
+                        <button type="button" class="btn-obs-type" data-type="narrow" data-label="Camino estrecho"
+                                style="padding: 10px 4px; font-size: 0.78rem; font-family: 'Outfit', sans-serif; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.03); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                            🚧 Estrecho
+                        </button>
+                        <button type="button" class="btn-obs-type" data-type="cables" data-label="Cableado bajo"
+                                style="padding: 10px 4px; font-size: 0.78rem; font-family: 'Outfit', sans-serif; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.03); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                            ⚡ Cables Bajos
+                        </button>
+                        <button type="button" class="btn-obs-type" data-type="obstacle" data-label="Obstáculo / Bache"
+                                style="padding: 10px 4px; font-size: 0.78rem; font-family: 'Outfit', sans-serif; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.03); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                            🕳️ Bache / Zanja
+                        </button>
+                        <button type="button" class="btn-obs-type" data-type="other" data-label="Otros peligros"
+                                style="padding: 10px 4px; font-size: 0.78rem; font-family: 'Outfit', sans-serif; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.03); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                            ⚠️ Otros
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Comentario libre (Opcional) -->
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 0.75rem; color: #a1a1aa; margin-bottom: 6px; font-weight: 500;">Comentario u Observaciones (Opcional):</label>
+                    <textarea id="obsComment" rows="2" placeholder="Escribe aquí los detalles del obstáculo..." 
+                              style="width: 100%; background: #27272a; border: 1px solid #52525b; border-radius: 8px; color: #fff; padding: 8px; font-size: 0.82rem; font-family: 'Outfit', sans-serif; resize: none; box-sizing: border-box; outline: none;"></textarea>
+                </div>
+                
+                <!-- Opciones de Impacto de Desbroce -->
+                <div style="margin-bottom: 18px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
+                    <label style="display: block; font-size: 0.75rem; color: #a1a1aa; margin-bottom: 8px; font-weight: 500; text-align: center;">¿Cómo afecta este obstáculo al desbroce?</label>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <button type="button" class="btn-obs-action active" data-action="alert"
+                                style="padding: 11px; font-size: 0.85rem; font-family: 'Outfit', sans-serif; border-radius: 8px; border: 1px solid #10b981; background: rgba(16,185,129,0.1); color: #10b981; font-weight: bold; cursor: pointer; text-align: center;">
+                            Solo Alerta (Puedo pasar de largo)
+                        </button>
+                        <button type="button" class="btn-obs-action" data-action="block"
+                                style="padding: 11px; font-size: 0.85rem; font-family: 'Outfit', sans-serif; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.03); color: var(--text-secondary); cursor: pointer; font-weight: bold; text-align: center;">
+                            🛑 Bloqueo / Dar la vuelta (No puedo avanzar)
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Acciones Finales -->
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-secondary btn-dialog-cancel" style="flex: 1; padding: 10px; font-family: 'Outfit', sans-serif; font-weight: bold; cursor: pointer;">Cancelar</button>
+                    <button class="btn btn-primary btn-dialog-save" style="flex: 1; padding: 10px; font-family: 'Outfit', sans-serif; font-weight: bold; background-color: var(--accent); border-color: var(--accent); cursor: pointer;">Guardar</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Manejador del grid de tipos de obstáculo
+        const typeButtons = modal.querySelectorAll('.btn-obs-type');
+        let selectedType = 'vehicles';
+        let selectedLabel = 'Vehículo obstaculizando';
+        
+        typeButtons.forEach(btn => {
+            btn.onclick = () => {
+                typeButtons.forEach(b => {
+                    b.style.borderColor = 'var(--border-color)';
+                    b.style.background = 'rgba(255,255,255,0.03)';
+                    b.style.color = 'var(--text-secondary)';
+                    b.classList.remove('active');
+                });
+                btn.style.borderColor = '#f59e0b';
+                btn.style.background = 'rgba(245,158,11,0.1)';
+                btn.style.color = '#f59e0b';
+                btn.classList.add('active');
+                selectedType = btn.dataset.type;
+                selectedLabel = btn.dataset.label;
+            };
+        });
+        
+        // Manejador de las acciones (Solo Alerta / Bloqueo)
+        const actionButtons = modal.querySelectorAll('.btn-obs-action');
+        let selectedAction = 'alert';
+        
+        actionButtons.forEach(btn => {
+            btn.onclick = () => {
+                actionButtons.forEach(b => {
+                    b.style.borderColor = 'var(--border-color)';
+                    b.style.background = 'rgba(255,255,255,0.03)';
+                    b.style.color = 'var(--text-secondary)';
+                    b.classList.remove('active');
+                });
+                if (btn.dataset.action === 'alert') {
+                    btn.style.borderColor = '#10b981';
+                    btn.style.background = 'rgba(16,185,129,0.1)';
+                    btn.style.color = '#10b981';
+                } else {
+                    btn.style.borderColor = '#ef4444';
+                    btn.style.background = 'rgba(239,68,68,0.1)';
+                    btn.style.color = '#ef4444';
+                }
+                btn.classList.add('active');
+                selectedAction = btn.dataset.action;
+            };
+        });
+        
+        modal.querySelector('.btn-dialog-cancel').onclick = () => {
+            modal.classList.add('fade-out');
+            setTimeout(() => {
+                modal.remove();
+                resolve(null);
+            }, 200);
+        };
+        
+        modal.querySelector('.btn-dialog-save').onclick = () => {
+            const comment = modal.querySelector('#obsComment').value.trim();
+            modal.classList.add('fade-out');
+            setTimeout(() => {
+                modal.remove();
+                resolve({
+                    type: selectedType,
+                    label: selectedLabel,
+                    comment: comment,
+                    action: selectedAction
+                });
+            }, 200);
+        };
+    });
+}
+
+// Dividir el tramo en caliente al llegar a un obstáculo insalvable
+function splitTramoOnObstacle(tramoId, latlng, obsData) {
+    try {
+        const tramo = state.tramos.find(t => t.id === tramoId);
+        if (!tramo) return;
+
+        const coords = tramo.coordinates;
+        if (coords.length < 3) {
+            appAlert("Este tramo es demasiado corto para dividirlo (menos de 3 coordenadas).", "warning");
+            return;
+        }
+
+        // Buscar el nodo de coordenadas más cercano al obstáculo
+        let closestIdx = -1;
+        let minDistance = Infinity;
+        for (let i = 0; i < coords.length; i++) {
+            const dist = getHaversineDistance(latlng.lat, latlng.lng, coords[i][0], coords[i][1]);
+            if (dist < minDistance) {
+                minDistance = dist;
+                closestIdx = i;
+            }
+        }
+
+        // Evitar divisiones en extremos absolutos
+        if (closestIdx <= 0 || closestIdx >= coords.length - 1) {
+            appAlert("No se puede registrar el obstáculo en los extremos del tramo.", "warning");
+            return;
+        }
+
+        // Dividir coordenadas
+        const coordsPart1 = coords.slice(0, closestIdx + 1);
+        const coordsPart2 = coords.slice(closestIdx);
+
+        const length1 = calculateLineLength(coordsPart1);
+        const length2 = calculateLineLength(coordsPart2);
+
+        // Crear parentInfo
+        const timePart = Date.now();
+        const parentInfo = {
+            id: tramo.id,
+            name: tramo.parentInfo ? tramo.parentInfo.name : tramo.name,
+            status: tramo.parentInfo ? tramo.parentInfo.status : tramo.status,
+            rightMarginStatus: tramo.parentInfo ? tramo.parentInfo.rightMarginStatus : tramo.rightMarginStatus,
+            leftMarginStatus: tramo.parentInfo ? tramo.parentInfo.leftMarginStatus : tramo.leftMarginStatus,
+            dateCompleted: tramo.parentInfo ? tramo.parentInfo.dateCompleted : tramo.dateCompleted,
+            color: tramo.parentInfo ? tramo.parentInfo.color : tramo.color,
+            weekNumber: tramo.parentInfo ? tramo.parentInfo.weekNumber : tramo.weekNumber,
+            weekCompleted: tramo.parentInfo ? tramo.parentInfo.weekCompleted : tramo.weekCompleted
+        };
+
+        const nameMatch = tramo.name.match(/(.+)\s+\(Parte\s+([\d\.]+)\)$/);
+        let namePart1, namePart2;
+        if (nameMatch) {
+            const cleanBase = nameMatch[1];
+            const currentSeq = nameMatch[2];
+            namePart1 = `${cleanBase} (Parte ${currentSeq}.1)`;
+            namePart2 = `${cleanBase} (Parte ${currentSeq}.2)`;
+        } else {
+            namePart1 = `${tramo.name} (Parte 1)`;
+            namePart2 = `${tramo.name} (Parte 2)`;
+        }
+
+        // Crear la primera parte (lo recorrido desbrozado)
+        const part1 = {
+            ...tramo,
+            id: `${tramo.id}_p1_${timePart}`,
+            name: namePart1,
+            coordinates: coordsPart1,
+            originalCoordinates: coordsPart1.map(c => [...c]),
+            length: length1,
+            mapLayer: null,
+            clickTarget: null,
+            parentInfo: parentInfo,
+            latLngsCache: undefined,
+            totalLength: undefined,
+            accumLengths: undefined,
+            observaciones: tramo.observaciones ? tramo.observaciones.filter(o => {
+                const proj = projectLatLngToPolyline(o.lat, o.lng, coordsPart1);
+                return proj.distance < 30;
+            }) : []
+        };
+
+        // Crear la segunda parte (lo que queda pendiente por desbrozar)
+        const part2 = {
+            ...tramo,
+            id: `${tramo.id}_p2_${timePart}`,
+            name: namePart2,
+            coordinates: coordsPart2,
+            originalCoordinates: coordsPart2.map(c => [...c]),
+            length: length2,
+            mapLayer: null,
+            clickTarget: null,
+            parentInfo: parentInfo,
+            latLngsCache: undefined,
+            totalLength: undefined,
+            accumLengths: undefined,
+            observaciones: tramo.observaciones ? tramo.observaciones.filter(o => {
+                const proj = projectLatLngToPolyline(o.lat, o.lng, coordsPart2);
+                return proj.distance < 30;
+            }) : []
+        };
+
+        // 1. Guardar la pasada en la parte 1 (recorrida)
+        const activeMargin = state.activeWork.margin || 'right';
+        const today = new Date();
+        const dateStr = today.toISOString().split('T')[0];
+
+        if (activeMargin === 'right') {
+            part1.rightMarginStatus = 'completed';
+            part1.rightMarginDate = dateStr;
+        } else {
+            part1.leftMarginStatus = 'completed';
+            part1.leftMarginDate = dateStr;
+        }
+
+        // Recalcular estado y color según la semana de trabajo actual
+        const { week, year } = getISOWeekAndYear(today);
+        part1.weekCompleted = `W${week}-${year}`;
+        part1.color = getWeekColor(part1.weekCompleted);
+
+        if (part1.rightMarginStatus === 'completed' && part1.leftMarginStatus === 'completed') {
+            part1.status = 'completed';
+            part1.dateCompleted = dateStr;
+        } else {
+            part1.status = 'partial';
+            part1.dateCompleted = dateStr;
+        }
+
+        // 2. La parte 2 queda pendiente (gris)
+        if (activeMargin === 'right') {
+            part2.rightMarginStatus = 'pending';
+            part2.rightMarginDate = null;
+        } else {
+            part2.leftMarginStatus = 'pending';
+            part2.leftMarginDate = null;
+        }
+
+        if (part2.rightMarginStatus === 'completed' && part2.leftMarginStatus === 'completed') {
+            part2.status = 'completed';
+            part2.dateCompleted = dateStr;
+            part2.weekCompleted = `W${week}-${year}`;
+            part2.color = getWeekColor(part2.weekCompleted);
+        } else if (part2.rightMarginStatus === 'completed' || part2.leftMarginStatus === 'completed') {
+            part2.status = 'partial';
+            part2.dateCompleted = dateStr;
+            part2.weekCompleted = `W${week}-${year}`;
+            part2.color = getWeekColor(part2.weekCompleted);
+        } else {
+            part2.status = 'pending';
+            part2.dateCompleted = null;
+            part2.weekCompleted = null;
+            part2.color = null;
+        }
+
+        // 3. Añadir la Alerta/Observación de bloqueo al inicio del tramo nuevo (part2)
+        const newObs = {
+            id: 'obs_' + Date.now(),
+            lat: latlng.lat,
+            lng: latlng.lng,
+            type: obsData.type,
+            label: `${obsData.label} (Corte por bloqueo)`,
+            comment: obsData.comment || 'Tractorista dio la vuelta en este punto.',
+            date: Date.now()
+        };
+        part2.observaciones.push(newObs);
+
+        // Desactivar el modo trabajo activo
+        cancelActiveWork();
+
+        // Reemplazar tramo en la lista principal
+        const tramoIndex = state.tramos.findIndex(t => t.id === tramoId);
+        if (tramoIndex !== -1) {
+            state.tramos.splice(tramoIndex, 1, part1, part2);
+        }
+
+        saveToLocalStorage();
+        renderTramosOnMap();
+        updateUI();
+
+        appAlert(`Trayecto dividido. Tramo recorrido registrado en Semana ${part1.weekCompleted}. Alerta de bloqueo posicionada en el mapa.`, "success");
+    } catch (err) {
+        console.error("Error en splitTramoOnObstacle:", err);
+    }
+}
+
+// Eliminar un marcador de advertencia/observación
+function removeObservation(tramoId, obsId) {
+    try {
+        const tramo = state.tramos.find(t => t.id === tramoId);
+        if (!tramo) return;
+
+        tramo.observaciones = tramo.observaciones.filter(o => o.id !== obsId);
+
+        // Cerrar popups de Leaflet que puedan estar abiertos
+        map.closePopup();
+
+        saveToLocalStorage();
+        renderTramosOnMap();
+        appAlert("Observación eliminada del tramo.", "info");
+
+        // Si la bottom sheet de detalles estaba abierta, refrescarla
+        if (state.selectedTramoId === tramoId) {
+            openRoadDetail(tramoId);
+        }
+    } catch (err) {
+        console.error("Error en removeObservation:", err);
+    }
+}
 
