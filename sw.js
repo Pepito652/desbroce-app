@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-5507';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-2004';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #5507: Comprobacion fisica de coordenadas para evitar cierres del menu y apertura en Carga si hay actualizacion.';
+const UPDATE_NOTES = 'Hotfix #2004: Menu lateral movil clasico robusto sin detector de clics global en el documento.';
 
 const ASSETS = [
   './',

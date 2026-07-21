@@ -356,10 +356,18 @@ function initMap() {
         }
     });
 
-    // Escuchar clics en el mapa vacío para cerrar la tarjeta inferior de detalles
+    // Escuchar clics en el mapa vacío para cerrar la tarjeta inferior de detalles y el menú lateral en móvil
     map.on('click', (e) => {
         if (!state.isSplitMode) {
             closeRoadDetail();
+        }
+        
+        // Cerrar sidebar en móvil al pulsar en el mapa
+        if (window.innerWidth <= 768) {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar && sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+            }
         }
     });
 }
@@ -483,34 +491,7 @@ function initEventListeners() {
             }
         });
 
-        // Cerrar sidebar al hacer clic fuera del sidebar en pantallas pequeñas
-        document.addEventListener('click', (e) => {
-            if (window.innerWidth <= 768) {
-                // Obtener las coordenadas en pantalla del sidebar
-                const sidebarRect = sidebar.getBoundingClientRect();
-                
-                // Si el panel lateral está activo y el toque ha ocurrido físicamente dentro de su ancho
-                // (por ejemplo, entre 0 y sidebarRect.right), ignoramos el clic para evitar auto-cierres.
-                if (sidebar.classList.contains('active')) {
-                    const clickX = e.clientX;
-                    const clickY = e.clientY;
-                    
-                    // Si el toque está dentro del área visible del panel lateral, no cerrar
-                    if (clickX >= sidebarRect.left && clickX <= sidebarRect.right &&
-                        clickY >= sidebarRect.top && clickY <= sidebarRect.bottom) {
-                        return;
-                    }
-                    
-                    // Si se pulsa sobre el botón hamburguesa (menuToggle) o su icono, no cerrar (ya lo maneja su listener)
-                    if (e.target.closest('#menuToggle')) {
-                        return;
-                    }
 
-                    // En caso de que el clic haya sido físicamente en el mapa (fuera del sidebar), cerramos
-                    sidebar.classList.remove('active');
-                }
-            }
-        });
 
         // Soporte para cerrar el menú lateral deslizándolo hacia la izquierda (gesto táctil)
         if (sidebar) {
