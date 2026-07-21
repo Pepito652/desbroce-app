@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-9099';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-9090';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #9099: Corregido error crítico de sintaxis en el archivo de eventos de la app.';
+const UPDATE_NOTES = 'Hotfix #9090: Añadido menú clonado experimental y overlay de sombra nativo.';
 
 const ASSETS = [
   './',
