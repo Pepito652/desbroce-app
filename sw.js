@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-1092';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-5507';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #1092: Blindado total del panel lateral contra cierres involuntarios al pulsar botones internos.';
+const UPDATE_NOTES = 'Hotfix #5507: Comprobacion fisica de coordenadas para evitar cierres del menu y apertura en Carga si hay actualizacion.';
 
 const ASSETS = [
   './',

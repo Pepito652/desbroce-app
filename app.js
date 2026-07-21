@@ -424,6 +424,29 @@ function initEventListeners() {
                 window.checkForPwaUpdate();
             }
             
+            // Si tiene la clase 'has-update', significa que hay una nueva versión y debemos cambiar a la pestaña 'Carga'
+            const hasUpdate = menuToggle.classList.contains('has-update');
+            if (hasUpdate) {
+                // Activar pestaña Carga visualmente
+                const tabs = document.querySelectorAll('.tab-btn');
+                tabs.forEach(t => {
+                    if (t.getAttribute('data-tab') === 'tabCarga') {
+                        t.classList.add('active');
+                    } else {
+                        t.classList.remove('active');
+                    }
+                });
+                
+                // Mostrar contenedor Carga y ocultar los demás
+                document.querySelectorAll('.tab-content').forEach(c => {
+                    if (c.id === 'tabCarga') {
+                        c.classList.add('active');
+                    } else {
+                        c.classList.remove('active');
+                    }
+                });
+            }
+            
             // Quitar el punto rojo indicador, ya que el usuario está abriendo el menú
             menuToggle.classList.remove('has-update');
 
@@ -463,17 +486,27 @@ function initEventListeners() {
         // Cerrar sidebar al hacer clic fuera del sidebar en pantallas pequeñas
         document.addEventListener('click', (e) => {
             if (window.innerWidth <= 768) {
-                // Si el clic ocurrió físicamente dentro del sidebar o sobre el botón de abrir (menuToggle), ignoramos
-                if (!e.target || e.target.closest('#sidebar') || e.target.closest('#menuToggle')) {
-                    return;
-                }
-
-                // Si el elemento clicado ya no está en el DOM (destruido tras cambiar la UI), también ignoramos
-                if (!document.body.contains(e.target)) {
-                    return;
-                }
-
+                // Obtener las coordenadas en pantalla del sidebar
+                const sidebarRect = sidebar.getBoundingClientRect();
+                
+                // Si el panel lateral está activo y el toque ha ocurrido físicamente dentro de su ancho
+                // (por ejemplo, entre 0 y sidebarRect.right), ignoramos el clic para evitar auto-cierres.
                 if (sidebar.classList.contains('active')) {
+                    const clickX = e.clientX;
+                    const clickY = e.clientY;
+                    
+                    // Si el toque está dentro del área visible del panel lateral, no cerrar
+                    if (clickX >= sidebarRect.left && clickX <= sidebarRect.right &&
+                        clickY >= sidebarRect.top && clickY <= sidebarRect.bottom) {
+                        return;
+                    }
+                    
+                    // Si se pulsa sobre el botón hamburguesa (menuToggle) o su icono, no cerrar (ya lo maneja su listener)
+                    if (e.target.closest('#menuToggle')) {
+                        return;
+                    }
+
+                    // En caso de que el clic haya sido físicamente en el mapa (fuera del sidebar), cerramos
                     sidebar.classList.remove('active');
                 }
             }
