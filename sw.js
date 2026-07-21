@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-9440';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-1783';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #9440: Optimizacion de rendimiento movil, reutilizacion de polilineas en mapa y guardado diferido.';
+const UPDATE_NOTES = 'Hotfix #1783: Corregido cierre involuntario del menu lateral al pulsar en las pestañas en movil.';
 
 const ASSETS = [
   './',

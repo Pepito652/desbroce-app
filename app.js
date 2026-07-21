@@ -370,7 +370,8 @@ function initEventListeners() {
         // Navegación de pestañas
         const tabs = document.querySelectorAll('.tab-btn');
         tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
+            tab.addEventListener('click', (e) => {
+                e.stopPropagation(); // Evitar que el clic en la pestaña se propague a document y cierre el sidebar en móvil
                 tabs.forEach(t => t.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 
