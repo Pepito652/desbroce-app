@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-7041';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-8222';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #7041: Exportacion KML mejorada con alertas de punto, tramos bloqueados/parciales y metadatos de margenes.';
+const UPDATE_NOTES = 'Hotfix #8222: Exportacion de reporte en PDF con KPIs, desglose semanal, tramos y anexo de alertas.';
 
 const ASSETS = [
   './',

@@ -560,6 +560,7 @@ function initEventListeners() {
 
         // Exportación
         document.getElementById('exportKmlBtn').addEventListener('click', exportKML);
+        document.getElementById('exportPdfBtn').addEventListener('click', exportPDF);
 
         // Borrar datos
         document.getElementById('resetAppBtn').addEventListener('click', clearAllData);
@@ -1302,6 +1303,7 @@ function updateUI() {
         // Activar/desactivar botones según si hay datos cargados
         const disableBtns = !state.fileLoaded;
         document.getElementById('exportKmlBtn').disabled = disableBtns;
+        document.getElementById('exportPdfBtn').disabled = disableBtns;
     } catch (e) {
         console.error("Error en updateUI:", e);
         appAlert("Error crítico al actualizar interfaz (updateUI): " + e.message, 'error');
@@ -3726,6 +3728,260 @@ function convertHexToKmlColor(hex, alphaHex = 'ff') {
     
     // En KML es Alpha + Blue + Green + Red (aabbggrr)
     return `${alphaHex}${b}${g}${r}`.toLowerCase();
+}
+
+// Exportar Informe de Avance de Desbroce en formato PDF usando jsPDF
+async function exportPDF() {
+    if (state.tramos.length === 0) return;
+
+    try {
+        const { jsPDF } = window.jspdf;
+        if (!jsPDF) {
+            appAlert("Librería jsPDF no cargada aún. Inténtalo de nuevo.", "error");
+            return;
+        }
+
+        const doc = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+
+        const firstFileName = (state.loadedFiles && state.loadedFiles.length > 0) ? state.loadedFiles[0].name : "desbroce";
+        const baseName = firstFileName.replace(/\.[^/.]+$/, "");
+
+        // 1. Cálculos de estadísticas
+        let totalMeters = 0;
+        let completedMeters = 0;
+        let partialMeters = 0;
+        let blockedMeters = 0;
+
+        const semanasStats = {};
+        const allAlerts = [];
+
+        state.tramos.forEach(t => {
+            totalMeters += (t.length || 0);
+            const isBlocked = isTramoFullyBlocked(t);
+            const isCompleted = t.status === 'completed';
+            const isPartial = t.status === 'partial';
+
+            if (isBlocked) {
+                blockedMeters += (t.length || 0);
+            } else if (isCompleted) {
+                completedMeters += (t.length || 0);
+                if (t.weekCompleted) {
+                    const semLabel = t.weekCompleted.startsWith('KML_') ? `Importada (Color ${getColorNameSpanish(t.color)})` : t.weekCompleted;
+                    if (!semanasStats[semLabel]) {
+                        semanasStats[semLabel] = {
+                            color: t.color || '#3b82f6',
+                            length: 0
+                        };
+                    }
+                    semanasStats[semLabel].length += t.length;
+                }
+            } else if (isPartial) {
+                partialMeters += (t.length || 0);
+            }
+
+            if (t.observaciones && Array.isArray(t.observaciones)) {
+                t.observaciones.forEach(obs => {
+                    allAlerts.push({
+                        ...obs,
+                        tramoName: t.name
+                    });
+                });
+            }
+        });
+
+        const totalKm = (totalMeters / 1000).toFixed(2);
+        const completedKm = (completedMeters / 1000).toFixed(2);
+        const partialKm = (partialMeters / 1000).toFixed(2);
+        const blockedKm = (blockedMeters / 1000).toFixed(2);
+        const pendingKm = ((totalMeters - completedMeters - partialMeters - blockedMeters) / 1000).toFixed(2);
+        const percent = totalMeters > 0 ? Math.round((completedMeters / totalMeters) * 100) : 0;
+
+        // --- DISEÑO DE PÁGINA ---
+        let currentY = 15;
+
+        // Cabecera Principal
+        doc.setFillColor(15, 23, 42); // Slate 900
+        doc.rect(0, 0, 210, 38, 'F');
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(18);
+        doc.text("INFORME DE AVANCE DE DESBROCE", 14, 16);
+
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(203, 213, 225);
+        doc.text(`Proyecto: ${baseName}`, 14, 23);
+        doc.text(`Generado: ${new Date().toLocaleDateString('es-ES')} - ${new Date().toLocaleTimeString('es-ES')}`, 14, 28);
+        doc.text(`DesbroceApp v${VERSION}`, 14, 33);
+
+        // Logo tractor emoji simulado en la esquina superior derecha
+        doc.setFontSize(22);
+        doc.text("🚜", 175, 24);
+
+        currentY = 46;
+
+        // Sección 1: Resumen General (Tarjetas de KPI)
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(15, 23, 42);
+        doc.text("1. RESUMEN EJECUTIVO", 14, currentY);
+        currentY += 6;
+
+        // Dibujar cajas de KPIs
+        const drawKPI = (x, y, w, h, title, val, color) => {
+            doc.setFillColor(248, 250, 252);
+            doc.setDrawColor(226, 232, 240);
+            doc.roundedRect(x, y, w, h, 2, 2, 'FD');
+            
+            doc.setFillColor(color[0], color[1], color[2]);
+            doc.rect(x + 1, y + 1, 2, h - 2, 'F');
+
+            doc.setFont('Helvetica', 'normal');
+            doc.setFontSize(7.5);
+            doc.setTextColor(100, 116, 139);
+            doc.text(title, x + 6, y + 6);
+
+            doc.setFont('Helvetica', 'bold');
+            doc.setFontSize(11);
+            doc.setTextColor(15, 23, 42);
+            doc.text(val, x + 6, y + 13);
+        };
+
+        drawKPI(14, currentY, 34, 18, "TOTAL OBRA", `${totalKm} km`, [100, 116, 139]);
+        drawKPI(52, currentY, 34, 18, "DESBROZADO", `${completedKm} km`, [16, 185, 129]);
+        drawKPI(90, currentY, 34, 18, "PARCIAL", `${partialKm} km`, [245, 158, 11]);
+        drawKPI(128, currentY, 34, 18, "BLOQUEADO", `${blockedKm} km`, [239, 68, 68]);
+        drawKPI(166, currentY, 30, 18, "PROGRESO", `${percent}%`, [59, 130, 246]);
+
+        currentY += 25;
+
+        // Sección 2: Desglose por Semana
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(15, 23, 42);
+        doc.text("2. RENDIMIENTO POR SEMANAS DE TRABAJO", 14, currentY);
+        currentY += 4;
+
+        const weeksRows = [];
+        const sortedWeeks = Object.keys(semanasStats).sort();
+        sortedWeeks.forEach(sem => {
+            const stat = semanasStats[sem];
+            const km = (stat.length / 1000).toFixed(2);
+            const percentSem = totalMeters > 0 ? ((stat.length / totalMeters) * 100).toFixed(1) : "0.0";
+            weeksRows.push([
+                sem,
+                `${km} km`,
+                `${percentSem}%`,
+                getColorNameSpanish(stat.color)
+            ]);
+        });
+
+        if (weeksRows.length === 0) {
+            weeksRows.push(["Sin avances registrados", "-", "-", "-"]);
+        }
+
+        doc.autoTable({
+            startY: currentY,
+            head: [['Semana / Grupo', 'Kilómetros Realizados', '% sobre el total', 'Color asignado']],
+            body: weeksRows,
+            theme: 'striped',
+            headStyles: { fillColor: [59, 130, 246] }, // Azul principal
+            margin: { left: 14, right: 14 },
+            styles: { fontSize: 8.5 }
+        });
+
+        currentY = doc.lastAutoTable.finalY + 10;
+
+        // Sección 3: Detalle por carreteras
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(15, 23, 42);
+        doc.text("3. ESTADO DETALLADO DE CARRETERAS", 14, currentY);
+        currentY += 4;
+
+        const tramosRows = [];
+        state.routeOrder.forEach((tramoId, index) => {
+            const tramo = state.tramos.find(t => t.id === tramoId);
+            if (!tramo) return;
+
+            const isBlocked = isTramoFullyBlocked(tramo);
+            let estado = "Pendiente";
+            if (isBlocked) estado = "Bloqueado";
+            else if (tramo.status === 'completed') estado = "Desbrozado";
+            else if (tramo.status === 'partial') estado = "Parcial";
+
+            tramosRows.push([
+                index + 1,
+                tramo.name || "Sin nombre",
+                `${(tramo.length / 1000).toFixed(2)} km`,
+                estado,
+                tramo.leftMarginStatus === 'completed' ? 'Completado' : 'Pendiente',
+                tramo.rightMarginStatus === 'completed' ? 'Completado' : 'Pendiente',
+                tramo.weekCompleted || '-'
+            ]);
+        });
+
+        doc.autoTable({
+            startY: currentY,
+            head: [['Orden', 'Nombre de Tramo/Carretera', 'Longitud', 'Estado', 'Margen Izq.', 'Margen Der.', 'Semana']],
+            body: tramosRows,
+            theme: 'striped',
+            headStyles: { fillColor: [15, 23, 42] },
+            margin: { left: 14, right: 14 },
+            styles: { fontSize: 8 }
+        });
+
+        currentY = doc.lastAutoTable.finalY + 10;
+
+        // Sección 4: Alertas e Incidencias en Campo (Si existen)
+        if (allAlerts.length > 0) {
+            // Comprobar si cabe en la página o añadimos nueva
+            if (currentY > 230) {
+                doc.addPage();
+                currentY = 20;
+            }
+
+            doc.setFont('Helvetica', 'bold');
+            doc.setFontSize(12);
+            doc.setTextColor(15, 23, 42);
+            doc.text(`4. INCIDENCIAS Y ALERTAS REGISTRADAS (${allAlerts.length})`, 14, currentY);
+            currentY += 4;
+
+            const alertRows = [];
+            allAlerts.forEach(obs => {
+                alertRows.push([
+                    obs.label || "Alerta",
+                    obs.tramoName || "Desconocido",
+                    obs.comment || "Sin comentarios",
+                    new Date(obs.date).toLocaleDateString('es-ES') + " " + new Date(obs.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+                    obs.isBlockSplit ? "Sí (Corta paso)" : "No"
+                ]);
+            });
+
+            doc.autoTable({
+                startY: currentY,
+                head: [['Incidencia', 'Carretera / Ubicación', 'Observación / Comentario', 'Fecha Registro', 'Corte de Vía']],
+                body: alertRows,
+                theme: 'striped',
+                headStyles: { fillColor: [220, 38, 38] }, // Rojo Alerta
+                margin: { left: 14, right: 14 },
+                styles: { fontSize: 8 }
+            });
+        }
+
+        // Descargar PDF
+        doc.save(`${baseName}_informe_avance.pdf`);
+        appAlert("Informe PDF generado y descargado con éxito.", "success");
+
+    } catch (err) {
+        console.error("Error al exportar PDF:", err);
+        appAlert("Error al generar PDF: " + err.message, "error");
+    }
 }
 
 // Asegurar que routeOrder tenga los tramos pendientes al principio y los desbrozados al final
