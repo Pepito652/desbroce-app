@@ -60,54 +60,6 @@ body, html {
     box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
 }
 
-/* Sidebar Clone (Nuevo Menú Experimental) */
-.sidebar-clone {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 380px;
-    height: 100%;
-    background-color: var(--bg-secondary);
-    border-right: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: column;
-    z-index: 6000;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 6px 0 24px rgba(0, 0, 0, 0.6);
-    transform: translateX(-100%);
-}
-
-.sidebar-clone.active {
-    transform: translateX(0);
-}
-
-/* Sombra de fondo (Overlay) para el menú clonado */
-.sidebar-clone-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(2px);
-    z-index: 5999;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-}
-
-.sidebar-clone-overlay.active {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-@media (max-width: 768px) {
-    .sidebar-clone {
-        width: 100%;
-        max-width: 320px;
-    }
-}
-
 .sidebar-header {
     padding: 1.25rem 1.5rem;
     display: flex;

@@ -72,7 +72,7 @@
                         <span>RAM JS Usada:</span> <strong id="perfRam" style="color: #fff;">0.0 MB</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 4px; margin-top: 2px;">
-                        <span>Código de control:</span> <strong style="color: #60a5fa;">#9090</strong>
+                        <span>Código de control:</span> <strong style="color: #60a5fa;">#3371</strong>
                     </div>
                 </div>
                 <div id="appDebugLog" style="color: #e4e4e7; line-height: 1.3;">Ningún error registrado. La app está funcionando.</div>
@@ -159,7 +159,6 @@
                     </div>
                     
                     <div class="card text-center" style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
-                        <button class="btn btn-primary btn-sm" id="btnOpenCloneMenu" style="margin-bottom: 10px; width: 100%; background: linear-gradient(135deg, #10b981, #3b82f6); border: none; font-weight: bold;"><i data-lucide="test-tube" style="width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px;"></i>🧪 Probar Nuevo Menú</button>
                         <button class="btn btn-danger btn-sm" id="resetAppBtn"><i data-lucide="trash-2" style="width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px;"></i>Borrar todos los datos</button>
                         <div id="appVersionLabel" style="margin-top: 10px; font-size: 11px; color: rgba(255,255,255,0.3); font-family: 'Outfit', sans-serif;">Versión v0.1.11</div>
                     </div>
@@ -199,94 +198,6 @@
                     <div class="tramos-list-container">
                         <ul class="tramos-list" id="tramosList">
                             <li class="tramos-list-empty">No hay carreteras cargadas.</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Sombra de fondo oscura para el menú clonado móvil -->
-        <div class="sidebar-clone-overlay" id="sidebarCloneOverlay"></div>
-
-        <!-- MENU LATERAL CLONADO NUEVO (DE PRUEBA) -->
-        <aside class="sidebar-clone" id="sidebarClone">
-            <header class="sidebar-header" style="background: #111827; border-bottom: 1px solid rgba(255,255,255,0.08);">
-                <div class="logo">
-                    <span class="logo-icon">🚀</span>
-                    <h1 style="background: linear-gradient(135deg, #10b981, #f59e0b);">ClonMenu</h1>
-                    <span style="font-size: 8px; background: rgba(59,130,246,0.2); color: #60a5fa; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-left: 4px;">TEST</span>
-                </div>
-                <button class="close-sidebar-btn" id="closeSidebarClone" aria-label="Cerrar Panel">×</button>
-            </header>
-
-            <!-- Navigation Tabs Clonados -->
-            <nav class="tabs-nav" style="margin: 1rem 1rem 0.5rem;">
-                <button class="tab-btn active" id="tabBtnCloneCarga" data-tab-clone="tabCloneCarga"><i data-lucide="folder-open" style="width: 15px; height: 15px; vertical-align: -2px; margin-right: 6px;"></i>Carga</button>
-                <button class="tab-btn" id="tabBtnClonePlan" data-tab-clone="tabClonePlan"><i data-lucide="route" style="width: 15px; height: 15px; vertical-align: -2px; margin-right: 6px;"></i>Ruta</button>
-                <button class="tab-btn" id="tabBtnCloneTramos" data-tab-clone="tabCloneTramos"><i data-lucide="map" style="width: 15px; height: 15px; vertical-align: -2px; margin-right: 6px;"></i>Tramos</button>
-            </nav>
-
-            <!-- Contenidos Clonados -->
-            <div class="tab-content-container" style="padding: 0.5rem 1rem 1rem;">
-                <!-- Pestaña 1: Carga -->
-                <div class="tab-content active" id="tabCloneCarga" style="display: flex; flex-direction: column; gap: 1rem;">
-                    <div class="card" style="padding: 1rem; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color);">
-                        <h3 style="font-size: 1rem; color: #fff; margin-bottom: 4px;">Archivos Cargados</h3>
-                        <div class="loaded-files-container">
-                            <ul class="loaded-files-list" id="loadedFilesListClone" style="list-style: none; display: flex; flex-direction: column; gap: 6px;">
-                                <li class="loaded-file-empty" style="color: var(--text-secondary); font-size: 0.8rem;">Ningún archivo cargado</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div class="card" style="padding: 1rem; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color);">
-                        <h3 style="font-size: 1rem; color: #fff; margin-bottom: 4px;">Leyenda de Colores</h3>
-                        <div class="legend-list" id="legendListClone" style="display: flex; flex-direction: column; gap: 6px;">
-                            <div class="legend-item" style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem;">
-                                <span style="display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: #ef4444;"></span>
-                                <span>Pendiente (Gris)</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 1rem; text-align: center;">
-                        <button class="btn btn-danger btn-sm" id="resetAppBtnClone" style="width: 100%; padding: 8px; font-size: 0.8rem;"><i data-lucide="trash-2" style="width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px;"></i>Borrar todos los datos</button>
-                    </div>
-                </div>
-
-                <!-- Pestaña 2: Ruta -->
-                <div class="tab-content" id="tabClonePlan" style="display: none; flex-direction: column; gap: 1rem;">
-                    <div class="card" style="padding: 1rem; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color);">
-                        <div class="card-header-flex" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <h3 style="font-size: 1rem; color: #fff; margin: 0;">Tareas Pendientes</h3>
-                            <span class="badge" id="routeStatsClone" style="background: rgba(59,130,246,0.2); color: #60a5fa; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px;">0 tramos</span>
-                        </div>
-                        <div class="plan-route-info" id="routeTotalTravelClone" style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 10px;">Quedan 0 tramos (0.00 km pendientes)</div>
-                        <ul class="route-list" id="routeListClone" style="list-style: none; display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto;">
-                            <li class="route-list-empty" style="color: var(--text-secondary); font-size: 0.8rem;">Carga un archivo KML/KMZ para ver las tareas.</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- Pestaña 3: Tramos -->
-                <div class="tab-content" id="tabCloneTramos" style="display: none; flex-direction: column; gap: 1rem;">
-                    <div class="card search-card" style="padding: 1rem; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
-                        <input type="text" id="searchTramoClone" placeholder="🔍 Buscar carretera o tramo..." style="width: 100%; padding: 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; border-radius: 6px; font-size: 0.85rem;">
-                        <div class="filter-buttons" style="display: flex; gap: 6px;">
-                            <button class="btn-filter-clone active" data-filter-clone="all" style="flex: 1; padding: 6px; font-size: 0.75rem; border-radius: 4px; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border-color); cursor: pointer; font-weight: 500;">Todos</button>
-                            <button class="btn-filter-clone" data-filter-clone="pending" style="flex: 1; padding: 6px; font-size: 0.75rem; border-radius: 4px; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border-color); cursor: pointer; font-weight: 500;">Pendientes</button>
-                            <button class="btn-filter-clone" data-filter-clone="done" style="flex: 1; padding: 6px; font-size: 0.75rem; border-radius: 4px; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border-color); cursor: pointer; font-weight: 500;">Finalizados</button>
-                        </div>
-                    </div>
-
-                    <div class="export-card-tramos" style="display: flex; gap: 8px;">
-                        <button class="btn btn-primary" id="exportKmlBtnClone" disabled style="flex: 1; height: 36px; font-size: 0.78rem; display: inline-flex; align-items: center; justify-content: center; gap: 4px;"><i data-lucide="download" style="width: 14px; height: 14px;"></i> Exportar KML</button>
-                        <button class="btn btn-primary" id="exportPdfBtnClone" disabled style="flex: 1; height: 36px; font-size: 0.78rem; background: linear-gradient(135deg, #ef4444, #b91c1c); border: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px;"><i data-lucide="file-text" style="width: 14px; height: 14px;"></i> Informe PDF</button>
-                    </div>
-
-                    <div class="tramos-list-container" style="max-height: 350px; overflow-y: auto;">
-                        <ul class="tramos-list" id="tramosListClone" style="list-style: none; display: flex; flex-direction: column; gap: 6px;">
-                            <li class="tramos-list-empty" style="color: var(--text-secondary); font-size: 0.8rem;">No hay carreteras cargadas.</li>
                         </ul>
                     </div>
                 </div>
