@@ -471,6 +471,8 @@ function initEventListeners() {
             } else {
                 // En pantallas móviles pequeñas, alternamos con la clase active (overlay)
                 sidebar.classList.toggle('active');
+                const overlay = document.getElementById('sidebarCloneOverlay');
+                if (overlay) overlay.classList.toggle('active');
             }
         });
 
@@ -488,6 +490,8 @@ function initEventListeners() {
             } else {
                 // En móvil, simplemente ocultar overlay
                 sidebar.classList.remove('active');
+                const overlay = document.getElementById('sidebarCloneOverlay');
+                if (overlay) overlay.classList.remove('active');
             }
         });
 
@@ -601,269 +605,19 @@ function initEventListeners() {
             });
         });
 
-        // ==========================================
-        // EVENTOS DEL NUEVO MENU CLONADO (TEST)
-        // ==========================================
-        const sidebarClone = document.getElementById('sidebarClone');
+        // Sombra de fondo oscura para el menú móvil (Overlay estándar)
         const overlayClone = document.getElementById('sidebarCloneOverlay');
-        const btnOpenClone = document.getElementById('btnOpenCloneMenu');
-        const btnCloseClone = document.getElementById('closeSidebarClone');
-
-        // Abrir Menú Clonado
-        if (btnOpenClone) {
-            btnOpenClone.addEventListener('click', (e) => {
+        if (overlayClone) {
+            overlayClone.addEventListener('click', (e) => {
                 e.stopPropagation();
-                // Cerrar el menú original primero
-                const oldSidebar = document.getElementById('sidebar');
-                if (oldSidebar) oldSidebar.classList.remove('active');
-                
-                // Mostrar el nuevo con su overlay
-                if (sidebarClone) sidebarClone.classList.add('active');
-                if (overlayClone) overlayClone.classList.add('active');
-                
-                // Rellenar de inmediato los tramos en el nuevo menú para prueba
-                syncCloneUI();
-            });
-        }
-
-        // Cerrar Menú Clonado
-        const closeActions = [btnCloseClone, overlayClone];
-        closeActions.forEach(el => {
-            if (el) {
-                el.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (sidebarClone) sidebarClone.classList.remove('active');
-                    if (overlayClone) overlayClone.classList.remove('active');
-                });
-            }
-        });
-
-        // Navegación de pestañas del menú clonado
-        const cloneTabs = document.querySelectorAll('[data-tab-clone]');
-        cloneTabs.forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                e.stopPropagation();
-                cloneTabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                
-                // Mostrar contenedor
-                const targetId = tab.getAttribute('data-tab-clone');
-                document.querySelectorAll('#sidebarClone .tab-content').forEach(c => {
-                    c.style.display = 'none';
-                    c.classList.remove('active');
-                });
-                const targetPanel = document.getElementById(targetId);
-                if (targetPanel) {
-                    targetPanel.style.display = 'flex';
-                    targetPanel.classList.add('active');
-                }
-            });
-        });
-
-        // Filtros del menú clonado
-        const filterClones = document.querySelectorAll('.btn-filter-clone');
-        filterClones.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                filterClones.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                syncCloneTramosList();
-            });
-        });
-
-        // Buscador del menú clonado
-        const searchClone = document.getElementById('searchTramoClone');
-        if (searchClone) {
-            searchClone.addEventListener('input', (e) => {
-                e.stopPropagation();
-                syncCloneTramosList();
-            });
-        }
-
-        // Sincronización del botón borrar datos
-        const resetBtnClone = document.getElementById('resetAppBtnClone');
-        if (resetBtnClone) {
-            resetBtnClone.addEventListener('click', (e) => {
-                e.stopPropagation();
-                clearAllData();
+                if (sidebar) sidebar.classList.remove('active');
+                overlayClone.classList.remove('active');
             });
         }
 
     } catch (e) {
         console.error("Error en initEventListeners:", e);
         appAlert("Fallo al inicializar la app (eventos): " + e.message, 'error');
-    }
-}
-
-// FUNCIONES AUXILIARES DE RENDERIZACIÓN EXCLUSIVAS DEL MENÚ CLONADO (NO AFECTAN AL ORIGINAL)
-function syncCloneUI() {
-    try {
-        syncCloneTramosList();
-        syncCloneRouteList();
-        syncCloneFilesList();
-        syncCloneLegend();
-        
-        // Sincronizar estado de habilitado en botones de exportación
-        const disableBtns = !state.fileLoaded;
-        const exportKml = document.getElementById('exportKmlBtnClone');
-        const exportPdf = document.getElementById('exportPdfBtnClone');
-        if (exportKml) exportKml.disabled = disableBtns;
-        if (exportPdf) exportPdf.disabled = disableBtns;
-        
-        if (typeof refreshLucideIcons === 'function') {
-            refreshLucideIcons();
-        }
-    } catch (err) {
-        console.error("Error al sincronizar menú clonado:", err);
-    }
-}
-
-function syncCloneTramosList() {
-    const container = document.getElementById('tramosListClone');
-    const searchVal = (document.getElementById('searchTramoClone')?.value || '').toLowerCase().trim();
-    
-    // Obtener filtro activo del clon
-    let filterVal = 'all';
-    const activeFilter = document.querySelector('.btn-filter-clone.active');
-    if (activeFilter) {
-        filterVal = activeFilter.getAttribute('data-filter-clone');
-    }
-
-    if (!container) return;
-    container.innerHTML = '';
-
-    if (!state.tramos || state.tramos.length === 0) {
-        container.innerHTML = '<li class="tramos-list-empty">No hay carreteras cargadas.</li>';
-        return;
-    }
-
-    const filtered = state.tramos.filter(t => {
-        const matchesQuery = t.name.toLowerCase().includes(searchVal);
-        if (filterVal === 'pending') {
-            return matchesQuery && t.status === 'pending';
-        } else if (filterVal === 'done') {
-            return matchesQuery && t.status === 'completed';
-        }
-        return matchesQuery;
-    });
-
-    if (filtered.length === 0) {
-        container.innerHTML = '<li class="tramos-list-empty">Ningún tramo coincide con los filtros.</li>';
-        return;
-    }
-
-    filtered.forEach(tramo => {
-        const fileObj = state.loadedFiles.find(f => f.id === tramo.fileId);
-        const fileName = fileObj ? fileObj.name : 'Archivo';
-        const item = document.createElement('li');
-        item.className = `tramo-item ${tramo.status === 'completed' ? 'completed' : 'pending'}`;
-        item.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 6px; margin-bottom: 6px; cursor: pointer; border: 1px solid rgba(255,255,255,0.05);";
-        item.innerHTML = `
-            <div style="display: flex; flex-direction: column;">
-                <span style="font-weight: 600; font-size: 0.85rem; color: #fff;">${tramo.name}</span>
-                <span style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 2px;">${(tramo.length / 1000).toFixed(2)} km | ${fileName}</span>
-            </div>
-            <div style="width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid ${tramo.status === 'completed' ? 'var(--accent)' : 'var(--text-secondary)'}; background: ${tramo.status === 'completed' ? 'var(--accent)' : 'transparent'};"></div>
-        `;
-
-        item.addEventListener('click', (e) => {
-            e.stopPropagation(); // Evitar que el clic interfiera con el mapa
-            openRoadDetail(tramo.id);
-            // Cerrar menú clonado al ver detalle
-            const sidebarClone = document.getElementById('sidebarClone');
-            const overlayClone = document.getElementById('sidebarCloneOverlay');
-            if (sidebarClone) sidebarClone.classList.remove('active');
-            if (overlayClone) overlayClone.classList.remove('active');
-        });
-
-        container.appendChild(item);
-    });
-}
-
-function syncCloneRouteList() {
-    const container = document.getElementById('routeListClone');
-    if (!container) return;
-    container.innerHTML = '';
-
-    const pendingTramos = state.tramos.filter(t => t.status !== 'completed');
-    
-    // Estadísticas
-    const routeStats = document.getElementById('routeStatsClone');
-    if (routeStats) routeStats.innerText = `${pendingTramos.length} tramos`;
-    
-    const routeTotalTravel = document.getElementById('routeTotalTravelClone');
-    if (routeTotalTravel) {
-        const totalPendingMeters = pendingTramos.reduce((acc, curr) => acc + curr.length, 0);
-        routeTotalTravel.innerText = `Quedan ${pendingTramos.length} tramos (${(totalPendingMeters / 1000).toFixed(2)} km pendientes)`;
-    }
-
-    if (pendingTramos.length === 0) {
-        container.innerHTML = '<li class="route-list-empty" style="color: var(--text-secondary); font-size: 0.8rem; padding: 10px; text-align: center;">¡Felicidades! No quedan tramos pendientes.</li>';
-        return;
-    }
-
-    // Ordenar de forma temporal
-    const sorted = getSortedPendingTramos();
-
-    sorted.forEach(({ tramo }) => {
-        const item = document.createElement('li');
-        item.style.cssText = "padding: 10px; background: rgba(255,255,255,0.03); border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;";
-        item.innerHTML = `
-            <div style="display: flex; flex-direction: column;">
-                <span style="font-weight: 600; font-size: 0.85rem; color: #fff;">${tramo.name}</span>
-                <span style="font-size: 0.72rem; color: var(--text-secondary);">${(tramo.length / 1000).toFixed(2)} km</span>
-            </div>
-            <button style="padding: 4px 8px; font-size: 0.72rem; background: var(--accent); border: none; border-radius: 4px; color: #fff; cursor: pointer; font-weight: bold;">Ver</button>
-        `;
-
-        item.querySelector('button').addEventListener('click', (e) => {
-            e.stopPropagation();
-            openRoadDetail(tramo.id);
-            const sidebarClone = document.getElementById('sidebarClone');
-            const overlayClone = document.getElementById('sidebarCloneOverlay');
-            if (sidebarClone) sidebarClone.classList.remove('active');
-            if (overlayClone) overlayClone.classList.remove('active');
-        });
-
-        container.appendChild(item);
-    });
-}
-
-function syncCloneFilesList() {
-    const container = document.getElementById('loadedFilesListClone');
-    if (!container) return;
-    container.innerHTML = '';
-
-    if (!state.loadedFiles || state.loadedFiles.length === 0) {
-        container.innerHTML = '<li class="loaded-file-empty" style="color: var(--text-secondary); font-size: 0.8rem;">Ningún archivo cargado</li>';
-        return;
-    }
-
-    state.loadedFiles.forEach(file => {
-        const item = document.createElement('li');
-        item.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: rgba(255,255,255,0.02); border-radius: 6px; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.04);";
-        item.innerHTML = `
-            <span style="color: #fff; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 200px;">${file.name}</span>
-            <button style="background: transparent; border: none; color: var(--danger); cursor: pointer; padding: 2px;"><i data-lucide="trash-2" style="width: 14px; height: 14px;"></i></button>
-        `;
-
-        item.querySelector('button').addEventListener('click', (e) => {
-            e.stopPropagation();
-            removeLoadedFile(file.id);
-        });
-
-        container.appendChild(item);
-    });
-}
-
-function syncCloneLegend() {
-    const container = document.getElementById('legendListClone');
-    if (!container) return;
-    
-    // Simplemente copiar la leyenda activa del menú original
-    const origLegend = document.getElementById('legendList');
-    if (origLegend) {
-        container.innerHTML = origLegend.innerHTML;
     }
 }
 
