@@ -3817,7 +3817,7 @@ async function exportPDF() {
         doc.setTextColor(203, 213, 225);
         doc.text(`Proyecto: ${baseName}`, 14, 23);
         doc.text(`Generado: ${new Date().toLocaleDateString('es-ES')} - ${new Date().toLocaleTimeString('es-ES')}`, 14, 28);
-        doc.text(`DesbroceApp v${VERSION}`, 14, 33);
+        doc.text(`DesbroceApp v${APP_VERSION}`, 14, 33);
 
         // Logo tractor emoji simulado en la esquina superior derecha
         doc.setFontSize(22);
