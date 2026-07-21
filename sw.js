@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-2010';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-9099';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #2010: Consolidado menú lateral robusto y estable con overlay de sombra.';
+const UPDATE_NOTES = 'Hotfix #9099: Corregido error crítico de sintaxis en el archivo de eventos de la app.';
 
 const ASSETS = [
   './',
