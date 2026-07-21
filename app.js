@@ -463,6 +463,12 @@ function initEventListeners() {
         // Cerrar sidebar al hacer clic fuera del sidebar en pantallas pequeñas
         document.addEventListener('click', (e) => {
             if (window.innerWidth <= 768) {
+                // Si el elemento clicado ha sido desconectado del DOM (clásico al repintar pestañas de Ruta/Tramos),
+                // o si es parte de las pestañas de navegación superiores, ignoramos el evento de cierre.
+                if (!e.target || !document.body.contains(e.target) || e.target.closest('.tab-btn')) {
+                    return;
+                }
+
                 const isClickInsideSidebar = sidebar.contains(e.target);
                 const isClickOnToggle = menuToggle.contains(e.target);
                 if (!isClickInsideSidebar && !isClickOnToggle && sidebar.classList.contains('active')) {

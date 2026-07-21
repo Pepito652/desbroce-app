@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-1783';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-2270';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #1783: Corregido cierre involuntario del menu lateral al pulsar en las pestañas en movil.';
+const UPDATE_NOTES = 'Hotfix #2270: Corregido bug de cierre de sidebar al cambiar a pestañas Ruta y Tramos en pantallas moviles.';
 
 const ASSETS = [
   './',
