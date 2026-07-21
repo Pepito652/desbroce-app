@@ -1589,12 +1589,6 @@ function updateTramosList() {
 
             // Abrir detalle (centrará automáticamente por defecto)
             openRoadDetail(tramo.id);
-
-            // Cerrar el menú lateral en móvil para visualizar el tramo y el popup
-            if (window.innerWidth <= 768) {
-                const sidebar = document.getElementById('sidebar');
-                if (sidebar) sidebar.classList.remove('active');
-            }
         });
 
         container.appendChild(item);
@@ -1864,12 +1858,6 @@ function focusTramoOnMap(tramoId, event) {
 
         // Abrir detalle (centrará automáticamente por defecto)
         openRoadDetail(tramo.id);
-
-        // Cerrar el menú lateral en móvil para visualizar el tramo y el popup
-        if (window.innerWidth <= 768) {
-            const sidebar = document.getElementById('sidebar');
-            if (sidebar) sidebar.classList.remove('active');
-        }
     }
 }
 
@@ -4354,12 +4342,6 @@ async function startActiveWorkMode(tramoId, skipDistanceCheck = false) {
         // Ocultar popup de Leaflet y cerrar la tarjeta Bottom Sheet de detalles del tramo
         map.closePopup();
         closeRoadDetail();
-
-        // Cerrar sidebar en móvil
-        if (window.innerWidth <= 768) {
-            const sidebar = document.getElementById('sidebar');
-            if (sidebar) sidebar.classList.remove('active');
-        }
 
         // Centrar la cámara en el GPS o en el punto de inicio del tramo de forma inmediata
         if (state.userLocation) {
