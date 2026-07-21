@@ -593,8 +593,7 @@ function initEventListeners() {
         
         const filterButtons = document.querySelectorAll('.btn-filter');
         filterButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation(); // Evitar que el clic se propague al mapa y cierre el sidebar
+            btn.addEventListener('click', () => {
                 filterButtons.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 updateTramosList();

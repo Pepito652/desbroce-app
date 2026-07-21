@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-3371';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-2004';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #3371: Detenida propagacion de clics en filtros de tramos para evitar auto-cierres en mapa.';
+const UPDATE_NOTES = 'Hotfix #2004: Menu lateral movil clasico robusto sin detector de clics global en el documento.';
 
 const ASSETS = [
   './',
