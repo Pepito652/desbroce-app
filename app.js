@@ -3416,24 +3416,52 @@ function exportKML() {
 
     // Extraer todas las semanas únicas y generar sus estadísticas
     const semanasStats = {}; // weekKey -> { color, length }
+    let totalBlockedKm = 0;
+    let totalPartialKm = 0;
+    let totalCompletedKm = 0;
+
     state.tramos.forEach(t => {
-        if (t.status === 'completed' && t.weekCompleted) {
-            // Mostrar un nombre más bonito si es una semana importada no editada aún
-            const semLabel = t.weekCompleted.startsWith('KML_') ? `Importada (Color ${getColorNameSpanish(t.color)})` : t.weekCompleted;
-            if (!semanasStats[semLabel]) {
-                semanasStats[semLabel] = {
-                    color: t.color || '#3b82f6',
-                    length: 0
-                };
+        const isBlocked = isTramoFullyBlocked(t);
+        const isCompleted = t.status === 'completed';
+        const isPartial = t.status === 'partial';
+
+        if (isBlocked) {
+            totalBlockedKm += (t.length || 0);
+        } else if (isCompleted) {
+            totalCompletedKm += (t.length || 0);
+            if (t.weekCompleted) {
+                const semLabel = t.weekCompleted.startsWith('KML_') ? `Importada (Color ${getColorNameSpanish(t.color)})` : t.weekCompleted;
+                if (!semanasStats[semLabel]) {
+                    semanasStats[semLabel] = {
+                        color: t.color || '#3b82f6',
+                        length: 0
+                    };
+                }
+                semanasStats[semLabel].length += t.length;
             }
-            semanasStats[semLabel].length += t.length;
+        } else if (isPartial) {
+            totalPartialKm += (t.length || 0);
+        }
+    });
+
+    // Recopilar todas las observaciones (alertas) de todos los tramos
+    const allAlerts = [];
+    state.tramos.forEach(t => {
+        if (t.observaciones && Array.isArray(t.observaciones)) {
+            t.observaciones.forEach(obs => {
+                allAlerts.push({
+                    ...obs,
+                    tramoName: t.name,
+                    tramoId: t.id
+                });
+            });
         }
     });
 
     // Construir texto plano (sin etiquetas HTML) para la descripción de Google Earth
     let descriptionText = `Resumen de Avance de Desbroce\n`;
     descriptionText += `============================\n`;
-    descriptionText += `Listado de kilómetros realizados por cada semana de trabajo:\n\n`;
+    descriptionText += `Kilómetros desbrozados por semana:\n`;
 
     const sortedWeeks = Object.keys(semanasStats).sort();
     sortedWeeks.forEach(sem => {
@@ -3442,6 +3470,12 @@ function exportKML() {
         descriptionText += `- Semana ${sem}: ${km} km (Color: ${getColorNameSpanish(stat.color)})\n`;
     });
 
+    descriptionText += `\nResumen global:\n`;
+    descriptionText += `- Total Desbrozado: ${(totalCompletedKm / 1000).toFixed(2)} km\n`;
+    descriptionText += `- Total Parcial: ${(totalPartialKm / 1000).toFixed(2)} km\n`;
+    descriptionText += `- Total Bloqueado / Inaccesible: ${(totalBlockedKm / 1000).toFixed(2)} km\n`;
+    descriptionText += `- Total Alertas registradas: ${allAlerts.length}\n`;
+
     descriptionText += `\nGenerado automáticamente por DesbroceApp el ${new Date().toLocaleDateString('es-ES')} a las ${new Date().toLocaleTimeString('es-ES')}.`;
 
     // Escapar caracteres XML básicos para evitar malformación del documento
@@ -3449,6 +3483,11 @@ function exportKML() {
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
+
+    // Colores KML (aabbggrr)
+    const pendingKmlColor = convertHexToKmlColor(getPendingColor(), 'ff');
+    const blockedKmlColor = convertHexToKmlColor(getBlockedColor(), 'ff');
+    const partialKmlColor = convertHexToKmlColor(getPartialColor(), 'ff');
 
     let kml = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
@@ -3459,9 +3498,51 @@ function exportKML() {
     <!-- ESTILO PARA PENDIENTES -->
     <Style id="style_pending">
       <LineStyle>
-        <color>ff9e9e9e</color> <!-- Gris en formato aabbggrr -->
+        <color>${pendingKmlColor}</color>
         <width>3</width>
       </LineStyle>
+    </Style>
+
+    <!-- ESTILO PARA PARCIALES -->
+    <Style id="style_partial">
+      <LineStyle>
+        <color>${partialKmlColor}</color>
+        <width>5</width>
+      </LineStyle>
+    </Style>
+
+    <!-- ESTILO PARA BLOQUEADOS -->
+    <Style id="style_blocked">
+      <LineStyle>
+        <color>${blockedKmlColor}</color>
+        <width>6</width>
+      </LineStyle>
+    </Style>
+
+    <!-- ESTILOS DE PUNTOS PARA ALERTAS -->
+    <Style id="style_alert_generic">
+      <IconStyle>
+        <scale>1.1</scale>
+        <Icon>
+          <href>http://maps.google.com/mapfiles/kml/shapes/warning.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    <Style id="style_alert_vehicles">
+      <IconStyle>
+        <scale>1.1</scale>
+        <Icon>
+          <href>http://maps.google.com/mapfiles/kml/shapes/cabs.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    <Style id="style_alert_branches">
+      <IconStyle>
+        <scale>1.1</scale>
+        <Icon>
+          <href>http://maps.google.com/mapfiles/kml/shapes/tree.png</href>
+        </Icon>
+      </IconStyle>
     </Style>
 `;
 
@@ -3486,19 +3567,41 @@ function exportKML() {
     </Style>`;
     });
 
+    // Escribir la carpeta de Carreteras/Tramos
+    kml += `
+    <Folder>
+      <name>Carreteras y Tramos</name>`;
+
     // Escribir los Placemarks (carreteras) en el orden planificado
     state.routeOrder.forEach((tramoId, index) => {
         const tramo = state.tramos.find(t => t.id === tramoId);
         if (!tramo) return;
 
         const isCompleted = tramo.status === 'completed';
-        const styleUrl = isCompleted ? `#style_${tramo.weekCompleted}` : '#style_pending';
+        const isPartial = tramo.status === 'partial';
+        const isBlocked = isTramoFullyBlocked(tramo);
+
+        let styleUrl = '#style_pending';
+        let estadoStr = 'PENDIENTE';
+
+        if (isBlocked) {
+            styleUrl = '#style_blocked';
+            estadoStr = 'BLOQUEADO / INACCESIBLE';
+        } else if (isCompleted) {
+            styleUrl = `#style_${tramo.weekCompleted}`;
+            estadoStr = 'DESBROZADO';
+        } else if (isPartial) {
+            styleUrl = '#style_partial';
+            estadoStr = 'PARCIAL';
+        }
         
-        let desc = `Estado: ${isCompleted ? 'DESBROZADO' : 'PENDIENTE'}\n`;
+        let desc = `Estado: ${estadoStr}\n`;
         desc += `Longitud: ${(tramo.length / 1000).toFixed(2)} km\n`;
+        desc += `Margen Izquierdo: ${tramo.leftMarginStatus || 'pending'}\n`;
+        desc += `Margen Derecho: ${tramo.rightMarginStatus || 'pending'}\n`;
         if (isCompleted) {
-            desc += `Fecha finalización: ${tramo.dateCompleted}\n`;
-            desc += `Semana finalización: ${tramo.weekCompleted}\n`;
+            desc += `Fecha finalización: ${tramo.dateCompleted || ''}\n`;
+            desc += `Semana finalización: ${tramo.weekCompleted || ''}\n`;
         }
         desc += `Orden de planificación: ${index + 1}\n`;
         if (tramo.description) {
@@ -3509,32 +3612,89 @@ function exportKML() {
         const coordString = tramo.coordinates.map(pt => `${pt[1]},${pt[0]},0`).join(' ');
 
         kml += `
-    <Placemark>
-      <name>${tramo.name}</name>
-      <description><![CDATA[${desc}]]></description>
-      <styleUrl>${styleUrl}</styleUrl>
-      <ExtendedData>
-        <Data name="status">
-          <value>${tramo.status}</value>
-        </Data>
-        <Data name="dateCompleted">
-          <value>${tramo.dateCompleted || ''}</value>
-        </Data>
-        <Data name="weekCompleted">
-          <value>${tramo.weekCompleted || ''}</value>
-        </Data>
-        <Data name="routeOrder">
-          <value>${index + 1}</value>
-        </Data>
-      </ExtendedData>
-      <LineString>
-        <tessellate>1</tessellate>
-        <coordinates>
-          ${coordString}
-        </coordinates>
-      </LineString>
-    </Placemark>`;
+      <Placemark>
+        <name>${tramo.name}</name>
+        <description><![CDATA[${desc}]]></description>
+        <styleUrl>${styleUrl}</styleUrl>
+        <ExtendedData>
+          <Data name="status">
+            <value>${isBlocked ? 'blocked' : tramo.status}</value>
+          </Data>
+          <Data name="leftMarginStatus">
+            <value>${tramo.leftMarginStatus || 'pending'}</value>
+          </Data>
+          <Data name="rightMarginStatus">
+            <value>${tramo.rightMarginStatus || 'pending'}</value>
+          </Data>
+          <Data name="dateCompleted">
+            <value>${tramo.dateCompleted || ''}</value>
+          </Data>
+          <Data name="weekCompleted">
+            <value>${tramo.weekCompleted || ''}</value>
+          </Data>
+          <Data name="routeOrder">
+            <value>${index + 1}</value>
+          </Data>
+        </ExtendedData>
+        <LineString>
+          <tessellate>1</tessellate>
+          <coordinates>
+            ${coordString}
+          </coordinates>
+        </LineString>
+      </Placemark>`;
     });
+
+    kml += `
+    </Folder>`;
+
+    // Escribir la carpeta de Alertas / Observaciones si existen
+    if (allAlerts.length > 0) {
+        kml += `
+    <Folder>
+      <name>Alertas u Obstáculos (${allAlerts.length})</name>`;
+
+        allAlerts.forEach(obs => {
+            let iconStyle = '#style_alert_generic';
+            if (obs.type === 'vehicles') iconStyle = '#style_alert_vehicles';
+            else if (obs.type === 'branches') iconStyle = '#style_alert_branches';
+
+            const obsDate = obs.date ? new Date(obs.date).toLocaleString('es-ES') : '';
+            let obsDesc = `Tipo de Alerta: ${obs.label || 'Obstáculo'}\n`;
+            obsDesc += `Carretera/Tramo: ${obs.tramoName}\n`;
+            obsDesc += `Fecha registro: ${obsDate}\n`;
+            if (obs.comment) {
+                obsDesc += `Comentario: ${obs.comment}\n`;
+            }
+
+            kml += `
+      <Placemark>
+        <name>${obs.label || 'Alerta'}</name>
+        <description><![CDATA[${obsDesc}]]></description>
+        <styleUrl>${iconStyle}</styleUrl>
+        <ExtendedData>
+          <Data name="alertType">
+            <value>${obs.type || 'generic'}</value>
+          </Data>
+          <Data name="tramoId">
+            <value>${obs.tramoId}</value>
+          </Data>
+          <Data name="tramoName">
+            <value>${obs.tramoName}</value>
+          </Data>
+          <Data name="isBlockSplit">
+            <value>${obs.isBlockSplit ? 'true' : 'false'}</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>${obs.lng},${obs.lat},0</coordinates>
+        </Point>
+      </Placemark>`;
+        });
+
+        kml += `
+    </Folder>`;
+    }
 
     kml += `
   </Document>

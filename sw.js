@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-6219';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-7041';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #6219: botones refrescar/actualizar en consola, sin parpadeo en alertas, deteccion tramos bloqueados corregida.';
+const UPDATE_NOTES = 'Hotfix #7041: Exportacion KML mejorada con alertas de punto, tramos bloqueados/parciales y metadatos de margenes.';
 
 const ASSETS = [
   './',
