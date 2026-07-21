@@ -522,8 +522,6 @@ function initEventListeners() {
                 if (diffX > 50 && diffX > diffY) {
                     if (sidebar.classList.contains('active') && window.innerWidth <= 768) {
                         sidebar.classList.remove('active');
-                        const overlay = document.getElementById('sidebarCloneOverlay');
-                        if (overlay) overlay.classList.remove('active');
                     }
                 }
             }, { passive: true });
