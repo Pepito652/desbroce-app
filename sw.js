@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-3371';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-9090';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #3371: Detenida propagacion de clics en filtros de tramos para evitar auto-cierres en mapa.';
+const UPDATE_NOTES = 'Hotfix #9090: Añadido menú clonado experimental y overlay de sombra nativo.';
 
 const ASSETS = [
   './',
