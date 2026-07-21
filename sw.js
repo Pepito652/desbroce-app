@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-3692';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-9440';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #3692: Corregir error VERSION is not defined al exportar informe PDF.';
+const UPDATE_NOTES = 'Hotfix #9440: Optimizacion de rendimiento movil, reutilizacion de polilineas en mapa y guardado diferido.';
 
 const ASSETS = [
   './',

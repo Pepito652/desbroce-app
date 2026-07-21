@@ -1137,7 +1137,26 @@ function isTramoFullyBlocked(tramo) {
 
 
 function renderTramosOnMap() {
+    // Si la capa de grupo no existe todavía, salimos
+    if (!tramosLayerGroup) return;
+
+    // Crear un mapa temporal de marcadores de observación existentes que queremos conservar para no destruirlos
+    const oldMarkersMap = new Map();
+    tramosLayerGroup.getLayers().forEach(layer => {
+        if (layer instanceof L.Marker && !(layer === gpsMarker)) {
+            // Guardar marcador con clave única de observación para evitar fugas de memoria recreándolo
+            const latlng = layer.getLatLng();
+            const key = `${latlng.lat}_${latlng.lng}`;
+            oldMarkersMap.set(key, layer);
+        }
+    });
+
+    // Limpiar capa completa
     tramosLayerGroup.clearLayers();
+
+    // Si el marcador GPS existe, volver a agregarlo
+    if (gpsMarker) tramosLayerGroup.addLayer(gpsMarker);
+    if (gpsCircle) tramosLayerGroup.addLayer(gpsCircle);
 
     state.tramos.forEach(tramo => {
         const isCompleted = tramo.status === 'completed';
@@ -1158,81 +1177,101 @@ function renderTramosOnMap() {
             dashArray = '15, 8';
         }
         
-        // Estilo de línea visible (fina y limpia)
-        const polyline = L.polyline(tramo.coordinates, {
-            color: color,
-            weight: isBlocked ? 5.5 : (isCompleted ? 6 : (isPartial ? 5.5 : 5)),
-            opacity: isBlocked ? 0.95 : (isCompleted ? 0.9 : 0.85),
-            dashArray: dashArray,
-            lineJoin: 'round',
-            lineCap: 'round',
-            interactive: false // La línea visible no responde al clic directamente
-        });
+        // Si ya tenemos una polilínea creada para este tramo, podemos reutilizarla actualizando sus coordenadas y estilos
+        let polyline = tramo.mapLayer;
+        if (polyline && tramosLayerGroup.hasLayer(polyline)) {
+            polyline.setLatLngs(tramo.coordinates);
+            polyline.setStyle({
+                color: color,
+                weight: isBlocked ? 5.5 : (isCompleted ? 6 : (isPartial ? 5.5 : 5)),
+                opacity: isBlocked ? 0.95 : (isCompleted ? 0.9 : 0.85),
+                dashArray: dashArray
+            });
+        } else {
+            polyline = L.polyline(tramo.coordinates, {
+                color: color,
+                weight: isBlocked ? 5.5 : (isCompleted ? 6 : (isPartial ? 5.5 : 5)),
+                opacity: isBlocked ? 0.95 : (isCompleted ? 0.9 : 0.85),
+                dashArray: dashArray,
+                lineJoin: 'round',
+                lineCap: 'round',
+                interactive: false
+            });
+            tramo.mapLayer = polyline;
+        }
 
-        // Línea invisible (gruesa) para capturar los clics del dedo en pantallas táctiles
-        const clickTarget = L.polyline(tramo.coordinates, {
-            color: '#000000',
-            weight: 24, // Área de toque expandida a 24 píxeles para tractoristas
-            opacity: 0.001, // Prácticamente invisible en pantalla pero activa eventos táctiles bajo Canvas
-            lineJoin: 'round',
-            lineCap: 'round',
-            interactive: true
-        });
+        // Reutilizar o crear zona de clic táctil
+        let clickTarget = tramo.clickTarget;
+        if (clickTarget && tramosLayerGroup.hasLayer(clickTarget)) {
+            clickTarget.setLatLngs(tramo.coordinates);
+        } else {
+            clickTarget = L.polyline(tramo.coordinates, {
+                color: '#000000',
+                weight: 24, // Área de toque expandida para pantallas táctiles de tractoristas
+                opacity: 0.001,
+                lineJoin: 'round',
+                lineCap: 'round',
+                interactive: true
+            });
+            clickTarget.on('click', (e) => {
+                L.DomEvent.stopPropagation(e);
+                handleTramoClick(tramo, e.latlng);
+            });
+            tramo.clickTarget = clickTarget;
+        }
 
-        // Evento Click en la zona invisible táctil delegado a la controladora global
-        clickTarget.on('click', (e) => {
-            L.DomEvent.stopPropagation(e);
-            handleTramoClick(tramo, e.latlng);
-        });
-
-        // Guardar referencia en el objeto del tramo para poder cambiar estilos rápido y capturar clicks
-        tramo.mapLayer = polyline;
-        tramo.clickTarget = clickTarget;
         tramosLayerGroup.addLayer(polyline);
         tramosLayerGroup.addLayer(clickTarget);
 
-        // Pintar las observaciones de este tramo si existen
+        // Pintar las observaciones reutilizando marcadores anteriores para evitar recreación masiva de DOM
         if (tramo.observaciones && Array.isArray(tramo.observaciones)) {
             tramo.observaciones.forEach(obs => {
-                let iconHtml = '<div class="dot-orange">⚠️</div>';
-                if (obs.type === 'vehicles') iconHtml = '<div class="dot-orange">🚗</div>';
-                else if (obs.type === 'branches') iconHtml = '<div class="dot-orange">🌳</div>';
-                else if (obs.type === 'cables') iconHtml = '<div class="dot-orange">⚡</div>';
-                
-                const obsIcon = L.divIcon({
-                    className: 'obs-map-marker',
-                    html: iconHtml,
-                    iconSize: [28, 28],
-                    iconAnchor: [14, 14]
-                });
-                
-                const marker = L.marker([obs.lat, obs.lng], { icon: obsIcon });
-                
-                const dateStr = new Date(obs.date).toLocaleString('es-ES', {
-                    day: 'numeric',
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                
-                marker.bindPopup(`
-                    <div style="font-family: 'Outfit', sans-serif; color: #f4f4f5; min-width: 180px; padding: 4px;">
-                        <h4 style="margin: 0 0 4px 0; color: #f59e0b; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-                            ${obs.label}
-                        </h4>
-                        <div style="font-size: 0.72rem; color: #a1a1aa; margin-bottom: 6px;">${dateStr}</div>
-                        ${obs.comment ? `<p style="margin: 0 0 8px 0; font-size: 0.78rem; line-height: 1.3; color: #e4e4e7; background: rgba(255,255,255,0.05); padding: 6px; border-radius: 6px; white-space: pre-wrap;">${obs.comment}</p>` : ''}
-                        <button onclick="removeObservation('${tramo.id}', '${obs.id}')"
-                                style="width: 100%; font-size: 0.7rem; padding: 6px; border-radius: 4px; border: none; background: #ef4444; color: white; font-weight: bold; cursor: pointer; margin-top: 4px;">
-                            Eliminar Alerta
-                        </button>
-                    </div>
-                `, {
-                    closeButton: false,
-                    className: 'obs-popup-custom'
-                });
-                
-                tramosLayerGroup.addLayer(marker);
+                const key = `${obs.lat}_${obs.lng}`;
+                let marker = oldMarkersMap.get(key);
+
+                if (marker) {
+                    // Si el marcador existía, lo volvemos a añadir al grupo directamente
+                    tramosLayerGroup.addLayer(marker);
+                } else {
+                    let iconHtml = '<div class="dot-orange">⚠️</div>';
+                    if (obs.type === 'vehicles') iconHtml = '<div class="dot-orange">🚗</div>';
+                    else if (obs.type === 'branches') iconHtml = '<div class="dot-orange">🌳</div>';
+                    else if (obs.type === 'cables') iconHtml = '<div class="dot-orange">⚡</div>';
+                    
+                    const obsIcon = L.divIcon({
+                        className: 'obs-map-marker',
+                        html: iconHtml,
+                        iconSize: [28, 28],
+                        iconAnchor: [14, 14]
+                    });
+                    
+                    marker = L.marker([obs.lat, obs.lng], { icon: obsIcon });
+                    
+                    const dateStr = new Date(obs.date).toLocaleString('es-ES', {
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    marker.bindPopup(`
+                        <div style="font-family: 'Outfit', sans-serif; color: #f4f4f5; min-width: 180px; padding: 4px;">
+                            <h4 style="margin: 0 0 4px 0; color: #f59e0b; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
+                                ${obs.label}
+                            </h4>
+                            <div style="font-size: 0.72rem; color: #a1a1aa; margin-bottom: 6px;">${dateStr}</div>
+                            ${obs.comment ? `<p style="margin: 0 0 8px 0; font-size: 0.78rem; line-height: 1.3; color: #e4e4e7; background: rgba(255,255,255,0.05); padding: 6px; border-radius: 6px; white-space: pre-wrap;">${obs.comment}</p>` : ''}
+                            <button onclick="removeObservation('${tramo.id}', '${obs.id}')"
+                                    style="width: 100%; font-size: 0.7rem; padding: 6px; border-radius: 4px; border: none; background: #ef4444; color: white; font-weight: bold; cursor: pointer; margin-top: 4px;">
+                                Eliminar Alerta
+                            </button>
+                        </div>
+                    `, {
+                        closeButton: false,
+                        className: 'obs-popup-custom'
+                    });
+                    tramosLayerGroup.addLayer(marker);
+                }
             });
         }
     });
@@ -4020,27 +4059,35 @@ function stabilizeRouteOrder() {
     }
 }
 
-// --- PERSISTENCIA LOCAL (OFFLINE STORAGE) ---
+let saveToLocalStorageTimeout = null;
 
 function saveToLocalStorage() {
-    try {
-        stabilizeRouteOrder();
-        const localData = {
-            loadedFiles: state.loadedFiles,
-            fileLoaded: state.fileLoaded,
-            // Guardamos todo salvo las capas del mapa (que tienen referencias circulares)
-            tramos: state.tramos.map(t => {
-                const { mapLayer, clickTarget, latLngsCache, totalLength, accumLengths, ...rest } = t;
-                return rest;
-            }),
-            routeOrder: state.routeOrder,
-            currentBaseLayer: currentBaseLayer,
-            customColors: state.customColors
-        };
-        localStorage.setItem('desbroce_app_state', JSON.stringify(localData));
-    } catch (e) {
-        console.error('Error guardando en LocalStorage:', e);
+    if (saveToLocalStorageTimeout) {
+        clearTimeout(saveToLocalStorageTimeout);
     }
+    
+    saveToLocalStorageTimeout = setTimeout(() => {
+        try {
+            stabilizeRouteOrder();
+            const localData = {
+                loadedFiles: state.loadedFiles,
+                fileLoaded: state.fileLoaded,
+                // Guardamos todo salvo las capas del mapa (que tienen referencias circulares)
+                tramos: state.tramos.map(t => {
+                    const { mapLayer, clickTarget, latLngsCache, totalLength, accumLengths, ...rest } = t;
+                    return rest;
+                }),
+                routeOrder: state.routeOrder,
+                currentBaseLayer: currentBaseLayer,
+                customColors: state.customColors
+            };
+            localStorage.setItem('desbroce_app_state', JSON.stringify(localData));
+            console.log('Avance y progreso persistidos con éxito de forma optimizada.');
+        } catch (e) {
+            console.error('Error guardando en LocalStorage:', e);
+        }
+        saveToLocalStorageTimeout = null;
+    }, 300); // Retardo de 300 ms para agrupar múltiples llamadas seguidas
 }
 
 function loadFromLocalStorage() {
