@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-4489';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-1092';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #4489: Eliminados todos los autocierres involuntarios del panel lateral en movil al interactuar.';
+const UPDATE_NOTES = 'Hotfix #1092: Blindado total del panel lateral contra cierres involuntarios al pulsar botones internos.';
 
 const ASSETS = [
   './',
