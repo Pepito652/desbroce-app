@@ -7,7 +7,7 @@
 const supabaseUrl = 'https://amowklcahxlqxgkvcumg.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtb3drbGNhaHhscXhna3ZjdW1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMzNTQ1MjYsImV4cCI6MjAzODkzMDUyNn0.your-anon-key-mock'; // Reemplazar con la real o usar variable global
 
-let supabase = null;
+let supabaseClient = null;
 let syncQueue = [];
 let isSyncing = false;
 let userSession = null;
@@ -16,11 +16,11 @@ let lastSyncTimestamp = '1970-01-01T00:00:00.000Z';
 function initSupabase() {
     try {
         if (typeof supabaseUrl !== 'undefined' && typeof supabaseAnonKey !== 'undefined' && window.supabase && typeof window.supabase.createClient === 'function') {
-            supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+            supabaseClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
             console.log("Supabase Client inicializado correctamente.");
             
             // Escuchar cambios de estado en la autenticación
-            supabase.auth.onAuthStateChange((event, session) => {
+            supabaseClient.auth.onAuthStateChange((event, session) => {
                 userSession = session;
                 const offlinePanel = document.getElementById('authOfflineState');
                 const onlinePanel = document.getElementById('authOnlineState');
@@ -130,7 +130,7 @@ function setAuthMode(mode) {
 
 async function handleAuthSubmit(e) {
     e.preventDefault();
-    if (!supabase) {
+    if (!supabaseClient) {
         appAlert("Supabase no está listo. Intenta de nuevo.", "error");
         return;
     }
@@ -143,13 +143,15 @@ async function handleAuthSubmit(e) {
     
     try {
         if (authMode === 'login') {
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) throw error;
             appAlert("Sesión iniciada con éxito.", "success");
+            closeAuthModal();
         } else {
-            const { data, error } = await supabase.auth.signUp({ email, password });
+            const { data, error } = await supabaseClient.auth.signUp({ email, password });
             if (error) throw error;
             appAlert("Cuenta registrada. Verifica tu correo si es necesario.", "success");
+            closeAuthModal();
         }
     } catch (err) {
         console.error(err);
@@ -160,11 +162,12 @@ async function handleAuthSubmit(e) {
 }
 
 async function handleLogout() {
-    if (!supabase) return;
+    if (!supabaseClient) return;
     const confirmado = await appConfirm("¿Estás seguro de que quieres cerrar la sesión? Los datos locales permanecerán en este dispositivo.", "Cerrar Sesión", false);
     if (confirmado) {
-        await supabase.auth.signOut();
+        await supabaseClient.auth.signOut();
         appAlert("Sesión cerrada correctamente.", "info");
+        closeAuthModal();
     }
 }
 
@@ -180,7 +183,7 @@ function addToSyncQueue(table, action, recordId, payload) {
 }
 
 async function processSyncQueue() {
-    if (isSyncing || !supabase || !userSession) return;
+    if (isSyncing || !supabaseClient || !userSession) return;
     
     const rawQueue = localStorage.getItem('desbroce_sync_queue');
     if (rawQueue) {
@@ -201,12 +204,12 @@ async function processSyncQueue() {
             
             let error = null;
             if (action === 'INSERT' || action === 'UPDATE') {
-                const { error: upsertErr } = await supabase
+                const { error: upsertErr } = await supabaseClient
                     .from(table)
                     .upsert(payload);
                 error = upsertErr;
             } else if (action === 'DELETE') {
-                const { error: deleteErr } = await supabase
+                const { error: deleteErr } = await supabaseClient
                     .from(table)
                     .delete()
                     .eq('id', recordId);
@@ -253,7 +256,7 @@ function updateSyncStatus(status, text) {
 
 // Bajar datos remotos y mezclar con local
 async function syncDataWithCloud() {
-    if (!supabase || !userSession) return;
+    if (!supabaseClient || !userSession) return;
     
     updateSyncStatus('syncing', 'Sincronizando...');
     
@@ -262,14 +265,14 @@ async function syncDataWithCloud() {
         await processSyncQueue();
         
         // 2. Descargar archivos cargados
-        const { data: remoteFiles, error: filesErr } = await supabase
+        const { data: remoteFiles, error: filesErr } = await supabaseClient
             .from('files')
             .select('*');
             
         if (filesErr) throw filesErr;
         
         // 3. Descargar tramos
-        const { data: remoteTramos, error: tramosErr } = await supabase
+        const { data: remoteTramos, error: tramosErr } = await supabaseClient
             .from('tramos')
             .select('*');
             

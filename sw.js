@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-2080';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-2085';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #2080: Refinada interfaz de acceso mediante Modal flotante y Banner de invitacion.';
+const UPDATE_NOTES = 'Hotfix #2085: Corregido error de colision de identificador supabase y recuperada carga del mapa.';
 
 const ASSETS = [
   './',
