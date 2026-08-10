@@ -1,13 +1,12 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-2100';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-2060';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #2100: Corregida visibilidad del boton de hamburguesa en movil al ocultar sidebar.';
+const UPDATE_NOTES = 'Hotfix #2060: Forzada actualizacion de estadisticas superiores al pulsar el ojo de visibilidad.';
 
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
-  './auth-sync.js',
   './feedback-recorder.js',
   './libs/leaflet.css',
   './libs/leaflet.js',

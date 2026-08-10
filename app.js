@@ -135,9 +135,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initMap();
     initEventListeners();
     loadFromLocalStorage();
-    if (typeof initSupabase === 'function') {
-        initSupabase();
-    }
     refreshLucideIcons();
 
     // Ajustar el mapa al cambiar el tamaño de la ventana del navegador
@@ -2605,16 +2602,6 @@ function toggleFileVisibility(fileId) {
         
         // Guardar estado en LocalStorage
         saveToLocalStorage();
-
-        // Encolar cambio para Supabase
-        if (typeof addToSyncQueue === 'function' && typeof userSession !== 'undefined' && userSession) {
-            addToSyncQueue('files', 'UPDATE', file.id, {
-                id: file.id,
-                name: file.name,
-                tramosCount: file.tramosCount,
-                hidden: file.hidden
-            });
-        }
         
         // Volver a renderizar tramos en el mapa y regenerar las listas
         renderTramosOnMap();
@@ -2659,11 +2646,6 @@ async function removeFile(fileId) {
             state.fileLoaded = state.loadedFiles.length > 0;
 
             saveToLocalStorage();
-
-            // Encolar borrado para Supabase
-            if (typeof addToSyncQueue === 'function' && typeof userSession !== 'undefined' && userSession) {
-                addToSyncQueue('files', 'DELETE', fileId, {});
-            }
 
             // Re-dibujar capas y actualizar interfaz
             renderTramosOnMap();
@@ -4214,26 +4196,6 @@ function saveToLocalStorage() {
             };
             localStorage.setItem('desbroce_app_state', JSON.stringify(localData));
             console.log('Avance y progreso persistidos con éxito de forma optimizada.');
-            
-            // Sincronización automática incremental con Supabase si el usuario está autenticado
-            if (typeof addToSyncQueue === 'function' && typeof userSession !== 'undefined' && userSession) {
-                // Sincronizar archivos cargados
-                state.loadedFiles.forEach(file => {
-                    addToSyncQueue('files', 'UPDATE', file.id, {
-                        id: file.id,
-                        name: file.name,
-                        tramosCount: file.tramosCount,
-                        hidden: file.hidden === true
-                    });
-                });
-                
-                // Sincronizar tramos
-                state.tramos.forEach(t => {
-                    // Limpiamos referencias de mapa para guardar datos limpios de polilínea
-                    const { mapLayer, clickTarget, latLngsCache, totalLength, accumLengths, ...payload } = t;
-                    addToSyncQueue('tramos', 'UPDATE', t.id, payload);
-                });
-            }
         } catch (e) {
             console.error('Error guardando en LocalStorage:', e);
         }
