@@ -2608,6 +2608,7 @@ function toggleFileVisibility(fileId) {
         updateTramosList();
         updateRouteList();
         updateLoadedFilesList();
+        updateStats();
     } catch (e) {
         console.error("Error al cambiar visibilidad del archivo:", e);
     }

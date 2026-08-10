@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-2055';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-2060';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #2055: Estadisticas de Jornada y porcentajes calculados dinamicamente en base a planos visibles.';
+const UPDATE_NOTES = 'Hotfix #2060: Forzada actualizacion de estadisticas superiores al pulsar el ojo de visibilidad.';
 
 const ASSETS = [
   './',
