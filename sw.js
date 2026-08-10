@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-2035';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-2050';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #2035: Añadido botón de ojo para ocultar/mostrar tramos por plano cargado en el mapa y listas.';
+const UPDATE_NOTES = 'Hotfix #2050: Añadidas etiquetas de pueblos/ciudades en vista satélite/oscura y desglose de km hechos por plano.';
 
 const ASSETS = [
   './',

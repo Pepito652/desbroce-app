@@ -172,7 +172,7 @@ function initMap() {
         map.attributionControl.setPrefix('DesbroceApp | ');
     }
 
-    // Capa de mapa oscuro de CartoDB (gratuita, limpia y moderna)
+    // Capa de mapa oscuro de CartoDB (gratuita, limpia, moderna y con etiquetas de pueblos)
     darkTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap &copy; CARTO',
         subdomains: 'abcd',
@@ -181,11 +181,21 @@ function initMap() {
     });
 
     // Capa de satélite de Esri World Imagery (gratuita, rápida y detallada)
-    satelliteTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: '&copy; Esri',
-        maxZoom: 21,
-        maxNativeZoom: 19
-    });
+    // Combinamos la imagen satelital con la capa transparente de carreteras y etiquetas de CartoDB (dark_only_labels)
+    satelliteTileLayer = L.layerGroup([
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '&copy; Esri',
+            maxZoom: 21,
+            maxNativeZoom: 19
+        }),
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 21,
+            maxNativeZoom: 20,
+            pane: 'shadowPane' // Coloca las etiquetas por encima de las carreteras
+        })
+    ]);
 
     // Por defecto activamos la oscura
     darkTileLayer.addTo(map);
@@ -1394,6 +1404,12 @@ function updateStats() {
     const todayStr = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
 
     state.tramos.forEach(t => {
+        // Comprobar si el archivo de este tramo está oculto
+        const fileObj = state.loadedFiles.find(f => f.id === t.fileId);
+        if (fileObj && fileObj.hidden === true) {
+            return; // Saltar estadísticas para tramos ocultos
+        }
+
         totalMeters += t.length;
         if (t.status === 'completed') {
             completedMeters += t.length;
@@ -2530,12 +2546,32 @@ function updateLoadedFilesList() {
             const eyeTitle = isHidden ? 'Mostrar tramos en mapa' : 'Ocultar tramos en mapa';
             const eyeColor = isHidden ? '#71717a' : 'var(--accent)';
 
+            // Calcular kilómetros del archivo y completados
+            let fileTotalMeters = 0;
+            let fileCompletedMeters = 0;
+
+            if (state.tramos && Array.isArray(state.tramos)) {
+                state.tramos.forEach(t => {
+                    if (t.fileId === file.id) {
+                        fileTotalMeters += t.length;
+                        if (t.status === 'completed') {
+                            fileCompletedMeters += t.length;
+                        } else if (t.status === 'partial') {
+                            fileCompletedMeters += t.length * 0.5;
+                        }
+                    }
+                });
+            }
+
+            const fileTotalKm = (fileTotalMeters / 1000).toFixed(1);
+            const fileCompletedKm = (fileCompletedMeters / 1000).toFixed(1);
+
             const item = document.createElement('li');
             item.className = 'loaded-file-item';
             item.innerHTML = `
                 <div class="loaded-file-info" style="${isHidden ? 'opacity: 0.5;' : ''}">
                     <span class="loaded-file-name" title="${file.name}">${file.name}</span>
-                    <span class="loaded-file-meta">${file.tramosCount} tramos</span>
+                    <span class="loaded-file-meta">${file.tramosCount} tramos | ${fileCompletedKm}/${fileTotalKm} km hechos</span>
                 </div>
                 <div style="display: flex; gap: 8px;">
                     <button class="btn-remove-file" onclick="toggleFileVisibility('${file.id}')" title="${eyeTitle}">
