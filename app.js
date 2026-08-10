@@ -1182,6 +1182,19 @@ function renderTramosOnMap() {
     if (gpsCircle) tramosLayerGroup.addLayer(gpsCircle);
 
     state.tramos.forEach(tramo => {
+        // Comprobar si el archivo de este tramo está oculto
+        const fileObj = state.loadedFiles.find(f => f.id === tramo.fileId);
+        if (fileObj && fileObj.hidden === true) {
+            // Asegurarnos de remover la polilínea y el área de toque del mapa si existieran previamente
+            if (tramo.mapLayer && tramosLayerGroup.hasLayer(tramo.mapLayer)) {
+                tramosLayerGroup.removeLayer(tramo.mapLayer);
+            }
+            if (tramo.clickTarget && tramosLayerGroup.hasLayer(tramo.clickTarget)) {
+                tramosLayerGroup.removeLayer(tramo.clickTarget);
+            }
+            return; // Saltar renderizado
+        }
+
         const isCompleted = tramo.status === 'completed';
         const isPartial = tramo.status === 'partial';
         const isBlocked = isTramoFullyBlocked(tramo);
@@ -1565,6 +1578,12 @@ function updateTramosList() {
     const filterVal = document.querySelector('.btn-filter.active').getAttribute('data-filter');
 
     let filtered = state.tramos.filter(t => {
+        // Comprobar si el archivo de este tramo está oculto
+        const fileObj = state.loadedFiles.find(f => f.id === t.fileId);
+        if (fileObj && fileObj.hidden === true) {
+            return false;
+        }
+
         // Búsqueda
         const matchesQuery = t.name.toLowerCase().includes(searchQuery) || (t.description && t.description.toLowerCase().includes(searchQuery));
         
@@ -1614,7 +1633,14 @@ function updateTramosList() {
 
 // Obtener los tramos pendientes ordenados (por proximidad si hay GPS activo, o por routeOrder si no)
 function getSortedPendingTramos() {
-    const pendingTramos = state.tramos.filter(t => t.status !== 'completed');
+    const pendingTramos = state.tramos.filter(t => {
+        // Ignorar si el archivo está oculto
+        const fileObj = state.loadedFiles.find(f => f.id === t.fileId);
+        if (fileObj && fileObj.hidden === true) {
+            return false;
+        }
+        return t.status !== 'completed';
+    });
     
     if (state.gpsActive && state.userLocation) {
         const userLatLng = state.userLocation;
@@ -2499,21 +2525,60 @@ function updateLoadedFilesList() {
         }
 
         state.loadedFiles.forEach(file => {
+            const isHidden = file.hidden === true;
+            const eyeIcon = isHidden ? 'eye-off' : 'eye';
+            const eyeTitle = isHidden ? 'Mostrar tramos en mapa' : 'Ocultar tramos en mapa';
+            const eyeColor = isHidden ? '#71717a' : 'var(--accent)';
+
             const item = document.createElement('li');
             item.className = 'loaded-file-item';
             item.innerHTML = `
-                <div class="loaded-file-info">
+                <div class="loaded-file-info" style="${isHidden ? 'opacity: 0.5;' : ''}">
                     <span class="loaded-file-name" title="${file.name}">${file.name}</span>
                     <span class="loaded-file-meta">${file.tramosCount} tramos</span>
                 </div>
-                <button class="btn-remove-file" onclick="removeFile('${file.id}')" title="Quitar archivo"><i data-lucide="trash-2" style="width: 14px; height: 14px; color: var(--danger); vertical-align: middle;"></i></button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-remove-file" onclick="toggleFileVisibility('${file.id}')" title="${eyeTitle}">
+                        <i data-lucide="${eyeIcon}" style="width: 14px; height: 14px; color: ${eyeColor}; vertical-align: middle;"></i>
+                    </button>
+                    <button class="btn-remove-file" onclick="removeFile('${file.id}')" title="Quitar archivo">
+                        <i data-lucide="trash-2" style="width: 14px; height: 14px; color: var(--danger); vertical-align: middle;"></i>
+                    </button>
+                </div>
             `;
             container.appendChild(item);
         });
+        if (typeof refreshLucideIcons === 'function') {
+            refreshLucideIcons();
+        }
     } catch (e) {
         console.error("Error en updateLoadedFilesList:", e);
     }
 }
+
+// Ocultar/Mostrar los tramos de un archivo KML del mapa
+function toggleFileVisibility(fileId) {
+    try {
+        const file = state.loadedFiles.find(f => f.id === fileId);
+        if (!file) return;
+
+        file.hidden = !file.hidden;
+        
+        // Guardar estado en LocalStorage
+        saveToLocalStorage();
+        
+        // Volver a renderizar tramos en el mapa y regenerar las listas
+        renderTramosOnMap();
+        updateTramosList();
+        updateRouteList();
+        updateLoadedFilesList();
+    } catch (e) {
+        console.error("Error al cambiar visibilidad del archivo:", e);
+    }
+}
+
+// Exponer la función globalmente para que pueda llamarse desde onclick
+window.toggleFileVisibility = toggleFileVisibility;
 
 // Eliminar un archivo KML/KMZ cargado y limpiar todos sus tramos
 async function removeFile(fileId) {

@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-2004';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-2035';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #2004: Menu lateral movil clasico robusto sin detector de clics global en el documento.';
+const UPDATE_NOTES = 'Hotfix #2035: Añadido botón de ojo para ocultar/mostrar tramos por plano cargado en el mapa y listas.';
 
 const ASSETS = [
   './',
