@@ -1849,5 +1849,19 @@ body, html {
     }
 }
 
+/* Animación de rotación para sincronización */
+.spin-icon {
+    animation: fa-spin 1.5s infinite linear;
+}
+
+@keyframes fa-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
 
 
