@@ -25,11 +25,26 @@ function initSupabase() {
                 const offlinePanel = document.getElementById('authOfflineState');
                 const onlinePanel = document.getElementById('authOnlineState');
                 const userEmailLabel = document.getElementById('authUserEmail');
+                const headerAuthBtn = document.getElementById('btnHeaderAuth');
+                const inviteBanner = document.getElementById('authInviteBanner');
                 
                 if (session) {
                     if (offlinePanel) offlinePanel.style.display = 'none';
                     if (onlinePanel) onlinePanel.style.display = 'block';
                     if (userEmailLabel) userEmailLabel.innerText = session.user.email;
+                    
+                    // Actualizar botón de la cabecera del logo
+                    if (headerAuthBtn) {
+                        headerAuthBtn.title = `Sesión iniciada: ${session.user.email}`;
+                        headerAuthBtn.style.borderColor = 'var(--accent)';
+                        headerAuthBtn.innerHTML = '<i data-lucide="user-check" style="width: 16px; height: 16px; color: var(--accent);"></i>';
+                    }
+
+                    // Ocultar banner de invitación
+                    if (inviteBanner) {
+                        inviteBanner.classList.remove('show');
+                        setTimeout(() => inviteBanner.style.display = 'none', 400);
+                    }
                     
                     // Al iniciar sesión, sincronizamos
                     syncDataWithCloud();
@@ -37,12 +52,54 @@ function initSupabase() {
                     if (offlinePanel) offlinePanel.style.display = 'block';
                     if (onlinePanel) onlinePanel.style.display = 'none';
                     if (userEmailLabel) userEmailLabel.innerText = '-';
+
+                    // Restaurar botón de la cabecera del logo
+                    if (headerAuthBtn) {
+                        headerAuthBtn.title = "Iniciar Sesión / Mi Cuenta";
+                        headerAuthBtn.style.borderColor = 'var(--border-color)';
+                        headerAuthBtn.innerHTML = '<i data-lucide="user" style="width: 16px; height: 16px;"></i>';
+                    }
+
+                    // Mostrar banner de invitación si no ha sido descartado expresamente
+                    const isBannerDismissed = localStorage.getItem('auth-invite-dismissed') === 'true';
+                    if (inviteBanner && !isBannerDismissed) {
+                        inviteBanner.style.display = 'flex';
+                        setTimeout(() => inviteBanner.classList.add('show'), 100);
+                    }
+                }
+                if (typeof refreshLucideIcons === 'function') {
+                    refreshLucideIcons();
                 }
             });
         }
     } catch (e) {
         console.error("Error al inicializar Supabase client:", e);
     }
+}
+
+// Controladores del Modal de Login flotante
+function openAuthModal() {
+    const modal = document.getElementById('authModalOverlay');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+function closeAuthModal() {
+    const modal = document.getElementById('authModalOverlay');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Controladores del Banner de Invitación
+function dismissAuthInviteBanner() {
+    const inviteBanner = document.getElementById('authInviteBanner');
+    if (inviteBanner) {
+        inviteBanner.classList.remove('show');
+        setTimeout(() => inviteBanner.style.display = 'none', 400);
+    }
+    localStorage.setItem('auth-invite-dismissed', 'true');
 }
 
 // Configurar formulario
@@ -290,3 +347,6 @@ window.handleLogout = handleLogout;
 window.forceSync = forceSync;
 window.initSupabase = initSupabase;
 window.addToSyncQueue = addToSyncQueue;
+window.openAuthModal = openAuthModal;
+window.closeAuthModal = closeAuthModal;
+window.dismissAuthInviteBanner = dismissAuthInviteBanner;

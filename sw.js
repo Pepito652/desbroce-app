@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-2070';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-2080';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #2070: Integrado sistema de login y sincronización web cloud con Supabase.';
+const UPDATE_NOTES = 'Hotfix #2080: Refinada interfaz de acceso mediante Modal flotante y Banner de invitacion.';
 
 const ASSETS = [
   './',

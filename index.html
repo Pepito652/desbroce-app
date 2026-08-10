@@ -37,13 +37,19 @@
     <div class="app-container">
         <!-- Sidebar Panel -->
         <aside class="sidebar" id="sidebar">
-            <header class="sidebar-header">
+            <header class="sidebar-header" style="justify-content: space-between; align-items: center;">
                 <div class="logo">
                     <span class="logo-icon">🚜</span>
                     <h1>DesbroceApp</h1>
                     <span id="debugWarningDot" style="width: 8px; height: 8px; border-radius: 50%; background-color: #10b981; display: inline-block; margin-left: 0.5rem; flex-shrink: 0; cursor: pointer; transition: transform 0.2s;" title="Ver consola de diagnóstico" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='scale(1)'"></span>
                 </div>
-                <button class="close-sidebar-btn" id="closeSidebar" aria-label="Cerrar Panel">×</button>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <!-- Botón Perfil/Login en Cabecera -->
+                    <button id="btnHeaderAuth" onclick="openAuthModal()" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: var(--text-primary); width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition);" title="Iniciar Sesión / Mi Cuenta">
+                        <i id="headerAuthIcon" data-lucide="user" style="width: 16px; height: 16px;"></i>
+                    </button>
+                    <button class="close-sidebar-btn" id="closeSidebar" aria-label="Cerrar Panel" style="position: static; font-size: 1.5rem; background: none; border: none; color: var(--text-secondary); cursor: pointer;">×</button>
+                </div>
             </header>
 
             <!-- Consola de Diagnóstico Colapsable -->
@@ -72,7 +78,7 @@
                         <span>RAM JS Usada:</span> <strong id="perfRam" style="color: #fff;">0.0 MB</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 4px; margin-top: 2px;">
-                        <span>Código de control:</span> <strong style="color: #60a5fa;">#2070</strong>
+                        <span>Código de control:</span> <strong style="color: #60a5fa;">#2080</strong>
                     </div>
                 </div>
                 <div id="appDebugLog" style="color: #e4e4e7; line-height: 1.3;">Ningún error registrado. La app está funcionando.</div>
@@ -203,60 +209,85 @@
                     </div>
                 </div>
 
-                <!-- TAB 4: Cuenta e Inicio de Sesión (Supabase) -->
-                <div class="tab-content" id="tabCuenta">
-                    <!-- Estado de Sesión: Desconectado -->
-                    <div id="authOfflineState" class="card">
-                        <h3>Acceso de Usuario</h3>
-                        <p class="card-desc">Inicia sesión para sincronizar tus planos y progresos en la nube y compartirlos con el ordenador.</p>
-                        
-                        <div class="auth-tabs" style="display: flex; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 4px; border-radius: 8px; margin-bottom: 0.5rem;">
-                            <button id="btnAuthTabLogin" class="tab-btn active" onclick="setAuthMode('login')" style="padding: 6px; font-size: 0.8rem;">Iniciar Sesión</button>
-                            <button id="btnAuthTabRegister" class="tab-btn" onclick="setAuthMode('register')" style="padding: 6px; font-size: 0.8rem;">Registrarse</button>
-                        </div>
+                </div>
+            </div>
+        </aside>
 
-                        <form id="authForm" onsubmit="handleAuthSubmit(event)" style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 4px;">
-                            <div style="display: flex; flex-direction: column; gap: 4px;">
-                                <label for="authEmail" style="font-size: 0.75rem; color: var(--text-secondary);">Correo electrónico</label>
-                                <input type="email" id="authEmail" required placeholder="ejemplo@correo.com" style="width: 100%; padding: 10px 12px; background: var(--bg-primary); border: 1px solid var(--border-color); color: #fff; border-radius: 8px; font-size: 0.85rem; font-family: var(--font-family);">
-                            </div>
-                            <div style="display: flex; flex-direction: column; gap: 4px;">
-                                <label for="authPassword" style="font-size: 0.75rem; color: var(--text-secondary);">Contraseña</label>
-                                <input type="password" id="authPassword" required placeholder="Mínimo 6 caracteres" style="width: 100%; padding: 10px 12px; background: var(--bg-primary); border: 1px solid var(--border-color); color: #fff; border-radius: 8px; font-size: 0.85rem; font-family: var(--font-family);">
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100" id="btnAuthSubmit" style="height: 42px; margin-top: 6px; font-size: 0.85rem;">
-                                <i data-lucide="log-in" style="width: 16px; height: 16px;"></i> Iniciar Sesión
-                            </button>
-                        </form>
+        <!-- Banner Flotante de Invitación para Iniciar Sesión (Sincronización) -->
+        <div id="authInviteBanner" class="pwa-install-banner" style="display: none; bottom: 85px; background-color: rgba(26, 26, 30, 0.98);">
+            <div class="pwa-banner-content">
+                <span class="pwa-banner-icon">🌐</span>
+                <div class="pwa-banner-text">
+                    <strong style="font-weight: 600;">¿Compartir con el ordenador?</strong>
+                    <span style="font-size: 0.72rem; color: var(--text-secondary);">Inicia sesión para sincronizar planos y tramos en la nube.</span>
+                </div>
+            </div>
+            <div class="pwa-banner-actions" style="display: flex; gap: 8px;">
+                <button class="btn btn-primary btn-sm" onclick="openAuthModal()" style="padding: 6px 12px; font-size: 0.75rem;">Iniciar Sesión</button>
+                <button class="btn-pwa-close" onclick="dismissAuthInviteBanner()" aria-label="Cerrar banner">×</button>
+            </div>
+        </div>
+
+        <!-- MODAL DE AUTENTICACIÓN SUPABASE (Login / Registro) -->
+        <div id="authModalOverlay" class="custom-dialog-overlay" style="display: none; z-index: 999999;">
+            <div class="custom-dialog-card" style="position: relative; max-width: 400px; text-align: left; align-items: stretch; gap: 0.75rem;">
+                <button onclick="closeAuthModal()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer; line-height: 1;">×</button>
+                
+                <!-- Desconectado: Login / Registro -->
+                <div id="authOfflineState">
+                    <h3 style="font-size: 1.1rem; font-weight: bold; color: #fff; margin-bottom: 0.25rem;">Acceso de Usuario</h3>
+                    <p class="card-desc" style="margin-bottom: 1rem;">Sincroniza tus progresos para verlos tanto en el móvil como en el ordenador.</p>
+                    
+                    <div class="auth-tabs" style="display: flex; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 4px; border-radius: 8px; margin-bottom: 1rem;">
+                        <button id="btnAuthTabLogin" class="tab-btn active" onclick="setAuthMode('login')" style="padding: 6px; font-size: 0.8rem;">Iniciar Sesión</button>
+                        <button id="btnAuthTabRegister" class="tab-btn" onclick="setAuthMode('register')" style="padding: 6px; font-size: 0.8rem;">Registrarse</button>
                     </div>
 
-                    <!-- Estado de Sesión: Conectado -->
-                    <div id="authOnlineState" class="card" style="display: none;">
-                        <div style="display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 4px;">
-                            <div style="background: rgba(16, 185, 129, 0.1); color: var(--accent); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">👤</div>
-                            <div style="display: flex; flex-direction: column; overflow: hidden;">
-                                <span style="font-size: 0.75rem; color: var(--text-secondary);">Sesión iniciada como</span>
-                                <strong id="authUserEmail" style="font-size: 0.85rem; color: #fff; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 250px;">-</strong>
-                            </div>
+                    <form id="authForm" onsubmit="handleAuthSubmit(event)" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label for="authEmail" style="font-size: 0.75rem; color: var(--text-secondary);">Correo electrónico</label>
+                            <input type="email" id="authEmail" required placeholder="ejemplo@correo.com" style="width: 100%; padding: 10px 12px; background: var(--bg-primary); border: 1px solid var(--border-color); color: #fff; border-radius: 8px; font-size: 0.85rem; font-family: var(--font-family);">
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label for="authPassword" style="font-size: 0.75rem; color: var(--text-secondary);">Contraseña</label>
+                            <input type="password" id="authPassword" required placeholder="Mínimo 6 caracteres" style="width: 100%; padding: 10px 12px; background: var(--bg-primary); border: 1px solid var(--border-color); color: #fff; border-radius: 8px; font-size: 0.85rem; font-family: var(--font-family);">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100" id="btnAuthSubmit" style="height: 42px; margin-top: 6px; font-size: 0.85rem;">
+                            <i data-lucide="log-in" style="width: 16px; height: 16px;"></i> Iniciar Sesión
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Conectado: Perfil / Sincronización -->
+                <div id="authOnlineState" style="display: none;">
+                    <h3 style="font-size: 1.1rem; font-weight: bold; color: #fff; margin-bottom: 0.25rem;">Mi Cuenta</h3>
+                    <p class="card-desc" style="margin-bottom: 1rem;">Estado del perfil de usuario y la sincronización con la nube.</p>
+                    
+                    <div style="display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 12px;">
+                        <div style="background: rgba(16, 185, 129, 0.1); color: var(--accent); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">👤</div>
+                        <div style="display: flex; flex-direction: column; overflow: hidden;">
+                            <span style="font-size: 0.75rem; color: var(--text-secondary);">Sesión iniciada como</span>
+                            <strong id="authUserEmail" style="font-size: 0.85rem; color: #fff; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 250px;">-</strong>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; font-size: 0.8rem;">
+                            <span style="color: var(--text-secondary);">Sincronización Cloud</span>
+                            <span id="syncCloudStatus" style="color: var(--accent); font-weight: bold; display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="cloud-check" style="width: 14px; height: 14px;"></i> Al día</span>
                         </div>
 
-                        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 4px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; font-size: 0.8rem;">
-                                <span style="color: var(--text-secondary);">Sincronización Cloud</span>
-                                <span id="syncCloudStatus" style="color: var(--accent); font-weight: bold; display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="cloud-check" style="width: 14px; height: 14px;"></i> Al día</span>
-                            </div>
+                        <button class="btn btn-primary w-100" id="btnForceSync" onclick="forceSync()" style="height: 40px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; font-size: 0.82rem;">
+                            <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Sincronizar Ahora
+                        </button>
 
-                            <button class="btn btn-primary w-100" id="btnForceSync" onclick="forceSync()" style="height: 40px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; font-size: 0.82rem;">
-                                <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Sincronizar Ahora
-                            </button>
-
-                            <button class="btn btn-danger w-100" onclick="handleLogout()" style="height: 40px; font-size: 0.82rem;">
-                                <i data-lucide="log-out" style="width: 14px; height: 14px;"></i> Cerrar Sesión
-                            </button>
-                        </div>
+                        <button class="btn btn-danger w-100" onclick="handleLogout()" style="height: 40px; font-size: 0.82rem;">
+                            <i data-lucide="log-out" style="width: 14px; height: 14px;"></i> Cerrar Sesión
+                        </button>
                     </div>
                 </div>
             </div>
+        </div>
         </aside>
 
         <!-- Toggle Panel Button -->
