@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-2085';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-2090';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #2085: Corregido error de colision de identificador supabase y recuperada carga del mapa.';
+const UPDATE_NOTES = 'Hotfix #2090: Eliminado boton de tabCuenta residual en HTML que provocaba TypeError.';
 
 const ASSETS = [
   './',
