@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-2050';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-2055';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #2050: Añadidas etiquetas de pueblos/ciudades en vista satélite/oscura y desglose de km hechos por plano.';
+const UPDATE_NOTES = 'Hotfix #2055: Estadisticas de Jornada y porcentajes calculados dinamicamente en base a planos visibles.';
 
 const ASSETS = [
   './',
