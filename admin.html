@@ -322,21 +322,8 @@
                     </div>
                     <div class="card">
                         <h3>Listado de Operarios Activos</h3>
-                        <div style="max-height: 380px; overflow-y: auto;">
-                            <table class="admin-table">
-                                <thead>
-                                    <tr>
-                                        <th>Nombre</th>
-                                        <th>Puesto</th>
-                                        <th>Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="operatorsTableBody">
-                                    <tr>
-                                        <td colspan="3" style="text-align: center; color: var(--text-secondary);">No hay operarios registrados.</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div id="operatorsListContainer" style="display: flex; flex-direction: column; gap: 10px; max-height: 480px; overflow-y: auto; padding-right: 4px;">
+                            <p class="card-desc" id="noOperatorsLabel">No hay operarios registrados.</p>
                         </div>
                     </div>
                 </div>
@@ -756,10 +743,10 @@
                 if (error) throw error;
 
                 if (data && data.user) {
-                    // Crear fila en tabla profiles
+                    // Actualizar o insertar fila en la tabla profiles
                     const { error: profErr } = await supabaseClient
                         .from('profiles')
-                        .insert({ id: data.user.id, role, full_name: name });
+                        .upsert({ id: data.user.id, role: role, full_name: name }, { onConflict: 'id' });
 
                     if (profErr) throw profErr;
                 }
@@ -776,20 +763,37 @@
 
         // Pintar Operarios
         function renderOperatorsList() {
-            const tbody = document.getElementById('operatorsTableBody');
+            const container = document.getElementById('operatorsListContainer');
+            const noOperators = document.getElementById('noOperatorsLabel');
+            
             if (operators.length > 0) {
-                tbody.innerHTML = '';
+                if (noOperators) noOperators.style.display = 'none';
+                container.innerHTML = '';
+
                 operators.forEach(op => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td><strong>${op.full_name}</strong></td>
-                        <td style="text-transform:capitalize;">${op.role}</td>
-                        <td><button onclick="deleteOperator('${op.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer;">Dar de Baja</button></td>
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.style.background = 'rgba(255,255,255,0.02)';
+                    card.style.padding = '0.75rem';
+                    card.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <strong style="color:#fff; font-size:0.85rem;">${op.full_name}</strong>
+                                <span style="font-size:0.7rem; color:var(--text-secondary); text-transform:capitalize; margin-left: 8px; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px;">${op.role}</span>
+                            </div>
+                            <button onclick="deleteOperator('${op.id}')" class="btn-remove-file" title="Dar de baja operario" style="background:none; border:none; padding:4px; cursor:pointer;">
+                                <i data-lucide="user-x" style="width: 14px; height: 14px; color: var(--danger); vertical-align: middle;"></i>
+                            </button>
+                        </div>
                     `;
-                    tbody.appendChild(tr);
+                    container.appendChild(card);
                 });
+                
+                if (window.refreshLucideIcons) refreshLucideIcons();
+                else if (window.lucide) window.lucide.createIcons();
             } else {
-                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-secondary);">No hay operarios registrados.</td></tr>';
+                if (noOperators) noOperators.style.display = 'block';
+                container.innerHTML = '<p class="card-desc" id="noOperatorsLabel">No hay operarios registrados.</p>';
             }
         }
 
