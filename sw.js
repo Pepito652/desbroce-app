@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-2060';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-2110';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #2060: Forzada actualizacion de estadisticas superiores al pulsar el ojo de visibilidad.';
+const UPDATE_NOTES = 'Hotfix #2110: Removida completamente la pestana "Ruta" y simplificada la app a Carga y Tramos.';
 
 const ASSETS = [
   './',
