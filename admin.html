@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - DesbroceApp</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS Local -->
+    <link rel="stylesheet" href="libs/leaflet.css">
+    <!-- Reutilización de los estilos de la app principal -->
+    <link rel="stylesheet" href="styles.css?v=0.1.11">
+    <!-- Estilos específicos de administración -->
+    <style>
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+            padding: 0.5rem 0;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+        .form-group label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.6rem 0.75rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: #fff;
+            font-family: var(--font-family);
+            font-size: 0.85rem;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Panel de Administración -->
+        <aside class="sidebar" id="sidebar" style="z-index: 5000;">
+            <header class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">🚜</span>
+                    <h1>DesbroceApp Oficina</h1>
+                </div>
+            </header>
+
+            <!-- Navigation Tabs -->
+            <nav class="tabs-nav">
+                <button class="tab-btn active" data-tab="tabEquipos"><i data-lucide="users" style="width: 15px; height: 15px; vertical-align: -2px; margin-right: 6px;"></i>Equipos</button>
+                <button class="tab-btn" data-tab="tabMonitoreo"><i data-lucide="eye" style="width: 15px; height: 15px; vertical-align: -2px; margin-right: 6px;"></i>Monitoreo</button>
+            </nav>
+
+            <div class="tab-content-container">
+                <!-- TAB 1: Gestión de Equipos y Personal -->
+                <div class="tab-content active" id="tabEquipos">
+                    <!-- Crear Equipo -->
+                    <div class="card">
+                        <h3>Crear Equipo de Trabajo</h3>
+                        <form id="createTeamForm" onsubmit="handleCreateTeam(event)">
+                            <div class="form-group">
+                                <label for="teamName">Nombre del Equipo</label>
+                                <input type="text" id="teamName" placeholder="Ej. Equipo Norte - Zona A" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="teamDescription">Descripción / Zona</label>
+                                <input type="text" id="teamDescription" placeholder="Ej. Carreteras de Colloto y Limites">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm w-100">Crear Equipo</button>
+                        </form>
+                    </div>
+
+                    <!-- Listado de Equipos -->
+                    <div class="card">
+                        <h3>Equipos Activos</h3>
+                        <div id="teamsListContainer" style="display: flex; flex-direction: column; gap: 10px; margin-top: 5px;">
+                            <p class="card-desc" id="noTeamsLabel">No hay equipos creados todavía.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: Monitoreo Global de Tramos -->
+                <div class="tab-content" id="tabMonitoreo">
+                    <div class="card">
+                        <h3>Progreso Global</h3>
+                        <p class="card-desc">Carreteras desbrozadas en tiempo real por todos los equipos.</p>
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                                <span>Progreso General:</span>
+                                <strong id="adminProgressPercent" style="color: var(--accent);">0%</strong>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" id="adminProgressBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Tramos en Ejecución</h3>
+                        <div style="max-height: 250px; overflow-y: auto;">
+                            <ul class="tramos-list" id="adminTramosList" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+                                <li class="tramos-list-empty" style="font-size: 0.8rem; color: var(--text-secondary); text-align: center; padding: 1.5rem 0;">Ningún tramo en ejecución.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Map Area -->
+        <main class="map-container" id="adminMap"></main>
+    </div>
+
+    <!-- JSZip Local -->
+    <script src="libs/jszip.min.js"></script>
+    <!-- Leaflet JS Local -->
+    <script src="libs/leaflet.js"></script>
+    <!-- Lucide Icons Local -->
+    <script src="libs/lucide.min.js"></script>
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Lógica de Administración -->
+    <script>
+        const supabaseUrl = 'https://ttxshuqgjieqooirlldt.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0eHNodXFnamllcW9vaXJsbGR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5MDM0NDEsImV4cCI6MjEwMjQ3OTQ0MX0.EZRQYQeJeQcxDND5boItMUYkt9GiF6Zjodl79TYqYas';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        let adminMap = null;
+        let segmentsLayerGroup = null;
+        let teams = [];
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', () => {
+            initAdminMap();
+            initTabs();
+            loadTeams();
+            loadSegments();
+            
+            // Suscribirse a cambios en tiempo real en la tabla de partes de trabajo
+            supabaseClient
+                .channel('schema-db-changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'work_logs' }, payload => {
+                    console.log('[Realtime] Cambio detectado:', payload);
+                    loadSegments();
+                })
+                .subscribe();
+            
+            if (window.lucide) window.lucide.createIcons();
+        });
+
+        // Inicializar Mapa Leaflet
+        function initAdminMap() {
+            adminMap = L.map('adminMap', {
+                zoomControl: false,
+                preferCanvas: true
+            }).setView([40.416775, -3.703790], 6);
+
+            L.control.zoom({ position: 'bottomleft' }).addTo(adminMap);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap &copy; CARTO',
+                subdomains: 'abcd',
+                maxZoom: 21
+            }).addTo(adminMap);
+
+            segmentsLayerGroup = L.featureGroup().addTo(adminMap);
+        }
+
+        // Navegación de pestañas
+        function initTabs() {
+            const tabs = document.querySelectorAll('.tab-btn');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    
+                    tab.classList.add('active');
+                    const targetId = tab.getAttribute('data-tab');
+                    document.getElementById(targetId).classList.add('active');
+                });
+            });
+        }
+
+        // Cargar equipos de Supabase
+        async function loadTeams() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('work_teams')
+                    .select('*')
+                    .is('deleted_at', null);
+
+                if (error) throw error;
+                teams = data || [];
+                renderTeams();
+            } catch (err) {
+                console.error("Error al cargar equipos:", err);
+            }
+        }
+
+        // Crear equipo
+        async function handleCreateTeam(e) {
+            e.preventDefault();
+            const nameInput = document.getElementById('teamName');
+            const descInput = document.getElementById('teamDescription');
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('work_teams')
+                    .insert({
+                        name: nameInput.value,
+                        description: descInput.value
+                    })
+                    .select();
+
+                if (error) throw error;
+                
+                nameInput.value = '';
+                descInput.value = '';
+                loadTeams();
+            } catch (err) {
+                alert("Error al crear equipo: " + err.message);
+            }
+        }
+
+        // Pintar equipos en la barra lateral
+        function renderTeams() {
+            const container = document.getElementById('teamsListContainer');
+            const noTeams = document.getElementById('noTeamsLabel');
+            
+            if (teams.length > 0) {
+                if (noTeams) noTeams.style.display = 'none';
+                container.innerHTML = '';
+                
+                teams.forEach(team => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.style.background = 'rgba(255,255,255,0.02)';
+                    card.style.padding = '0.75rem';
+                    card.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <strong style="color:#fff; font-size:0.85rem;">${team.name}</strong>
+                            <button onclick="deleteTeam('${team.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.8rem;">Eliminar</button>
+                        </div>
+                        <p style="font-size:0.75rem; color:var(--text-secondary); margin:2px 0 0 0;">${team.description || 'Sin descripción'}</p>
+                    `;
+                    container.appendChild(card);
+                });
+            } else {
+                if (noTeams) noTeams.style.display = 'block';
+            }
+        }
+
+        // Eliminar equipo (Soft delete)
+        async function deleteTeam(id) {
+            if (!confirm("¿Seguro que deseas eliminar este equipo?")) return;
+            try {
+                const { error } = await supabaseClient
+                    .from('work_teams')
+                    .update({ deleted_at: new Date().toISOString() })
+                    .eq('id', id);
+
+                if (error) throw error;
+                loadTeams();
+            } catch (err) {
+                alert("Error al borrar equipo: " + err.message);
+            }
+        }
+
+        // Cargar tramos (segments) y partes de trabajo (work_logs)
+        async function loadSegments() {
+            try {
+                // Obtener tramos
+                const { data: segments, error: segErr } = await supabaseClient
+                    .from('segments')
+                    .select('*')
+                    .is('deleted_at', null);
+
+                if (segErr) throw segErr;
+
+                // Obtener partes
+                const { data: logs, error: logErr } = await supabaseClient
+                    .from('work_logs')
+                    .select('*')
+                    .is('deleted_at', null);
+
+                if (logErr) throw logErr;
+
+                renderSegmentsOnMap(segments || [], logs || []);
+            } catch (err) {
+                console.error("Error al cargar tramos:", err);
+            }
+        }
+
+        // Dibujar tramos en el mapa del administrador
+        function renderSegmentsOnMap(segments, logs) {
+            segmentsLayerGroup.clearLayers();
+            const tramosList = document.getElementById('adminTramosList');
+            tramosList.innerHTML = '';
+
+            let completedCount = 0;
+
+            if (segments.length === 0) {
+                tramosList.innerHTML = '<li class="tramos-list-empty" style="font-size:0.8rem; color:var(--text-secondary); text-align:center; padding:1.5rem 0;">Ningún tramo cargado.</li>';
+                return;
+            }
+
+            segments.forEach(seg => {
+                // Buscar si tiene parte de trabajo activo
+                const log = logs.find(l => l.segment_id === seg.id);
+                const status = log ? log.status : 'pendiente';
+
+                // Determinar color
+                let color = '#9ca3af'; // Gris (Pendiente)
+                if (status === 'completado') {
+                    color = '#10b981'; // Verde (Completado)
+                    completedCount++;
+                } else if (status === 'en_progreso') {
+                    color = '#fbbf24'; // Amarillo (En Progreso)
+                } else if (status === 'incidencia') {
+                    color = '#ef4444'; // Rojo (Incidencia)
+                }
+
+                // Parsear coordenadas si están en formato GeoJSON/JSON plano
+                if (seg.kml_data) {
+                    try {
+                        const coords = JSON.parse(seg.kml_data);
+                        if (coords && coords.length > 0) {
+                            const polyline = L.polyline(coords, {
+                                color: color,
+                                weight: 4,
+                                opacity: 0.8
+                            }).addTo(segmentsLayerGroup);
+
+                            polyline.bindPopup(`<strong>${seg.name}</strong><br>Estado: ${status.toUpperCase()}`);
+                        }
+                    } catch (e) {
+                        console.error("Error parseando geometría del tramo:", seg.name);
+                    }
+                }
+
+                // Renderizar elemento de lista en barra lateral
+                const li = document.createElement('li');
+                li.style.background = 'rgba(255,255,255,0.02)';
+                li.style.borderLeft = `4px solid ${color}`;
+                li.style.padding = '8px';
+                li.style.borderRadius = '4px';
+                li.style.fontSize = '0.8rem';
+                li.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <strong>${seg.name}</strong>
+                        <span style="font-size:0.7rem; text-transform:uppercase; font-weight:bold; color:${color};">${status}</span>
+                    </div>
+                `;
+                tramosList.appendChild(li);
+            });
+
+            // Ajustar vista general del mapa
+            if (segmentsLayerGroup.getLayers().length > 0) {
+                adminMap.fitBounds(segmentsLayerGroup.getBounds());
+            }
+
+            // Calcular y renderizar estadísticas
+            const progressPercent = Math.round((completedCount / segments.length) * 100) || 0;
+            document.getElementById('adminProgressPercent').innerText = `${progressPercent}%`;
+            document.getElementById('adminProgressBar').style.width = `${progressPercent}%`;
+        }
+    </script>
+</body>
+</html>
