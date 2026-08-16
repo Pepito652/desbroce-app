@@ -48,11 +48,15 @@
     <div class="app-container">
         <!-- Sidebar Panel de Administración -->
         <aside class="sidebar" id="sidebar" style="z-index: 5000;">
-            <header class="sidebar-header">
+            <header class="sidebar-header" style="justify-content: space-between; align-items: center; display: flex;">
                 <div class="logo">
                     <span class="logo-icon">🚜</span>
                     <h1>DesbroceApp Oficina</h1>
                 </div>
+                <!-- Botón Perfil/Login en Oficina -->
+                <button id="btnHeaderAuth" onclick="openAuthModal()" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: var(--text-primary); width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition);" title="Iniciar Sesión / Mi Cuenta">
+                    <i id="headerAuthIcon" data-lucide="user" style="width: 16px; height: 16px;"></i>
+                </button>
             </header>
 
             <!-- Navigation Tabs -->
@@ -130,12 +134,45 @@
     <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
+    <!-- Módulo de Sincronización y Acceso -->
+    <script src="auth-sync.js"></script>
+
+    <!-- Modal Flotante de Autenticación / Registro (Supabase) -->
+    <div id="authModalOverlay" class="custom-dialog-overlay" style="display: none;">
+        <div class="custom-dialog-card animate-scale-up" style="max-width: 340px; padding: 1.5rem; text-align: left; align-items: stretch; gap: 0.75rem; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                <h3 id="authModalTitle" style="font-size: 1.1rem; font-weight: bold; margin: 0; color: #fff;">Iniciar Sesión</h3>
+                <button onclick="closeAuthModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.25rem; cursor: pointer; padding: 4px;">×</button>
+            </div>
+            
+            <!-- Vista de Login -->
+            <form id="loginForm" onsubmit="handleLoginSubmit(event)" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label for="loginEmail" style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">Correo Electrónico</label>
+                    <input type="email" id="loginEmail" placeholder="nombre@ejemplo.com" required style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-family: var(--font-family); font-size: 0.85rem; box-sizing: border-box;">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label for="loginPassword" style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">Contraseña</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-family: var(--font-family); font-size: 0.85rem; box-sizing: border-box;">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.6rem; font-size: 0.85rem; margin-top: 0.25rem;">Ingresar</button>
+            </form>
+
+            <!-- Vista de Perfil de Usuario Conectado -->
+            <div id="userProfileView" style="display: none; flex-direction: column; gap: 0.75rem; text-align: center; padding: 0.5rem 0;">
+                <div style="font-size: 2.5rem; margin-bottom: 0.25rem;">🚜</div>
+                <strong id="userProfileName" style="color: #fff; font-size: 0.95rem;">-</strong>
+                <span id="userProfileRole" style="font-size: 0.75rem; color: var(--accent); font-weight: bold; background: rgba(16,185,129,0.1); padding: 2px 8px; border-radius: 12px; align-self: center;">Peón</span>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; border-top: 1px solid var(--border-color); padding-top: 8px;">
+                    Equipo: <strong id="userProfileTeam" style="color: #fff;">Ninguno</strong>
+                </div>
+                <button onclick="handleLogout()" class="btn btn-danger btn-sm" style="width: 100%; margin-top: 0.5rem;">Cerrar Sesión</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Lógica de Administración -->
     <script>
-        const supabaseUrl = 'https://ttxshuqgjieqooirlldt.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0eHNodXFnamllcW9vaXJsbGR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5MDM0NDEsImV4cCI6MjEwMjQ3OTQ0MX0.EZRQYQeJeQcxDND5boItMUYkt9GiF6Zjodl79TYqYas';
-        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-
         let adminMap = null;
         let segmentsLayerGroup = null;
         let teams = [];
