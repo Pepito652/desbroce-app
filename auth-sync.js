@@ -57,7 +57,7 @@ async function checkSessionState() {
                 .single();
 
             if (profile) {
-                document.getElementById('userProfileName').innerText = profile.full_name;
+                document.getElementById('userProfileName').innerText = profile.full_name || session.user.email;
                 const roleLabel = document.getElementById('userProfileRole');
                 roleLabel.innerText = profile.role.toUpperCase();
                 
@@ -69,6 +69,13 @@ async function checkSessionState() {
                     roleLabel.style.background = 'rgba(16, 185, 129, 0.15)';
                     roleLabel.style.color = '#10b981';
                 }
+            } else {
+                // Si no hay perfil en public.profiles, mostrar su email y rol peón de forma temporal
+                document.getElementById('userProfileName').innerText = session.user.email;
+                const roleLabel = document.getElementById('userProfileRole');
+                roleLabel.innerText = "PEÓN (SIN PERFIL)";
+                roleLabel.style.background = 'rgba(239, 68, 68, 0.15)';
+                roleLabel.style.color = '#ef4444';
             }
 
             // Consultar equipo asignado

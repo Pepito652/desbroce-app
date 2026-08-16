@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-2140';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-2170';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #2140: Añadida clave de acceso anon key definitiva de Supabase.';
+const UPDATE_NOTES = 'Hotfix #2170: Añadida visualización del email en caso de perfil no creado.';
 
 const ASSETS = [
   './',
