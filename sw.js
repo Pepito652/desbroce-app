@@ -1,12 +1,13 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-2110';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-2120';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #2110: Removida completamente la pestana "Ruta" y simplificada la app a Carga y Tramos.';
+const UPDATE_NOTES = 'Hotfix #2120: Añadida pantalla de login central y botón de perfil sincronizado en cabecera.';
 
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
+  './auth-sync.js',
   './feedback-recorder.js',
   './libs/leaflet.css',
   './libs/leaflet.js',
