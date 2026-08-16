@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-2130';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-2140';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #2130: Integrado el motor de cola de sincronización Offline-First con Supabase.';
+const UPDATE_NOTES = 'Hotfix #2140: Añadida clave de acceso anon key definitiva de Supabase.';
 
 const ASSETS = [
   './',

@@ -1,7 +1,7 @@
 // Cliente Supabase y Gestión de Sesiones para DesbroceApp
 const supabaseUrl = 'https://ttxshuqgjieqooirlldt.supabase.co';
 // API Key pública (anon key) real de Supabase
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0eHNodXFnamllcW9vaXJsbGR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYzODk5OTksImV4cCI6MjEwMTk2NTk5OX0.dummy'; 
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0eHNodXFnamllcW9vaXJsbGR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5MDM0NDEsImV4cCI6MjEwMjQ3OTQ0MX0.EZRQYQeJeQcxDND5boItMUYkt9GiF6Zjodl79TYqYas'; 
 
 let supabaseClient = null;
 
