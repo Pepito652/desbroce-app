@@ -62,6 +62,7 @@
             <!-- Navigation Tabs -->
             <nav class="tabs-nav">
                 <button class="tab-btn active" data-tab="tabEquipos"><i data-lucide="users" style="width: 15px; height: 15px; vertical-align: -2px; margin-right: 6px;"></i>Equipos</button>
+                <button class="tab-btn" data-tab="tabMaquinaria"><i data-lucide="truck" style="width: 15px; height: 15px; vertical-align: -2px; margin-right: 6px;"></i>Máquinas</button>
                 <button class="tab-btn" data-tab="tabMonitoreo"><i data-lucide="eye" style="width: 15px; height: 15px; vertical-align: -2px; margin-right: 6px;"></i>Monitoreo</button>
             </nav>
 
@@ -93,7 +94,44 @@
                     </div>
                 </div>
 
-                <!-- TAB 2: Monitoreo Global de Tramos -->
+                <!-- TAB 2: Gestión de Maquinaria -->
+                <div class="tab-content" id="tabMaquinaria">
+                    <!-- Crear Maquinaria -->
+                    <div class="card">
+                        <h3>Dar de Alta Maquinaria</h3>
+                        <form id="createMachineryForm" onsubmit="handleCreateMachinery(event)">
+                            <div class="form-group">
+                                <label for="machineryType">Tipo de Máquina</label>
+                                <select id="machineryType" required>
+                                    <option value="tractor">Tractor</option>
+                                    <option value="dumper">Dumper</option>
+                                    <option value="limpiacunetas">Limpiacunetas</option>
+                                    <option value="vehiculo_transporte">Vehículo Transporte</option>
+                                    <option value="otro">Otro</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="machineryModel">Modelo / Marca</label>
+                                <input type="text" id="machineryModel" placeholder="Ej. John Deere 6120M" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="machineryPlate">Matrícula</label>
+                                <input type="text" id="machineryPlate" placeholder="Ej. 1234-BBB" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm w-100">Registrar Máquina</button>
+                        </form>
+                    </div>
+
+                    <!-- Listado de Maquinaria -->
+                    <div class="card">
+                        <h3>Inventario Activo</h3>
+                        <div id="machineryListContainer" style="display: flex; flex-direction: column; gap: 10px; margin-top: 5px;">
+                            <p class="card-desc" id="noMachineryLabel">No hay maquinaria registrada todavía.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: Monitoreo Global de Tramos -->
                 <div class="tab-content" id="tabMonitoreo">
                     <div class="card">
                         <h3>Progreso Global</h3>
@@ -110,7 +148,7 @@
                     </div>
                     
                     <div class="card">
-                        <h3>Tramos en Ejecución</h3>
+                        <h3>Asignar Tramos a Equipos</h3>
                         <div style="max-height: 250px; overflow-y: auto;">
                             <ul class="tramos-list" id="adminTramosList" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
                                 <li class="tramos-list-empty" style="font-size: 0.8rem; color: var(--text-secondary); text-align: center; padding: 1.5rem 0;">Ningún tramo en ejecución.</li>
@@ -123,6 +161,40 @@
 
         <!-- Map Area -->
         <main class="map-container" id="adminMap"></main>
+    </div>
+
+    <!-- Modal Flotante de Detalles del Equipo -->
+    <div id="teamDetailsModal" class="custom-dialog-overlay" style="display: none;">
+        <div class="custom-dialog-card animate-scale-up" style="max-width: 420px; padding: 1.5rem; text-align: left; align-items: stretch; gap: 0.75rem; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                <h3 id="teamDetailsTitle" style="font-size: 1.1rem; font-weight: bold; margin: 0; color: #fff;">Gestionar Equipo</h3>
+                <button onclick="closeTeamDetailsModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.25rem; cursor: pointer; padding: 4px;">×</button>
+            </div>
+            
+            <!-- Asignar Personal -->
+            <div class="card" style="padding: 0.75rem; background: rgba(255,255,255,0.01);">
+                <h4 style="font-size: 0.8rem; color: #fff; margin-bottom: 8px;">Añadir Operario al Equipo</h4>
+                <div style="display: flex; gap: 8px;">
+                    <select id="selectProfileToAssign" style="flex: 1; padding: 6px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-size: 0.8rem;"></select>
+                    <button onclick="assignProfileToTeam()" class="btn btn-primary btn-sm">Añadir</button>
+                </div>
+            </div>
+
+            <!-- Asignar Maquinaria -->
+            <div class="card" style="padding: 0.75rem; background: rgba(255,255,255,0.01);">
+                <h4 style="font-size: 0.8rem; color: #fff; margin-bottom: 8px;">Asignar Máquina al Equipo</h4>
+                <div style="display: flex; gap: 8px;">
+                    <select id="selectMachineryToAssign" style="flex: 1; padding: 6px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-size: 0.8rem;"></select>
+                    <button onclick="assignMachineryToTeam()" class="btn btn-primary btn-sm">Asignar</button>
+                </div>
+            </div>
+
+            <!-- Miembros Actuales -->
+            <div class="card" style="padding: 0.75rem; background: rgba(255,255,255,0.01);">
+                <h4 style="font-size: 0.8rem; color: #fff; margin-bottom: 6px;">Personal y Maquinaria Activa</h4>
+                <ul id="teamAssetsList" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.75rem; color: var(--text-secondary);"></ul>
+            </div>
+        </div>
     </div>
 
     <!-- JSZip Local -->
@@ -176,12 +248,15 @@
         let adminMap = null;
         let segmentsLayerGroup = null;
         let teams = [];
+        let machinery = [];
+        let activeTeamId = null;
 
         // Inicialización
         document.addEventListener('DOMContentLoaded', () => {
             initAdminMap();
             initTabs();
             loadTeams();
+            loadMachinery();
             loadSegments();
             
             // Suscribirse a cambios en tiempo real en la tabla de partes de trabajo
@@ -284,10 +359,12 @@
                     card.className = 'card';
                     card.style.background = 'rgba(255,255,255,0.02)';
                     card.style.padding = '0.75rem';
+                    card.style.cursor = 'pointer';
+                    card.onclick = () => openTeamDetails(team.id, team.name);
                     card.innerHTML = `
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <strong style="color:#fff; font-size:0.85rem;">${team.name}</strong>
-                            <button onclick="deleteTeam('${team.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.8rem;">Eliminar</button>
+                            <button onclick="event.stopPropagation(); deleteTeam('${team.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.8rem;">Eliminar</button>
                         </div>
                         <p style="font-size:0.75rem; color:var(--text-secondary); margin:2px 0 0 0;">${team.description || 'Sin descripción'}</p>
                     `;
@@ -313,6 +390,316 @@
                 alert("Error al borrar equipo: " + err.message);
             }
         }
+
+        // --- GESTIÓN DE MAQUINARIA ---
+
+        async function loadMachinery() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('machinery')
+                    .select('*')
+                    .is('deleted_at', null);
+
+                if (error) throw error;
+                machinery = data || [];
+                renderMachinery();
+            } catch (err) {
+                console.error("Error al cargar maquinaria:", err);
+            }
+        }
+
+        async function handleCreateMachinery(e) {
+            e.preventDefault();
+            const type = document.getElementById('machineryType').value;
+            const model = document.getElementById('machineryModel').value;
+            const plate = document.getElementById('machineryPlate').value;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('machinery')
+                    .insert({ type, model, license_plate: plate });
+
+                if (error) throw error;
+
+                document.getElementById('machineryModel').value = '';
+                document.getElementById('machineryPlate').value = '';
+                loadMachinery();
+            } catch (err) {
+                alert("Error al registrar máquina: " + err.message);
+            }
+        }
+
+        function renderMachinery() {
+            const container = document.getElementById('machineryListContainer');
+            const noMachinery = document.getElementById('noMachineryLabel');
+
+            if (machinery.length > 0) {
+                if (noMachinery) noMachinery.style.display = 'none';
+                container.innerHTML = '';
+
+                machinery.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.style.background = 'rgba(255,255,255,0.02)';
+                    card.style.padding = '0.75rem';
+                    card.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <strong style="color:#fff; font-size:0.85rem; text-transform:capitalize;">${item.type} - ${item.model}</strong>
+                            <button onclick="deleteMachinery('${item.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.8rem;">Eliminar</button>
+                        </div>
+                        <p style="font-size:0.75rem; color:var(--text-secondary); margin:2px 0 0 0;">Matrícula: <strong>${item.license_plate}</strong></p>
+                    `;
+                    container.appendChild(card);
+                });
+            } else {
+                if (noMachinery) noMachinery.style.display = 'block';
+            }
+        }
+
+        async function deleteMachinery(id) {
+            if (!confirm("¿Seguro que deseas eliminar esta máquina?")) return;
+            try {
+                const { error } = await supabaseClient
+                    .from('machinery')
+                    .update({ deleted_at: new Date().toISOString() })
+                    .eq('id', id);
+
+                if (error) throw error;
+                loadMachinery();
+            } catch (err) {
+                alert("Error al borrar máquina: " + err.message);
+            }
+        }
+
+        // --- GESTIÓN INTERNA DE EQUIPO (MODAL DETALLES) ---
+
+        async function openTeamDetails(teamId, teamName) {
+            activeTeamId = teamId;
+            document.getElementById('teamDetailsTitle').innerText = `Gestionar: ${teamName}`;
+            document.getElementById('teamDetailsModal').style.display = 'flex';
+            
+            // Cargar datos del modal
+            loadProfilesForAssign();
+            loadMachineryForAssign();
+            loadTeamAssets();
+        }
+
+        function closeTeamDetailsModal() {
+            document.getElementById('teamDetailsModal').style.display = 'none';
+            activeTeamId = null;
+        }
+
+        // Cargar perfiles libres para asignar
+        async function loadProfilesForAssign() {
+            try {
+                // Obtener perfiles que no pertenezcan ya a algún equipo
+                const { data: assignedMembers } = await supabaseClient
+                    .from('team_members')
+                    .select('profile_id');
+                
+                const assignedIds = (assignedMembers || []).map(m => m.profile_id);
+
+                const { data: profiles, error } = await supabaseClient
+                    .from('profiles')
+                    .select('id, full_name, role')
+                    .is('deleted_at', null);
+
+                if (error) throw error;
+
+                const select = document.getElementById('selectProfileToAssign');
+                select.innerHTML = '';
+                
+                const freeProfiles = profiles.filter(p => !assignedIds.includes(p.id));
+                
+                if (freeProfiles.length === 0) {
+                    select.innerHTML = '<option value="">Sin operarios disponibles</option>';
+                } else {
+                    freeProfiles.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.id;
+                        opt.innerText = `${p.full_name} (${p.role})`;
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (err) {
+                console.error("Error al cargar operarios libres:", err);
+            }
+        }
+
+        // Cargar maquinaria libre para asignar
+        async function loadMachineryForAssign() {
+            try {
+                const { data: assignedMachinery } = await supabaseClient
+                    .from('team_machinery')
+                    .select('machinery_id');
+                
+                const assignedIds = (assignedMachinery || []).map(m => m.machinery_id);
+
+                const { data: machines, error } = await supabaseClient
+                    .from('machinery')
+                    .select('id, type, model, license_plate')
+                    .is('deleted_at', null);
+
+                if (error) throw error;
+
+                const select = document.getElementById('selectMachineryToAssign');
+                select.innerHTML = '';
+                
+                const freeMachines = machines.filter(m => !assignedIds.includes(m.id));
+
+                if (freeMachines.length === 0) {
+                    select.innerHTML = '<option value="">Sin maquinaria disponible</option>';
+                } else {
+                    freeMachines.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m.id;
+                        opt.innerText = `${m.type} - ${m.model} (${m.license_plate})`;
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (err) {
+                console.error("Error al cargar maquinaria libre:", err);
+            }
+        }
+
+        // Cargar miembros y recursos asignados al equipo
+        async function loadTeamAssets() {
+            if (!activeTeamId) return;
+            const container = document.getElementById('teamAssetsList');
+            container.innerHTML = '<li>Cargando...</li>';
+
+            try {
+                // Operarios
+                const { data: members, error: memErr } = await supabaseClient
+                    .from('team_members')
+                    .select('profiles(id, full_name, role)')
+                    .eq('team_id', activeTeamId);
+
+                if (memErr) throw memErr;
+
+                // Maquinaria
+                const { data: machines, error: machErr } = await supabaseClient
+                    .from('team_machinery')
+                    .select('machinery(id, type, model, license_plate)')
+                    .eq('team_id', activeTeamId);
+
+                if (machErr) throw machErr;
+
+                container.innerHTML = '';
+
+                // Pintar Operarios
+                if (members && members.length > 0) {
+                    members.forEach(m => {
+                        const prof = m.profiles;
+                        const li = document.createElement('li');
+                        li.style.display = 'flex';
+                        li.style.justifyContent = 'space-between';
+                        li.style.alignItems = 'center';
+                        li.style.marginBottom = '4px';
+                        li.innerHTML = `
+                            <span>👤 <strong>${prof.full_name}</strong> (${prof.role})</span>
+                            <button onclick="removeProfileFromTeam('${prof.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.75rem;">Quitar</button>
+                        `;
+                        container.appendChild(li);
+                    });
+                }
+
+                // Pintar Maquinaria
+                if (machines && machines.length > 0) {
+                    machines.forEach(m => {
+                        const mach = m.machinery;
+                        const li = document.createElement('li');
+                        li.style.display = 'flex';
+                        li.style.justifyContent = 'space-between';
+                        li.style.alignItems = 'center';
+                        li.style.marginBottom = '4px';
+                        li.innerHTML = `
+                            <span>🚜 <strong style="text-transform:capitalize;">${mach.type}</strong> - ${mach.model} (${mach.license_plate})</span>
+                            <button onclick="removeMachineryFromTeam('${mach.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.75rem;">Quitar</button>
+                        `;
+                        container.appendChild(li);
+                    });
+                }
+
+                if (container.children.length === 0) {
+                    container.innerHTML = '<li>Sin personal ni maquinaria asignada.</li>';
+                }
+
+            } catch (err) {
+                console.error("Error al cargar recursos del equipo:", err);
+            }
+        }
+
+        // Acciones de asignación
+        async function assignProfileToTeam() {
+            const profileId = document.getElementById('selectProfileToAssign').value;
+            if (!profileId || !activeTeamId) return;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('team_members')
+                    .insert({ team_id: activeTeamId, profile_id: profileId });
+
+                if (error) throw error;
+                loadProfilesForAssign();
+                loadTeamAssets();
+            } catch (err) {
+                alert("Error al asignar operario: " + err.message);
+            }
+        }
+
+        async function assignMachineryToTeam() {
+            const machineryId = document.getElementById('selectMachineryToAssign').value;
+            if (!machineryId || !activeTeamId) return;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('team_machinery')
+                    .insert({ team_id: activeTeamId, machinery_id: machineryId });
+
+                if (error) throw error;
+                loadMachineryForAssign();
+                loadTeamAssets();
+            } catch (err) {
+                alert("Error al asignar maquinaria: " + err.message);
+            }
+        }
+
+        async function removeProfileFromTeam(profileId) {
+            if (!confirm("¿Deseas desvincular este operario de este equipo?")) return;
+            try {
+                const { error } = await supabaseClient
+                    .from('team_members')
+                    .delete()
+                    .eq('team_id', activeTeamId)
+                    .eq('profile_id', profileId);
+
+                if (error) throw error;
+                loadProfilesForAssign();
+                loadTeamAssets();
+            } catch (err) {
+                alert("Error al quitar operario: " + err.message);
+            }
+        }
+
+        async function removeMachineryFromTeam(machineryId) {
+            if (!confirm("¿Deseas desvincular esta máquina de este equipo?")) return;
+            try {
+                const { error } = await supabaseClient
+                    .from('team_machinery')
+                    .delete()
+                    .eq('team_id', activeTeamId)
+                    .eq('machinery_id', machineryId);
+
+                if (error) throw error;
+                loadMachineryForAssign();
+                loadTeamAssets();
+            } catch (err) {
+                alert("Error al quitar maquinaria: " + err.message);
+            }
+        }
+
+        // --- ASIGNACIÓN DE TRAMOS ---
 
         // Cargar tramos (segments) y partes de trabajo (work_logs)
         async function loadSegments() {
@@ -386,6 +773,13 @@
                     }
                 }
 
+                // Construir selector de asignación de equipos
+                let teamOptions = `<option value="">Sin asignar</option>`;
+                teams.forEach(t => {
+                    const selected = log && log.team_id === t.id ? 'selected' : '';
+                    teamOptions += `<option value="${t.id}" ${selected}>${t.name}</option>`;
+                });
+
                 // Renderizar elemento de lista en barra lateral
                 const li = document.createElement('li');
                 li.style.background = 'rgba(255,255,255,0.02)';
@@ -394,9 +788,15 @@
                 li.style.borderRadius = '4px';
                 li.style.fontSize = '0.8rem';
                 li.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
                         <strong>${seg.name}</strong>
                         <span style="font-size:0.7rem; text-transform:uppercase; font-weight:bold; color:${color};">${status}</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="font-size:0.7rem; color:var(--text-secondary);">Asignar a:</span>
+                        <select onchange="assignTramoToTeam('${seg.id}', this.value)" style="flex:1; padding:3px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:4px; color:#fff; font-size:0.7rem; font-family:var(--font-family);">
+                            ${teamOptions}
+                        </select>
                     </div>
                 `;
                 tramosList.appendChild(li);
@@ -411,6 +811,35 @@
             const progressPercent = Math.round((completedCount / segments.length) * 100) || 0;
             document.getElementById('adminProgressPercent').innerText = `${progressPercent}%`;
             document.getElementById('adminProgressBar').style.width = `${progressPercent}%`;
+        }
+
+        // Registrar asignación de tramo a equipo en Supabase
+        async function assignTramoToTeam(segmentId, teamId) {
+            try {
+                if (!teamId) {
+                    // Si se marca vacío, quitar asignación (borrar del log)
+                    const { error } = await supabaseClient
+                        .from('work_logs')
+                        .delete()
+                        .eq('segment_id', segmentId);
+
+                    if (error) throw error;
+                } else {
+                    // Upsert asignando el tramo al equipo
+                    const { error } = await supabaseClient
+                        .from('work_logs')
+                        .upsert({
+                            segment_id: segmentId,
+                            team_id: teamId,
+                            status: 'pendiente'
+                        }, { onConflict: 'segment_id' });
+
+                    if (error) throw error;
+                }
+                loadSegments();
+            } catch (err) {
+                alert("Error al asignar tramo: " + err.message);
+            }
         }
     </script>
 </body>
