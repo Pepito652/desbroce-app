@@ -1732,7 +1732,6 @@ function reorderRouteFromLocation(userLatLng) {
         // Combinar pendientes ordenados con completados al final
         state.routeOrder = [...newPendingIds, ...completedIds];
         
-        updateRouteList();
         saveStateToLocalStorage();
         logDebug("Secuencia de trabajo ordenada por proximidad al GPS con éxito.");
     } catch (e) {
@@ -2446,7 +2445,6 @@ function toggleFileVisibility(fileId) {
         // Volver a renderizar tramos en el mapa y regenerar las listas
         renderTramosOnMap();
         updateTramosList();
-        updateRouteList();
         updateLoadedFilesList();
         updateStats();
     } catch (e) {

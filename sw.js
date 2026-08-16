@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-2170';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-2180';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #2170: Añadida visualización del email en caso de perfil no creado.';
+const UPDATE_NOTES = 'Hotfix #2180: Corregido el fallo del botón de visibilidad de los archivos cargados.';
 
 const ASSETS = [
   './',
