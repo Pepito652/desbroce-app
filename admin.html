@@ -3,37 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Administración - DesbroceApp</title>
+    <title>Panel de Control - Oficina DesbroceApp</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Leaflet CSS Local -->
     <link rel="stylesheet" href="libs/leaflet.css">
-    <!-- Reutilización de los estilos de la app principal -->
+    <!-- Reutilización de los estilos base -->
     <link rel="stylesheet" href="styles.css?v=0.1.11">
-    <!-- Estilos específicos de administración -->
+    
     <style>
-        .admin-grid {
+        /* Estilo Dashboard Moderno y Balanceado */
+        body, html {
+            overflow: auto; /* Permitir scroll vertical en la oficina */
+        }
+        .dashboard-container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1rem;
-            padding: 0.5rem 0;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+            background-color: var(--bg-primary);
+        }
+        .admin-sidebar {
+            background-color: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .main-content {
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            overflow-y: auto;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .admin-tabs-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .admin-tab-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: none;
+            border: 1px solid transparent;
+            color: var(--text-secondary);
+            padding: 0.8rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            transition: var(--transition);
+        }
+        .admin-tab-btn:hover, .admin-tab-btn.active {
+            background-color: var(--bg-card);
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
+        .admin-tab-btn.active {
+            border-left: 3px solid var(--accent);
+        }
+        .admin-panel-content {
+            display: none;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .admin-panel-content.active {
+            display: flex;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+        }
+        .metric-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* Mapa más integrado y menos invasivo */
+        .admin-map-wrapper {
+            height: 400px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            position: relative;
         }
         .form-group {
             display: flex;
             flex-direction: column;
-            gap: 4px;
-            margin-bottom: 10px;
+            gap: 6px;
+            margin-bottom: 12px;
         }
         .form-group label {
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             color: var(--text-secondary);
             font-weight: 500;
         }
         .form-group input, .form-group select {
-            width: 100%;
-            padding: 0.6rem 0.75rem;
+            padding: 0.65rem 0.8rem;
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
             border-radius: 6px;
@@ -42,63 +131,134 @@
             font-size: 0.85rem;
             box-sizing: border-box;
         }
+        .form-group input:focus, .form-group select:focus {
+            outline: 2px solid var(--accent);
+        }
+        /* Tablas */
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+        .admin-table th {
+            padding: 10px;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+        .admin-table td {
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Sidebar Panel de Administración -->
-        <aside class="sidebar" id="sidebar" style="z-index: 5000;">
-            <header class="sidebar-header" style="justify-content: space-between; align-items: center; display: flex;">
+    <div class="dashboard-container">
+        <!-- Sidebar de Oficina -->
+        <aside class="admin-sidebar">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div class="logo">
                     <span class="logo-icon">🚜</span>
-                    <h1>DesbroceApp Oficina</h1>
+                    <h1 style="font-size: 1.15rem;">Desbroce Oficina</h1>
                 </div>
-                <!-- Botón Perfil/Login en Oficina -->
+                <!-- Perfil / Login -->
                 <button id="btnHeaderAuth" onclick="openAuthModal()" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: var(--text-primary); width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition);" title="Iniciar Sesión / Mi Cuenta">
                     <i id="headerAuthIcon" data-lucide="user" style="width: 16px; height: 16px;"></i>
                 </button>
-            </header>
+            </div>
 
-            <!-- Navigation Tabs -->
-            <nav class="tabs-nav">
-                <button class="tab-btn active" data-tab="tabEquipos"><i data-lucide="users" style="width: 15px; height: 15px; vertical-align: -2px; margin-right: 6px;"></i>Equipos</button>
-                <button class="tab-btn" data-tab="tabMaquinaria"><i data-lucide="truck" style="width: 15px; height: 15px; vertical-align: -2px; margin-right: 6px;"></i>Máquinas</button>
-                <button class="tab-btn" data-tab="tabMonitoreo"><i data-lucide="eye" style="width: 15px; height: 15px; vertical-align: -2px; margin-right: 6px;"></i>Monitoreo</button>
+            <nav class="admin-tabs-nav">
+                <button class="admin-tab-btn active" data-tab="panelResumen"><i data-lucide="layout-dashboard" style="width: 16px; height: 16px;"></i>Resumen</button>
+                <button class="admin-tab-btn" data-tab="panelEquipos"><i data-lucide="users" style="width: 16px; height: 16px;"></i>Equipos</button>
+                <button class="admin-tab-btn" data-tab="panelMaquinaria"><i data-lucide="truck" style="width: 16px; height: 16px;"></i>Maquinaria</button>
+                <button class="admin-tab-btn" data-tab="panelUsuarios"><i data-lucide="user-plus" style="width: 16px; height: 16px;"></i>Operarios</button>
+                <button class="admin-tab-btn" data-tab="panelInformes"><i data-lucide="file-text" style="width: 16px; height: 16px;"></i>Informes</button>
             </nav>
+            
+            <div style="margin-top: auto; font-size: 11px; color: var(--text-secondary); text-align: center; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                Código de control: <strong style="color: var(--accent);">#2200</strong>
+            </div>
+        </aside>
 
-            <div class="tab-content-container">
-                <!-- TAB 1: Gestión de Equipos y Personal -->
-                <div class="tab-content active" id="tabEquipos">
-                    <!-- Crear Equipo -->
+        <!-- Contenedor Principal (Dashboard) -->
+        <main class="main-content">
+            
+            <!-- SECCIÓN 1: RESUMEN / DASHBOARD -->
+            <section class="admin-panel-content active" id="panelResumen">
+                <h2 style="font-weight: 700; font-size: 1.5rem; letter-spacing: -0.5px;">Panel de Resumen</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <span class="stat-label">Progreso de Obra</span>
+                        <span class="stat-value" id="metricsPercent">0%</span>
+                        <div class="progress-bar-container" style="height: 4px; margin-top: 4px;">
+                            <div class="progress-bar" id="metricsProgressBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <span class="stat-label">Equipos Activos</span>
+                        <span class="stat-value-sub" id="metricsActiveTeams" style="color: #fff; font-size: 1.4rem;">0</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="stat-label">Maquinaria Registrada</span>
+                        <span class="stat-value-sub" id="metricsMachineryCount" style="color: #fff; font-size: 1.4rem;">0</span>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <!-- Mapa integrado -->
+                    <div class="card" style="padding: 1rem; gap: 0.5rem;">
+                        <h3>Monitoreo de Carreteras</h3>
+                        <p class="card-desc">Estado visual de los tramos cargados en la base de datos.</p>
+                        <div class="admin-map-wrapper" id="adminMap"></div>
+                    </div>
+                    <!-- Tramos y Asignaciones -->
                     <div class="card">
-                        <h3>Crear Equipo de Trabajo</h3>
+                        <h3>Asignación de Tramos</h3>
+                        <p class="card-desc">Asigna tramos de carreteras KML a tus equipos de trabajo.</p>
+                        <div style="max-height: 340px; overflow-y: auto; padding-right: 4px;">
+                            <ul class="tramos-list" id="adminTramosList" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+                                <li style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 2rem 0;">Ningún tramo cargado en la base de datos.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 2: EQUIPOS -->
+            <section class="admin-panel-content" id="panelEquipos">
+                <h2 style="font-weight: 700; font-size: 1.5rem; letter-spacing: -0.5px;">Gestión de Equipos</h2>
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <h3>Crear Nuevo Equipo</h3>
                         <form id="createTeamForm" onsubmit="handleCreateTeam(event)">
                             <div class="form-group">
                                 <label for="teamName">Nombre del Equipo</label>
                                 <input type="text" id="teamName" placeholder="Ej. Equipo Norte - Zona A" required>
                             </div>
                             <div class="form-group">
-                                <label for="teamDescription">Descripción / Zona</label>
+                                <label for="teamDescription">Zona / Descripción</label>
                                 <input type="text" id="teamDescription" placeholder="Ej. Carreteras de Colloto y Limites">
                             </div>
                             <button type="submit" class="btn btn-primary btn-sm w-100">Crear Equipo</button>
                         </form>
                     </div>
-
-                    <!-- Listado de Equipos -->
                     <div class="card">
                         <h3>Equipos Activos</h3>
-                        <div id="teamsListContainer" style="display: flex; flex-direction: column; gap: 10px; margin-top: 5px;">
-                            <p class="card-desc" id="noTeamsLabel">No hay equipos creados todavía.</p>
+                        <div id="teamsListContainer" style="display: flex; flex-direction: column; gap: 10px;">
+                            <p class="card-desc">No hay equipos creados todavía.</p>
                         </div>
                     </div>
                 </div>
+            </section>
 
-                <!-- TAB 2: Gestión de Maquinaria -->
-                <div class="tab-content" id="tabMaquinaria">
-                    <!-- Crear Maquinaria -->
+            <!-- SECCIÓN 3: MAQUINARIA -->
+            <section class="admin-panel-content" id="panelMaquinaria">
+                <h2 style="font-weight: 700; font-size: 1.5rem; letter-spacing: -0.5px;">Inventario de Maquinaria</h2>
+                <div class="dashboard-grid">
                     <div class="card">
-                        <h3>Dar de Alta Maquinaria</h3>
+                        <h3>Dar de Alta Máquina</h3>
                         <form id="createMachineryForm" onsubmit="handleCreateMachinery(event)">
                             <div class="form-group">
                                 <label for="machineryType">Tipo de Máquina</label>
@@ -121,46 +281,99 @@
                             <button type="submit" class="btn btn-primary btn-sm w-100">Registrar Máquina</button>
                         </form>
                     </div>
-
-                    <!-- Listado de Maquinaria -->
                     <div class="card">
                         <h3>Inventario Activo</h3>
-                        <div id="machineryListContainer" style="display: flex; flex-direction: column; gap: 10px; margin-top: 5px;">
-                            <p class="card-desc" id="noMachineryLabel">No hay maquinaria registrada todavía.</p>
+                        <div id="machineryListContainer" style="display: flex; flex-direction: column; gap: 10px;">
+                            <p class="card-desc">No hay maquinaria registrada.</p>
                         </div>
                     </div>
                 </div>
+            </section>
 
-                <!-- TAB 3: Monitoreo Global de Tramos -->
-                <div class="tab-content" id="tabMonitoreo">
+            <!-- SECCIÓN 4: CREACIÓN DE USUARIOS OPERARIOS -->
+            <section class="admin-panel-content" id="panelUsuarios">
+                <h2 style="font-weight: 700; font-size: 1.5rem; letter-spacing: -0.5px;">Gestión de Operarios</h2>
+                <div class="dashboard-grid">
                     <div class="card">
-                        <h3>Progreso Global</h3>
-                        <p class="card-desc">Carreteras desbrozadas en tiempo real por todos los equipos.</p>
-                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
-                            <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
-                                <span>Progreso General:</span>
-                                <strong id="adminProgressPercent" style="color: var(--accent);">0%</strong>
+                        <h3>Crear Nuevo Operario</h3>
+                        <form id="createOperatorForm" onsubmit="handleCreateOperator(event)">
+                            <div class="form-group">
+                                <label for="opEmail">Correo Electrónico</label>
+                                <input type="email" id="opEmail" placeholder="operario@empresa.com" required>
                             </div>
-                            <div class="progress-bar-container">
-                                <div class="progress-bar" id="adminProgressBar" style="width: 0%"></div>
+                            <div class="form-group">
+                                <label for="opPassword">Contraseña Temporal</label>
+                                <input type="password" id="opPassword" placeholder="Ej. 123456" required>
                             </div>
+                            <div class="form-group">
+                                <label for="opName">Nombre Completo</label>
+                                <input type="text" id="opName" placeholder="Ej. Juan Pérez" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="opRole">Puesto de Trabajo</label>
+                                <select id="opRole" required>
+                                    <option value="tractorista">Tractorista</option>
+                                    <option value="peon">Peón de desbroce</option>
+                                    <option value="conductor">Conductor</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm w-100">Crear Operario</button>
+                        </form>
+                    </div>
+                    <div class="card">
+                        <h3>Listado de Operarios Activos</h3>
+                        <div style="max-height: 380px; overflow-y: auto;">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Puesto</th>
+                                        <th>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="operatorsTableBody">
+                                    <tr>
+                                        <td colspan="3" style="text-align: center; color: var(--text-secondary);">No hay operarios registrados.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 5: INFORMES -->
+            <section class="admin-panel-content" id="panelInformes">
+                <h2 style="font-weight: 700; font-size: 1.5rem; letter-spacing: -0.5px;">Reportes e Informes</h2>
+                <div class="card">
+                    <h3>Generar Reporte de Rendimiento</h3>
+                    <p class="card-desc">Filtra y exporta tramos completados y metros desbrozados por fechas y equipos.</p>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                        <div class="form-group">
+                            <label for="reportTeamFilter">Filtrar por Equipo</label>
+                            <select id="reportTeamFilter">
+                                <option value="all">Todos los Equipos</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="reportDateStart">Fecha Inicio</label>
+                            <input type="date" id="reportDateStart">
+                        </div>
+                        <div class="form-group">
+                            <label for="reportDateEnd">Fecha Fin</label>
+                            <input type="date" id="reportDateEnd">
                         </div>
                     </div>
                     
-                    <div class="card">
-                        <h3>Asignar Tramos a Equipos</h3>
-                        <div style="max-height: 250px; overflow-y: auto;">
-                            <ul class="tramos-list" id="adminTramosList" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
-                                <li class="tramos-list-empty" style="font-size: 0.8rem; color: var(--text-secondary); text-align: center; padding: 1.5rem 0;">Ningún tramo en ejecución.</li>
-                            </ul>
-                        </div>
+                    <div style="display: flex; gap: 8px; margin-top: 1rem;">
+                        <button onclick="generateReport('pdf')" class="btn btn-primary" style="flex: 1;"><i data-lucide="file-down"></i> Descargar PDF</button>
+                        <button onclick="generateReport('csv')" class="btn btn-secondary" style="flex: 1;"><i data-lucide="download"></i> Descargar Excel (CSV)</button>
                     </div>
                 </div>
-            </div>
-        </aside>
+            </section>
 
-        <!-- Map Area -->
-        <main class="map-container" id="adminMap"></main>
+        </main>
     </div>
 
     <!-- Modal Flotante de Detalles del Equipo -->
@@ -197,18 +410,6 @@
         </div>
     </div>
 
-    <!-- JSZip Local -->
-    <script src="libs/jszip.min.js"></script>
-    <!-- Leaflet JS Local -->
-    <script src="libs/leaflet.js"></script>
-    <!-- Lucide Icons Local -->
-    <script src="libs/lucide.min.js"></script>
-    <!-- Supabase CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- Módulo de Sincronización y Acceso -->
-    <script src="auth-sync.js"></script>
-
     <!-- Modal Flotante de Autenticación / Registro (Supabase) -->
     <div id="authModalOverlay" class="custom-dialog-overlay" style="display: none;">
         <div class="custom-dialog-card animate-scale-up" style="max-width: 340px; padding: 1.5rem; text-align: left; align-items: stretch; gap: 0.75rem; box-sizing: border-box;">
@@ -242,32 +443,46 @@
             </div>
         </div>
     </div>
+
+    <!-- JSZip Local -->
+    <script src="libs/jszip.min.js"></script>
+    <!-- Leaflet JS Local -->
+    <script src="libs/leaflet.js"></script>
+    <!-- Lucide Icons Local -->
+    <script src="libs/lucide.min.js"></script>
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- jsPDF & jsPDF-AutoTable CDNs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     
-    <!-- Lógica de Administración -->
+    <!-- Módulo de Sincronización y Acceso -->
+    <script src="auth-sync.js"></script>
+
+    <!-- Lógica del Dashboard de Oficina -->
     <script>
         let adminMap = null;
         let segmentsLayerGroup = null;
         let teams = [];
         let machinery = [];
+        let operators = [];
+        let segments = [];
+        let workLogs = [];
         let activeTeamId = null;
 
-        // Inicialización
         document.addEventListener('DOMContentLoaded', () => {
             initAdminMap();
-            initTabs();
-            loadTeams();
-            loadMachinery();
-            loadSegments();
-            
-            // Suscribirse a cambios en tiempo real en la tabla de partes de trabajo
+            initDashboardTabs();
+            loadAllDashboardData();
+
+            // Suscribirse a cambios en tiempo real
             supabaseClient
                 .channel('schema-db-changes')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'work_logs' }, payload => {
-                    console.log('[Realtime] Cambio detectado:', payload);
-                    loadSegments();
+                    loadAllDashboardData();
                 })
                 .subscribe();
-            
+
             if (window.lucide) window.lucide.createIcons();
         });
 
@@ -276,7 +491,7 @@
             adminMap = L.map('adminMap', {
                 zoomControl: false,
                 preferCanvas: true
-            }).setView([40.416775, -3.703790], 6);
+            }).setView([43.36029, -5.84476], 10); // Centrado inicial en Asturias / zona de trabajo
 
             L.control.zoom({ position: 'bottomleft' }).addTo(adminMap);
 
@@ -289,22 +504,38 @@
             segmentsLayerGroup = L.featureGroup().addTo(adminMap);
         }
 
-        // Navegación de pestañas
-        function initTabs() {
-            const tabs = document.querySelectorAll('.tab-btn');
+        // Navegación de pestañas del Dashboard
+        function initDashboardTabs() {
+            const tabs = document.querySelectorAll('.admin-tab-btn');
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
                     tabs.forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    document.querySelectorAll('.admin-panel-content').forEach(c => c.classList.remove('active'));
                     
                     tab.classList.add('active');
                     const targetId = tab.getAttribute('data-tab');
                     document.getElementById(targetId).classList.add('active');
+                    
+                    // Invalidar el tamaño del mapa al cambiar de pestaña para evitar fallos de renderizado
+                    if (targetId === 'panelResumen' && adminMap) {
+                        setTimeout(() => adminMap.invalidateSize(), 100);
+                    }
                 });
             });
         }
 
-        // Cargar equipos de Supabase
+        // Cargar todos los datos combinados de la DB
+        async function loadAllDashboardData() {
+            await Promise.all([
+                loadTeams(),
+                loadMachinery(),
+                loadOperators(),
+                loadSegmentsAndLogs()
+            ]);
+            updateDashboardMetrics();
+        }
+
+        // Cargar Equipos
         async function loadTeams() {
             try {
                 const { data, error } = await supabaseClient
@@ -314,46 +545,102 @@
 
                 if (error) throw error;
                 teams = data || [];
-                renderTeams();
+                renderTeamsList();
+                updateReportTeamFilters();
             } catch (err) {
                 console.error("Error al cargar equipos:", err);
             }
         }
 
-        // Crear equipo
-        async function handleCreateTeam(e) {
-            e.preventDefault();
-            const nameInput = document.getElementById('teamName');
-            const descInput = document.getElementById('teamDescription');
-
+        // Cargar Maquinaria
+        async function loadMachinery() {
             try {
                 const { data, error } = await supabaseClient
-                    .from('work_teams')
-                    .insert({
-                        name: nameInput.value,
-                        description: descInput.value
-                    })
-                    .select();
+                    .from('machinery')
+                    .select('*')
+                    .is('deleted_at', null);
 
                 if (error) throw error;
-                
-                nameInput.value = '';
-                descInput.value = '';
+                machinery = data || [];
+                renderMachineryList();
+            } catch (err) {
+                console.error("Error al cargar maquinaria:", err);
+            }
+        }
+
+        // Cargar Operarios (Excluyendo administradores)
+        async function loadOperators() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .neq('role', 'admin')
+                    .is('deleted_at', null);
+
+                if (error) throw error;
+                operators = data || [];
+                renderOperatorsList();
+            } catch (err) {
+                console.error("Error al cargar operarios:", err);
+            }
+        }
+
+        // Cargar tramos y partes
+        async function loadSegmentsAndLogs() {
+            try {
+                const { data: segs, error: segErr } = await supabaseClient
+                    .from('segments')
+                    .select('*')
+                    .is('deleted_at', null);
+
+                if (segErr) throw segErr;
+                segments = segs || [];
+
+                const { data: logs, error: logErr } = await supabaseClient
+                    .from('work_logs')
+                    .select('*')
+                    .is('deleted_at', null);
+
+                if (logErr) throw logErr;
+                workLogs = logs || [];
+
+                renderSegmentsOnMapAndList();
+            } catch (err) {
+                console.error("Error al cargar carreteras:", err);
+            }
+        }
+
+        // Actualizar Métricas Superiores
+        function updateDashboardMetrics() {
+            document.getElementById('metricsActiveTeams').innerText = teams.length;
+            document.getElementById('metricsMachineryCount').innerText = machinery.length;
+        }
+
+        // Crear Equipo
+        async function handleCreateTeam(e) {
+            e.preventDefault();
+            const name = document.getElementById('teamName').value;
+            const desc = document.getElementById('teamDescription').value;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('work_teams')
+                    .insert({ name, description: desc });
+
+                if (error) throw error;
+                document.getElementById('teamName').value = '';
+                document.getElementById('teamDescription').value = '';
                 loadTeams();
             } catch (err) {
                 alert("Error al crear equipo: " + err.message);
             }
         }
 
-        // Pintar equipos en la barra lateral
-        function renderTeams() {
+        // Pintar Equipos
+        function renderTeamsList() {
             const container = document.getElementById('teamsListContainer');
-            const noTeams = document.getElementById('noTeamsLabel');
-            
             if (teams.length > 0) {
-                if (noTeams) noTeams.style.display = 'none';
                 container.innerHTML = '';
-                
                 teams.forEach(team => {
                     const card = document.createElement('div');
                     card.className = 'card';
@@ -371,11 +658,10 @@
                     container.appendChild(card);
                 });
             } else {
-                if (noTeams) noTeams.style.display = 'block';
+                container.innerHTML = '<p class="card-desc">No hay equipos creados todavía.</p>';
             }
         }
 
-        // Eliminar equipo (Soft delete)
         async function deleteTeam(id) {
             if (!confirm("¿Seguro que deseas eliminar este equipo?")) return;
             try {
@@ -391,23 +677,7 @@
             }
         }
 
-        // --- GESTIÓN DE MAQUINARIA ---
-
-        async function loadMachinery() {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('machinery')
-                    .select('*')
-                    .is('deleted_at', null);
-
-                if (error) throw error;
-                machinery = data || [];
-                renderMachinery();
-            } catch (err) {
-                console.error("Error al cargar maquinaria:", err);
-            }
-        }
-
+        // Crear Maquinaria
         async function handleCreateMachinery(e) {
             e.preventDefault();
             const type = document.getElementById('machineryType').value;
@@ -420,7 +690,6 @@
                     .insert({ type, model, license_plate: plate });
 
                 if (error) throw error;
-
                 document.getElementById('machineryModel').value = '';
                 document.getElementById('machineryPlate').value = '';
                 loadMachinery();
@@ -429,14 +698,11 @@
             }
         }
 
-        function renderMachinery() {
+        // Pintar Maquinaria
+        function renderMachineryList() {
             const container = document.getElementById('machineryListContainer');
-            const noMachinery = document.getElementById('noMachineryLabel');
-
             if (machinery.length > 0) {
-                if (noMachinery) noMachinery.style.display = 'none';
                 container.innerHTML = '';
-
                 machinery.forEach(item => {
                     const card = document.createElement('div');
                     card.className = 'card';
@@ -452,7 +718,7 @@
                     container.appendChild(card);
                 });
             } else {
-                if (noMachinery) noMachinery.style.display = 'block';
+                container.innerHTML = '<p class="card-desc">No hay maquinaria registrada.</p>';
             }
         }
 
@@ -471,14 +737,84 @@
             }
         }
 
-        // --- GESTIÓN INTERNA DE EQUIPO (MODAL DETALLES) ---
+        // Crear Operario
+        async function handleCreateOperator(e) {
+            e.preventDefault();
+            const email = document.getElementById('opEmail').value;
+            const password = document.getElementById('opPassword').value;
+            const name = document.getElementById('opName').value;
+            const role = document.getElementById('opRole').value;
+
+            try {
+                // Registrar en Supabase Auth
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email,
+                    password,
+                    options: { data: { full_name: name } }
+                });
+
+                if (error) throw error;
+
+                if (data && data.user) {
+                    // Crear fila en tabla profiles
+                    const { error: profErr } = await supabaseClient
+                        .from('profiles')
+                        .insert({ id: data.user.id, role, full_name: name });
+
+                    if (profErr) throw profErr;
+                }
+
+                alert("Operario creado con éxito.");
+                document.getElementById('opEmail').value = '';
+                document.getElementById('opPassword').value = '';
+                document.getElementById('opName').value = '';
+                loadOperators();
+            } catch (err) {
+                alert("Error al crear operario: " + err.message);
+            }
+        }
+
+        // Pintar Operarios
+        function renderOperatorsList() {
+            const tbody = document.getElementById('operatorsTableBody');
+            if (operators.length > 0) {
+                tbody.innerHTML = '';
+                operators.forEach(op => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${op.full_name}</strong></td>
+                        <td style="text-transform:capitalize;">${op.role}</td>
+                        <td><button onclick="deleteOperator('${op.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer;">Dar de Baja</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-secondary);">No hay operarios registrados.</td></tr>';
+            }
+        }
+
+        async function deleteOperator(id) {
+            if (!confirm("¿Seguro que deseas dar de baja a este operario?")) return;
+            try {
+                const { error } = await supabaseClient
+                    .from('profiles')
+                    .update({ deleted_at: new Date().toISOString() })
+                    .eq('id', id);
+
+                if (error) throw error;
+                loadOperators();
+            } catch (err) {
+                alert("Error al dar de baja operario: " + err.message);
+            }
+        }
+
+        // --- GESTIÓN INTERNA DE EQUIPO ---
 
         async function openTeamDetails(teamId, teamName) {
             activeTeamId = teamId;
             document.getElementById('teamDetailsTitle').innerText = `Gestionar: ${teamName}`;
             document.getElementById('teamDetailsModal').style.display = 'flex';
             
-            // Cargar datos del modal
             loadProfilesForAssign();
             loadMachineryForAssign();
             loadTeamAssets();
@@ -489,27 +825,18 @@
             activeTeamId = null;
         }
 
-        // Cargar perfiles libres para asignar
         async function loadProfilesForAssign() {
             try {
-                // Obtener perfiles que no pertenezcan ya a algún equipo
                 const { data: assignedMembers } = await supabaseClient
                     .from('team_members')
                     .select('profile_id');
                 
                 const assignedIds = (assignedMembers || []).map(m => m.profile_id);
 
-                const { data: profiles, error } = await supabaseClient
-                    .from('profiles')
-                    .select('id, full_name, role')
-                    .is('deleted_at', null);
-
-                if (error) throw error;
-
                 const select = document.getElementById('selectProfileToAssign');
                 select.innerHTML = '';
                 
-                const freeProfiles = profiles.filter(p => !assignedIds.includes(p.id));
+                const freeProfiles = operators.filter(p => !assignedIds.includes(p.id));
                 
                 if (freeProfiles.length === 0) {
                     select.innerHTML = '<option value="">Sin operarios disponibles</option>';
@@ -522,11 +849,10 @@
                     });
                 }
             } catch (err) {
-                console.error("Error al cargar operarios libres:", err);
+                console.error(err);
             }
         }
 
-        // Cargar maquinaria libre para asignar
         async function loadMachineryForAssign() {
             try {
                 const { data: assignedMachinery } = await supabaseClient
@@ -535,17 +861,10 @@
                 
                 const assignedIds = (assignedMachinery || []).map(m => m.machinery_id);
 
-                const { data: machines, error } = await supabaseClient
-                    .from('machinery')
-                    .select('id, type, model, license_plate')
-                    .is('deleted_at', null);
-
-                if (error) throw error;
-
                 const select = document.getElementById('selectMachineryToAssign');
                 select.innerHTML = '';
                 
-                const freeMachines = machines.filter(m => !assignedIds.includes(m.id));
+                const freeMachines = machinery.filter(m => !assignedIds.includes(m.id));
 
                 if (freeMachines.length === 0) {
                     select.innerHTML = '<option value="">Sin maquinaria disponible</option>';
@@ -558,79 +877,70 @@
                     });
                 }
             } catch (err) {
-                console.error("Error al cargar maquinaria libre:", err);
+                console.error(err);
             }
         }
 
-        // Cargar miembros y recursos asignados al equipo
         async function loadTeamAssets() {
             if (!activeTeamId) return;
             const container = document.getElementById('teamAssetsList');
             container.innerHTML = '<li>Cargando...</li>';
 
             try {
-                // Operarios
-                const { data: members, error: memErr } = await supabaseClient
+                const { data: members } = await supabaseClient
                     .from('team_members')
                     .select('profiles(id, full_name, role)')
                     .eq('team_id', activeTeamId);
 
-                if (memErr) throw memErr;
-
-                // Maquinaria
-                const { data: machines, error: machErr } = await supabaseClient
+                const { data: machines } = await supabaseClient
                     .from('team_machinery')
                     .select('machinery(id, type, model, license_plate)')
                     .eq('team_id', activeTeamId);
 
-                if (machErr) throw machErr;
-
                 container.innerHTML = '';
 
-                // Pintar Operarios
-                if (members && members.length > 0) {
+                if (members) {
                     members.forEach(m => {
                         const prof = m.profiles;
-                        const li = document.createElement('li');
-                        li.style.display = 'flex';
-                        li.style.justifyContent = 'space-between';
-                        li.style.alignItems = 'center';
-                        li.style.marginBottom = '4px';
-                        li.innerHTML = `
-                            <span>👤 <strong>${prof.full_name}</strong> (${prof.role})</span>
-                            <button onclick="removeProfileFromTeam('${prof.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.75rem;">Quitar</button>
-                        `;
-                        container.appendChild(li);
+                        if (prof) {
+                            const li = document.createElement('li');
+                            li.style.display = 'flex';
+                            li.style.justifyContent = 'space-between';
+                            li.style.alignItems = 'center';
+                            li.innerHTML = `
+                                <span>👤 <strong>${prof.full_name}</strong> (${prof.role})</span>
+                                <button onclick="removeProfileFromTeam('${prof.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.75rem;">Quitar</button>
+                            `;
+                            container.appendChild(li);
+                        }
                     });
                 }
 
-                // Pintar Maquinaria
-                if (machines && machines.length > 0) {
+                if (machines) {
                     machines.forEach(m => {
                         const mach = m.machinery;
-                        const li = document.createElement('li');
-                        li.style.display = 'flex';
-                        li.style.justifyContent = 'space-between';
-                        li.style.alignItems = 'center';
-                        li.style.marginBottom = '4px';
-                        li.innerHTML = `
-                            <span>🚜 <strong style="text-transform:capitalize;">${mach.type}</strong> - ${mach.model} (${mach.license_plate})</span>
-                            <button onclick="removeMachineryFromTeam('${mach.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.75rem;">Quitar</button>
-                        `;
-                        container.appendChild(li);
+                        if (mach) {
+                            const li = document.createElement('li');
+                            li.style.display = 'flex';
+                            li.style.justifyContent = 'space-between';
+                            li.style.alignItems = 'center';
+                            li.innerHTML = `
+                                <span>🚜 <strong style="text-transform:capitalize;">${mach.type}</strong> - ${mach.model}</span>
+                                <button onclick="removeMachineryFromTeam('${mach.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.75rem;">Quitar</button>
+                            `;
+                            container.appendChild(li);
+                        }
                     });
                 }
 
                 if (container.children.length === 0) {
                     container.innerHTML = '<li>Sin personal ni maquinaria asignada.</li>';
                 }
-
             } catch (err) {
-                console.error("Error al cargar recursos del equipo:", err);
+                console.error(err);
             }
         }
 
-        // Acciones de asignación
         async function assignProfileToTeam() {
             const profileId = document.getElementById('selectProfileToAssign').value;
             if (!profileId || !activeTeamId) return;
@@ -644,7 +954,7 @@
                 loadProfilesForAssign();
                 loadTeamAssets();
             } catch (err) {
-                alert("Error al asignar operario: " + err.message);
+                alert(err.message);
             }
         }
 
@@ -661,12 +971,11 @@
                 loadMachineryForAssign();
                 loadTeamAssets();
             } catch (err) {
-                alert("Error al asignar maquinaria: " + err.message);
+                alert(err.message);
             }
         }
 
         async function removeProfileFromTeam(profileId) {
-            if (!confirm("¿Deseas desvincular este operario de este equipo?")) return;
             try {
                 const { error } = await supabaseClient
                     .from('team_members')
@@ -678,12 +987,11 @@
                 loadProfilesForAssign();
                 loadTeamAssets();
             } catch (err) {
-                alert("Error al quitar operario: " + err.message);
+                alert(err.message);
             }
         }
 
         async function removeMachineryFromTeam(machineryId) {
-            if (!confirm("¿Deseas desvincular esta máquina de este equipo?")) return;
             try {
                 const { error } = await supabaseClient
                     .from('team_machinery')
@@ -695,67 +1003,38 @@
                 loadMachineryForAssign();
                 loadTeamAssets();
             } catch (err) {
-                alert("Error al quitar maquinaria: " + err.message);
+                alert(err.message);
             }
         }
 
-        // --- ASIGNACIÓN DE TRAMOS ---
+        // --- MAPA Y ASIGNACIONES ---
 
-        // Cargar tramos (segments) y partes de trabajo (work_logs)
-        async function loadSegments() {
-            try {
-                // Obtener tramos
-                const { data: segments, error: segErr } = await supabaseClient
-                    .from('segments')
-                    .select('*')
-                    .is('deleted_at', null);
-
-                if (segErr) throw segErr;
-
-                // Obtener partes
-                const { data: logs, error: logErr } = await supabaseClient
-                    .from('work_logs')
-                    .select('*')
-                    .is('deleted_at', null);
-
-                if (logErr) throw logErr;
-
-                renderSegmentsOnMap(segments || [], logs || []);
-            } catch (err) {
-                console.error("Error al cargar tramos:", err);
-            }
-        }
-
-        // Dibujar tramos en el mapa del administrador
-        function renderSegmentsOnMap(segments, logs) {
+        function renderSegmentsOnMapAndList() {
             segmentsLayerGroup.clearLayers();
-            const tramosList = document.getElementById('adminTramosList');
-            tramosList.innerHTML = '';
+            const list = document.getElementById('adminTramosList');
+            list.innerHTML = '';
 
             let completedCount = 0;
 
             if (segments.length === 0) {
-                tramosList.innerHTML = '<li class="tramos-list-empty" style="font-size:0.8rem; color:var(--text-secondary); text-align:center; padding:1.5rem 0;">Ningún tramo cargado.</li>';
+                list.innerHTML = '<li style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 2rem 0;">Ningún tramo cargado en la base de datos.</li>';
                 return;
             }
 
             segments.forEach(seg => {
-                // Buscar si tiene parte de trabajo activo
-                const log = logs.find(l => l.segment_id === seg.id);
+                const log = workLogs.find(l => l.segment_id === seg.id);
                 const status = log ? log.status : 'pendiente';
 
-                // Determinar color
-                let color = '#9ca3af'; // Gris (Pendiente)
+                let color = '#9ca3af';
                 if (status === 'completado') {
-                    color = '#10b981'; // Verde (Completado)
+                    color = '#10b981';
                     completedCount++;
                 } else if (status === 'en_progreso') {
-                    color = '#fbbf24'; // Amarillo (En Progreso)
+                    color = '#fbbf24';
                 } else if (status === 'incidencia') {
-                    color = '#ef4444'; // Rojo (Incidencia)
+                    color = '#ef4444';
                 }
 
-                // Parsear coordenadas si están en formato GeoJSON/JSON plano
                 if (seg.kml_data) {
                     try {
                         const coords = JSON.parse(seg.kml_data);
@@ -765,27 +1044,25 @@
                                 weight: 4,
                                 opacity: 0.8
                             }).addTo(segmentsLayerGroup);
-
                             polyline.bindPopup(`<strong>${seg.name}</strong><br>Estado: ${status.toUpperCase()}`);
                         }
                     } catch (e) {
-                        console.error("Error parseando geometría del tramo:", seg.name);
+                        console.error(e);
                     }
                 }
 
-                // Construir selector de asignación de equipos
-                let teamOptions = `<option value="">Sin asignar</option>`;
+                // Generar opciones para el selector
+                let teamOpts = `<option value="">Sin asignar</option>`;
                 teams.forEach(t => {
                     const selected = log && log.team_id === t.id ? 'selected' : '';
-                    teamOptions += `<option value="${t.id}" ${selected}>${t.name}</option>`;
+                    teamOpts += `<option value="${t.id}" ${selected}>${t.name}</option>`;
                 });
 
-                // Renderizar elemento de lista en barra lateral
                 const li = document.createElement('li');
                 li.style.background = 'rgba(255,255,255,0.02)';
                 li.style.borderLeft = `4px solid ${color}`;
-                li.style.padding = '8px';
-                li.style.borderRadius = '4px';
+                li.style.padding = '8px 12px';
+                li.style.borderRadius = '6px';
                 li.style.fontSize = '0.8rem';
                 li.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
@@ -795,37 +1072,32 @@
                     <div style="display:flex; align-items:center; gap:6px;">
                         <span style="font-size:0.7rem; color:var(--text-secondary);">Asignar a:</span>
                         <select onchange="assignTramoToTeam('${seg.id}', this.value)" style="flex:1; padding:3px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:4px; color:#fff; font-size:0.7rem; font-family:var(--font-family);">
-                            ${teamOptions}
+                            ${teamOpts}
                         </select>
                     </div>
                 `;
-                tramosList.appendChild(li);
+                list.appendChild(li);
             });
 
-            // Ajustar vista general del mapa
+            // Ajustar encuadre de mapa
             if (segmentsLayerGroup.getLayers().length > 0) {
                 adminMap.fitBounds(segmentsLayerGroup.getBounds());
             }
 
-            // Calcular y renderizar estadísticas
-            const progressPercent = Math.round((completedCount / segments.length) * 100) || 0;
-            document.getElementById('adminProgressPercent').innerText = `${progressPercent}%`;
-            document.getElementById('adminProgressBar').style.width = `${progressPercent}%`;
+            const progress = Math.round((completedCount / segments.length) * 100) || 0;
+            document.getElementById('metricsPercent').innerText = `${progress}%`;
+            document.getElementById('metricsProgressBar').style.width = `${progress}%`;
         }
 
-        // Registrar asignación de tramo a equipo en Supabase
         async function assignTramoToTeam(segmentId, teamId) {
             try {
                 if (!teamId) {
-                    // Si se marca vacío, quitar asignación (borrar del log)
                     const { error } = await supabaseClient
                         .from('work_logs')
                         .delete()
                         .eq('segment_id', segmentId);
-
                     if (error) throw error;
                 } else {
-                    // Upsert asignando el tramo al equipo
                     const { error } = await supabaseClient
                         .from('work_logs')
                         .upsert({
@@ -833,12 +1105,96 @@
                             team_id: teamId,
                             status: 'pendiente'
                         }, { onConflict: 'segment_id' });
-
                     if (error) throw error;
                 }
-                loadSegments();
+                loadSegmentsAndLogs();
             } catch (err) {
-                alert("Error al asignar tramo: " + err.message);
+                alert(err.message);
+            }
+        }
+
+        // --- EXPORTAR REPORTES ---
+
+        function updateReportTeamFilters() {
+            const select = document.getElementById('reportTeamFilter');
+            select.innerHTML = '<option value="all">Todos los Equipos</option>';
+            teams.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.innerText = t.name;
+                select.appendChild(opt);
+            });
+        }
+
+        async function generateReport(format) {
+            const teamId = document.getElementById('reportTeamFilter').value;
+            const start = document.getElementById('reportDateStart').value;
+            const end = document.getElementById('reportDateEnd').value;
+
+            // Filtrar partes de trabajo
+            let filteredLogs = [...workLogs];
+            if (teamId !== 'all') {
+                filteredLogs = filteredLogs.filter(l => l.team_id === teamId);
+            }
+
+            // Crear datos formateados
+            const reportData = [];
+            filteredLogs.forEach(log => {
+                const seg = segments.find(s => s.id === log.segment_id);
+                const team = teams.find(t => t.id === log.team_id);
+                if (seg) {
+                    reportData.push({
+                        carretera: seg.name,
+                        equipo: team ? team.name : 'Sin asignar',
+                        estado: log.status,
+                        fecha: log.updated_at ? new Date(log.updated_at).toLocaleDateString() : 'Pendiente'
+                    });
+                }
+            });
+
+            if (reportData.length === 0) {
+                alert("No hay registros en los filtros seleccionados para generar el reporte.");
+                return;
+            }
+
+            if (format === 'csv') {
+                let csvContent = "data:text/csv;charset=utf-8,";
+                csvContent += "Carretera,Equipo,Estado,Ultima Actualizacion\n";
+                reportData.forEach(r => {
+                    csvContent += `"${r.carretera}","${r.equipo}","${r.estado}","${r.fecha}"\n`;
+                });
+                
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `reporte_desbroce_${new Date().toLocaleDateString()}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else if (format === 'pdf') {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(16);
+                doc.text("Reporte de Avance - DesbroceApp", 14, 20);
+                
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+                doc.text(`Fecha de generacion: ${new Date().toLocaleDateString()}`, 14, 28);
+                
+                const headers = [["Carretera", "Equipo Asignado", "Estado", "Fecha Act."]];
+                const body = reportData.map(r => [r.carretera, r.equipo, r.estado.toUpperCase(), r.fecha]);
+                
+                doc.autoTable({
+                    startY: 34,
+                    head: headers,
+                    body: body,
+                    theme: 'striped',
+                    headStyles: { fillColor: [16, 185, 129] }
+                });
+                
+                doc.save(`reporte_desbroce_${new Date().toLocaleDateString()}.pdf`);
             }
         }
     </script>
