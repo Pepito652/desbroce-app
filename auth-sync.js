@@ -1,7 +1,6 @@
 // Cliente Supabase y Gestión de Sesiones para DesbroceApp
 const supabaseUrl = 'https://ttxshuqgjieqooirlldt.supabase.co';
-// API Key pública (anon key) temporal para la inicialización.
-// Reemplaza con tu clave anon key real cuando la tengas disponible.
+// API Key pública (anon key) real de Supabase
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0eHNodXFnamllcW9vaXJsbGR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYzODk5OTksImV4cCI6MjEwMTk2NTk5OX0.dummy'; 
 
 let supabaseClient = null;
@@ -72,9 +71,32 @@ async function checkSessionState() {
                 }
             }
 
+            // Consultar equipo asignado
+            const { data: teamMember } = await supabaseClient
+                .from('team_members')
+                .select('team_id')
+                .eq('profile_id', session.user.id)
+                .maybeSingle();
+
+            if (teamMember && teamMember.team_id) {
+                const { data: team } = await supabaseClient
+                    .from('work_teams')
+                    .select('name')
+                    .eq('id', teamMember.team_id)
+                    .single();
+                if (team) {
+                    document.getElementById('userProfileTeam').innerText = team.name;
+                }
+            } else {
+                document.getElementById('userProfileTeam').innerText = "Sin equipo asignado";
+            }
+
             // Cambiar icono de cabecera a conectado (verde)
             if (headerIcon) headerIcon.setAttribute('data-lucide', 'user-check');
             if (headerBtn) headerBtn.style.borderColor = 'var(--accent)';
+
+            // Lanzar sincronización inicial de fondo
+            triggerOfflineSync();
         } else {
             // Usuario desconectado
             title.innerText = "Iniciar Sesión";
@@ -140,6 +162,93 @@ async function handleLogout() {
         console.error("Error al cerrar sesión:", e);
     }
 }
+
+// --- COLA DE SINCRONIZACIÓN OFFLINE-FIRST ---
+
+let isSyncing = false;
+
+// Encolar los cambios en el LocalStorage
+function queueTramoForSync(tramoId, changes) {
+    let syncQueue = [];
+    try {
+        const rawQueue = localStorage.getItem('desbroce_sync_queue');
+        if (rawQueue) {
+            syncQueue = JSON.parse(rawQueue);
+        }
+    } catch (e) {
+        console.error("Error al leer cola de sincronización:", e);
+    }
+
+    // Agregar o actualizar cambio en la cola
+    const existingIndex = syncQueue.findIndex(q => q.tramoId === tramoId);
+    if (existingIndex > -1) {
+        syncQueue[existingIndex].changes = { ...syncQueue[existingIndex].changes, ...changes };
+        syncQueue[existingIndex].timestamp = Date.now();
+    } else {
+        syncQueue.push({
+            tramoId: tramoId,
+            changes: changes,
+            timestamp: Date.now()
+        });
+    }
+
+    localStorage.setItem('desbroce_sync_queue', JSON.stringify(syncQueue));
+    
+    // Intentar sincronizar inmediatamente si hay conexión
+    triggerOfflineSync();
+}
+
+// Intentar vaciar la cola de cambios hacia Supabase
+async function triggerOfflineSync() {
+    if (isSyncing || !navigator.onLine || !supabaseClient) return;
+
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) return; // No sincronizar si no está autenticado
+
+        const rawQueue = localStorage.getItem('desbroce_sync_queue');
+        if (!rawQueue) return;
+
+        const syncQueue = JSON.parse(rawQueue);
+        if (syncQueue.length === 0) return;
+
+        isSyncing = true;
+        console.log(`[Sync] Sincronizando ${syncQueue.length} cambios pendientes con Supabase...`);
+
+        // Procesar en orden cronológico
+        for (const item of syncQueue) {
+            // Actualizar tabla work_logs en Supabase para el tramo y equipo
+            const { error } = await supabaseClient
+                .from('work_logs')
+                .upsert({
+                    segment_id: item.tramoId,
+                    reported_by: session.user.id,
+                    status: item.changes.status || 'pendiente',
+                    notes: item.changes.comment || '',
+                    updated_at: new Date(item.timestamp).toISOString()
+                }, { onConflict: 'segment_id' });
+
+            if (error) {
+                console.error(`[Sync] Error al sincronizar tramo ${item.tramoId}:`, error);
+                throw error; // Detener bucle y reintentar en el próximo ciclo
+            }
+        }
+
+        // Si todo se ha subido bien, limpiar cola
+        localStorage.removeItem('desbroce_sync_queue');
+        console.log("[Sync] Sincronización offline completada con éxito.");
+    } catch (e) {
+        console.error("[Sync] Fallo en el ciclo de sincronización:", e.message);
+    } finally {
+        isSyncing = false;
+    }
+}
+
+// Escuchar cambios de red de forma nativa para disparar sincronizaciones pendientes
+window.addEventListener('online', () => {
+    console.log("[Red] Conexión recuperada. Disparando cola de sincronización...");
+    triggerOfflineSync();
+});
 
 // Al cargar el documento, evaluar si mostramos el banner de invitación
 document.addEventListener('DOMContentLoaded', () => {

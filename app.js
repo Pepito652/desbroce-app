@@ -4036,6 +4036,14 @@ function saveToLocalStorage() {
             };
             localStorage.setItem('desbroce_app_state', JSON.stringify(localData));
             console.log('Avance y progreso persistidos con éxito de forma optimizada.');
+            
+            // Si el operario está conectado y hay tramos, encolar el tramo modificado para sincronizar con Supabase
+            if (typeof queueTramoForSync === 'function' && state.selectedTramoId) {
+                const tr = state.tramos.find(t => t.id === state.selectedTramoId);
+                if (tr) {
+                    queueTramoForSync(tr.id, { status: tr.status, rightMarginStatus: tr.rightMarginStatus, leftMarginStatus: tr.leftMarginStatus });
+                }
+            }
         } catch (e) {
             console.error('Error guardando en LocalStorage:', e);
         }

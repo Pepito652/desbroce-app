@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-2120';
+const CACHE_NAME = 'road-clearing-cache-v0.1.11-2130';
 const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #2120: Añadida pantalla de login central y botón de perfil sincronizado en cabecera.';
+const UPDATE_NOTES = 'Hotfix #2130: Integrado el motor de cola de sincronización Offline-First con Supabase.';
 
 const ASSETS = [
   './',
