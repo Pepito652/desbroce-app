@@ -1,5 +1,8 @@
--- 1. Extensiones necesarias
-CREATE EXTENSION IF NOT EXISTS postgis;
+-- 1. Crear un esquema privado para extensiones para evitar vulnerabilidades en el esquema public
+CREATE SCHEMA IF NOT EXISTS extensions;
+
+-- Mover o instalar PostGIS dentro del esquema extensions
+CREATE EXTENSION IF NOT EXISTS postgis SCHEMA extensions;
 
 -- 2. Enumeraciones para tipos fijos de operarios y maquinaria
 DO $$
@@ -83,13 +86,19 @@ CREATE TABLE IF NOT EXISTS public.work_logs (
 );
 
 -- 10. Triggers para actualizar 'updated_at' automáticamente
+-- Corrección de advisor: Definir search_path y usar SECURITY INVOKER (por defecto) para evitar riesgos
 CREATE OR REPLACE FUNCTION public.update_modified_column()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ language 'plpgsql' SET search_path = public;
+
+-- Revocar privilegios de ejecución pública para anon y authenticated en esta función
+REVOKE EXECUTE ON FUNCTION public.update_modified_column() FROM public;
+REVOKE EXECUTE ON FUNCTION public.update_modified_column() FROM anon;
+REVOKE EXECUTE ON FUNCTION public.update_modified_column() FROM authenticated;
 
 DROP TRIGGER IF EXISTS update_profiles_modtime ON public.profiles;
 CREATE TRIGGER update_profiles_modtime BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.update_modified_column();
@@ -115,9 +124,9 @@ ALTER TABLE public.team_machinery ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.segments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_logs ENABLE ROW LEVEL SECURITY;
 
--- Políticas de Seguridad Básicas (Evitamos duplicar políticas si ya existen)
+-- Políticas de Seguridad Básicas
 DROP POLICY IF EXISTS "Lectura general para usuarios autenticados" ON public.profiles;
 CREATE POLICY "Lectura general para usuarios autenticados" ON public.profiles FOR SELECT TO authenticated USING (deleted_at IS NULL);
 
 DROP POLICY IF EXISTS "Admin CRUD" ON public.work_teams;
-CREATE POLICY "Admin CRUD" ON public.work_teams FOR ALL TO authenticated USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+CREATE POLICY "Admin CRUD" ON public.work_teams FOR ALL TO authenticated USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = (SELECT auth.uid()) AND role = 'admin'));
