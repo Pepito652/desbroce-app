@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2340';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2350';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Corrección en el envío de ID de tramos seleccionados y forzado de actualización.';
+const UPDATE_NOTES = 'Versión 0.1.12: Propagación completa de tramoId en todos los flujos de cambio de estado.';
 
 const ASSETS = [
   './',

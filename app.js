@@ -2165,7 +2165,7 @@ function updateTramoDate(tramoId, dateVal) {
             });
         }
 
-        saveToLocalStorage();
+        saveToLocalStorage(tramoId);
         updateUI();
 
         // Volver a abrir el detalle del tramo para refrescar el popup del mapa
@@ -2233,7 +2233,7 @@ function updateTramoWeek(tramoId, selectedWeek) {
             });
         }
 
-        saveToLocalStorage();
+        saveToLocalStorage(tramoId);
         updateUI();
         openRoadDetail(tramoId);
         logDebug(`Tramo '${tramo.name}' asignado a la semana ${selectedWeek}.`);
