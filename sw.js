@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2260';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2270';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Aislamiento total de los modos Local (Invitado) y Online (Oficina).';
+const UPDATE_NOTES = 'Versión 0.1.12: Corrección en la limpieza reactiva de planos locales al iniciar sesión.';
 
 const ASSETS = [
   './',

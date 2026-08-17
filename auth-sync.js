@@ -143,6 +143,12 @@ async function handleLoginSubmit(event) {
         } else {
             closeAuthModal();
             checkSessionState();
+            
+            // Forzar recarga del LocalStorage bajo la nueva sesión online
+            if (typeof loadFromLocalStorage === 'function') {
+                loadFromLocalStorage();
+            }
+
             if (typeof appAlert === 'function') {
                 appAlert("Sesión iniciada correctamente.", "success");
             }

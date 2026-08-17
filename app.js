@@ -5728,6 +5728,12 @@ function welcomeActionAuth() {
                     setTimeout(() => welcomeOverlay.style.display = 'none', 500);
                 }
                 checkSessionState();
+                
+                // Forzar recarga del LocalStorage bajo la nueva sesión online
+                if (typeof loadFromLocalStorage === 'function') {
+                    loadFromLocalStorage();
+                }
+
                 if (data.user) {
                     loadAssignedSegments(data.user.id);
                 }
