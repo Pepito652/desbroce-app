@@ -4012,6 +4012,15 @@ function stabilizeRouteOrder() {
 
 let saveToLocalStorageTimeout = null;
 
+function getLocalStorageKey() {
+    // Si el usuario está conectado a Supabase, usamos la clave online. Si no, la clave local.
+    if (window.supabaseClient) {
+        const session = localStorage.getItem('sb-ttxshuqgjieqooirlldt-auth-token'); // Supabase guarda el token con su ref
+        if (session) return 'desbroce_app_state_online';
+    }
+    return 'desbroce_app_state_local';
+}
+
 function saveToLocalStorage() {
     if (saveToLocalStorageTimeout) {
         clearTimeout(saveToLocalStorageTimeout);
@@ -4032,11 +4041,12 @@ function saveToLocalStorage() {
                 currentBaseLayer: currentBaseLayer,
                 customColors: state.customColors
             };
-            localStorage.setItem('desbroce_app_state', JSON.stringify(localData));
-            console.log('Avance y progreso persistidos con éxito de forma optimizada.');
+            const key = getLocalStorageKey();
+            localStorage.setItem(key, JSON.stringify(localData));
+            console.log(`Avance y progreso persistidos con éxito en ${key}.`);
             
             // Si el operario está conectado y hay tramos, encolar el tramo modificado para sincronizar con Supabase
-            if (typeof queueTramoForSync === 'function' && state.selectedTramoId) {
+            if (key === 'desbroce_app_state_online' && typeof queueTramoForSync === 'function' && state.selectedTramoId) {
                 const tr = state.tramos.find(t => t.id === state.selectedTramoId);
                 if (tr) {
                     queueTramoForSync(tr.id, { status: tr.status, rightMarginStatus: tr.rightMarginStatus, leftMarginStatus: tr.leftMarginStatus });
@@ -4051,8 +4061,19 @@ function saveToLocalStorage() {
 
 function loadFromLocalStorage() {
     try {
-        const rawData = localStorage.getItem('desbroce_app_state');
-        if (!rawData) return;
+        const key = getLocalStorageKey();
+        const rawData = localStorage.getItem(key);
+        
+        // Si no hay datos cargados, limpiar el estado del mapa
+        if (!rawData) {
+            state.loadedFiles = [];
+            state.fileLoaded = false;
+            state.tramos = [];
+            state.routeOrder = [];
+            if (tramosLayerGroup) tramosLayerGroup.clearLayers();
+            updateUI();
+            return;
+        }
 
         const data = JSON.parse(rawData);
         state.loadedFiles = data.loadedFiles || [];
@@ -4092,21 +4113,6 @@ function loadFromLocalStorage() {
                 if (satelliteTileLayer) satelliteTileLayer.addTo(map);
                 if (btn) btn.classList.add('active');
             }
-        }
-
-        // Migración de datos heredados (versión anterior mono-archivo)
-        if (data.fileName && (!data.loadedFiles || data.loadedFiles.length === 0) && state.tramos.length > 0) {
-            const legacyFileId = 'file_legacy_' + Date.now();
-            state.loadedFiles = [{
-                id: legacyFileId,
-                name: data.fileName,
-                tramosCount: state.tramos.length
-            }];
-            state.tramos.forEach(t => {
-                if (!t.fileId) {
-                    t.fileId = legacyFileId;
-                }
-            });
         }
 
         if (state.fileLoaded && state.tramos.length > 0) {

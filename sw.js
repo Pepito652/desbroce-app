@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2250';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2260';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Pantalla de Bienvenida Dinámica y Sincronización Automática de Carreteras.';
+const UPDATE_NOTES = 'Versión 0.1.12: Aislamiento total de los modos Local (Invitado) y Online (Oficina).';
 
 const ASSETS = [
   './',

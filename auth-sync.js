@@ -161,6 +161,19 @@ async function handleLogout() {
         if (!error) {
             checkSessionState();
             closeAuthModal();
+            
+            // Forzar volver a mostrar pantalla de bienvenida
+            const welcomeOverlay = document.getElementById('welcomeScreenOverlay');
+            if (welcomeOverlay) {
+                welcomeOverlay.classList.remove('fade-out');
+                welcomeOverlay.style.display = 'flex';
+            }
+
+            // Recargar datos locales aislados del invitado
+            if (typeof loadFromLocalStorage === 'function') {
+                loadFromLocalStorage();
+            }
+
             if (typeof appAlert === 'function') {
                 appAlert("Sesión cerrada correctamente.", "info");
             }
