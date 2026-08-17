@@ -2539,7 +2539,8 @@ function toggleTramoCompletion() {
             });
         }
 
-        saveToLocalStorage(state.selectedTramoId);
+        const targetTramoId = state.selectedTramoId;
+        saveToLocalStorage(targetTramoId);
         updateUI();
         closeRoadDetail();
     } catch (e) {
