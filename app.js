@@ -2510,7 +2510,8 @@ function toggleTramoCompletion() {
         if (tramo.status === 'pending') {
             // Completar
             tramo.status = 'completed';
-            const dateVal = document.getElementById('detailDate').value || new Date().toISOString().split('T')[0];
+            const detailDateEl = document.getElementById('detailDate');
+            const dateVal = detailDateEl ? detailDateEl.value : new Date().toISOString().split('T')[0];
             tramo.dateCompleted = dateVal;
             
             // Calcular semana

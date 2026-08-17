@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2360';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2370';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Corrección de condición de carrera al limpiar tramo seleccionado.';
+const UPDATE_NOTES = 'Versión 0.1.12: Corrección de error de elemento nulo detailDate en el flujo de completado.';
 
 const ASSETS = [
   './',
