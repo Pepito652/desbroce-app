@@ -2064,7 +2064,7 @@ function toggleTramoStatusPopup(tramoId) {
             logDebug(`Carretera '${tramo.name}' marcada como COMPLETADA (ambos márgenes - Semana ${tramo.weekCompleted}).`);
         }
 
-        saveToLocalStorage();
+        saveToLocalStorage(tramoId);
         
         // Re-renderizar mapa y listas
         renderTramosOnMap();
@@ -2123,7 +2123,7 @@ function toggleMarginStatusPopup(tramoId, marginSide) {
             logDebug(`Carretera '${tramo.name}': un margen completado (Estado Parcial).`);
         }
 
-        saveToLocalStorage();
+        saveToLocalStorage(tramoId);
         
         // Re-renderizar mapa y listas
         renderTramosOnMap();
@@ -4021,7 +4021,7 @@ function getLocalStorageKey() {
     return 'desbroce_app_state_local';
 }
 
-function saveToLocalStorage() {
+function saveToLocalStorage(modifiedTramoId = null) {
     if (saveToLocalStorageTimeout) {
         clearTimeout(saveToLocalStorageTimeout);
     }
@@ -4046,8 +4046,9 @@ function saveToLocalStorage() {
             console.log(`Avance y progreso persistidos con éxito en ${key}.`);
             
             // Si el operario está conectado y hay tramos, encolar el tramo modificado para sincronizar con Supabase
-            if (key === 'desbroce_app_state_online' && typeof queueTramoForSync === 'function' && state.selectedTramoId) {
-                const tr = state.tramos.find(t => t.id === state.selectedTramoId);
+            const targetId = modifiedTramoId || state.selectedTramoId;
+            if (key === 'desbroce_app_state_online' && typeof queueTramoForSync === 'function' && targetId) {
+                const tr = state.tramos.find(t => t.id === targetId);
                 if (tr) {
                     queueTramoForSync(tr.id, { status: tr.status, rightMarginStatus: tr.rightMarginStatus, leftMarginStatus: tr.leftMarginStatus });
                 }

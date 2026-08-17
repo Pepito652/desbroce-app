@@ -241,22 +241,55 @@ async function triggerOfflineSync() {
         isSyncing = true;
         console.log(`[Sync] Sincronizando ${syncQueue.length} cambios pendientes con Supabase...`);
 
+        // Obtener el team_id al que pertenece este operario
+        const { data: memberData } = await supabaseClient
+            .from('team_members')
+            .select('team_id')
+            .eq('profile_id', session.user.id)
+            .maybeSingle();
+
+        const operTeamId = memberData ? memberData.team_id : null;
+
         // Procesar en orden cronológico
         for (const item of syncQueue) {
-            // Actualizar tabla work_logs en Supabase para el tramo y equipo
+            if (!operTeamId) {
+                console.warn(`[Sync] El operario ${session.user.id} no pertenece a ningún equipo. No se puede sincronizar.`);
+                continue;
+            }
+
+            // Mapear estados locales del tramo a estados de Supabase
+            let dbStatus = 'pendiente';
+            if (item.changes.status === 'completed') dbStatus = 'completado';
+            else if (item.changes.status === 'partial') dbStatus = 'en_progreso';
+
+            // Buscar si ya existe un registro de trabajo para este segmento y equipo
+            const { data: existingLog } = await supabaseClient
+                .from('work_logs')
+                .select('id')
+                .eq('segment_id', item.tramoId)
+                .eq('team_id', operTeamId)
+                .maybeSingle();
+
+            const upsertPayload = {
+                segment_id: item.tramoId,
+                team_id: operTeamId,
+                reported_by: session.user.id,
+                status: dbStatus,
+                notes: item.changes.comment || '',
+                updated_at: new Date(item.timestamp).toISOString()
+            };
+
+            if (existingLog) {
+                upsertPayload.id = existingLog.id;
+            }
+
             const { error } = await supabaseClient
                 .from('work_logs')
-                .upsert({
-                    segment_id: item.tramoId,
-                    reported_by: session.user.id,
-                    status: item.changes.status || 'pendiente',
-                    notes: item.changes.comment || '',
-                    updated_at: new Date(item.timestamp).toISOString()
-                }, { onConflict: 'segment_id' });
+                .upsert(upsertPayload);
 
             if (error) {
                 console.error(`[Sync] Error al sincronizar tramo ${item.tramoId}:`, error);
-                throw error; // Detener bucle y reintentar en el próximo ciclo
+                throw error;
             }
         }
 
