@@ -1,10 +1,11 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2300';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2330';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Corrección en el encolamiento y sincronización de partes hacia la oficina.';
+const UPDATE_NOTES = 'Versión 0.1.12: Panel de gestión de archivos en oficina y desplegables por KML.';
 
 const ASSETS = [
   './',
   './index.html',
+  './admin.html', // <-- Añadido para forzar la actualización de la oficina
   './styles.css',
   './app.js',
   './auth-sync.js',
