@@ -178,7 +178,7 @@
             </nav>
             
             <div style="margin-top: auto; font-size: 11px; color: var(--text-secondary); text-align: center; border-top: 1px solid var(--border-color); padding-top: 1rem;">
-                Código de control: <strong style="color: var(--accent);">#2200</strong>
+                Código de control: <strong style="color: var(--accent);">#2290</strong>
             </div>
         </aside>
 
@@ -360,55 +360,89 @@
                 </div>
             </section>
 
+            <!-- SECCIÓN 6: DETALLE Y GESTIÓN DE UN EQUIPO ESPECÍFICO (3 Columnas) -->
+            <section class="admin-panel-content" id="panelGestionEquipo">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div>
+                        <h2 id="teamViewTitle" style="font-weight: 700; font-size: 1.5rem; letter-spacing: -0.5px; margin: 0;">Gestionar Equipo</h2>
+                        <p id="teamViewDesc" style="font-size: 0.8rem; color: var(--text-secondary); margin: 4px 0 0 0;"></p>
+                    </div>
+                    <button onclick="closeTeamDetails()" class="btn btn-secondary btn-sm" style="display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Volver al Resumen
+                    </button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                    <!-- Columna 1: Personal (Operarios) -->
+                    <div class="card" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                            <h3 style="font-size: 1rem; font-weight: 600; color: #fff; margin: 0;">👥 Personal Asignado</h3>
+                            <p class="card-desc">Operarios que desbrozan con este equipo.</p>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="selectProfileToAssign">Añadir Operario al Equipo</label>
+                            <div style="display: flex; gap: 8px;">
+                                <select id="selectProfileToAssign" style="flex: 1;"></select>
+                                <button onclick="assignProfileToTeam()" class="btn btn-primary btn-sm">Añadir</button>
+                            </div>
+                        </div>
+                        <div style="flex: 1; max-height: 400px; overflow-y: auto; padding-right: 4px;">
+                            <ul id="teamProfilesList" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+                                <li style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 2rem 0;">Ningún operario asignado.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Columna 2: Maquinaria Pesada -->
+                    <div class="card" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                            <h3 style="font-size: 1rem; font-weight: 600; color: #fff; margin: 0;">🚜 Maquinaria Asignada</h3>
+                            <p class="card-desc">Vehículos y herramientas pesadas asignadas.</p>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="selectMachineryToAssign">Asignar Máquina al Equipo</label>
+                            <div style="display: flex; gap: 8px;">
+                                <select id="selectMachineryToAssign" style="flex: 1;"></select>
+                                <button onclick="assignMachineryToTeam()" class="btn btn-primary btn-sm">Asignar</button>
+                            </div>
+                        </div>
+                        <div style="flex: 1; max-height: 400px; overflow-y: auto; padding-right: 4px;">
+                            <ul id="teamMachineryList" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+                                <li style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 2rem 0;">Ninguna máquina asignada.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Columna 3: Asignar Carreteras e Importar KML -->
+                    <div class="card" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                            <h3 style="font-size: 1rem; font-weight: 600; color: #fff; margin: 0;">📂 Carreteras Asignadas</h3>
+                            <p class="card-desc">Sube archivos KML/KMZ o gestiona sus tramos activos.</p>
+                        </div>
+                        
+                        <!-- Drag & Drop KML/KMZ -->
+                        <div id="teamDragDropArea" style="border: 2px dashed rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 1.2rem; text-align: center; cursor: pointer; background: rgba(16, 185, 129, 0.01); transition: var(--transition);" onclick="document.getElementById('teamKmlInput').click()">
+                            <div style="font-size: 1.75rem; margin-bottom: 6px;">📁</div>
+                            <strong style="font-size: 0.8rem; color: #fff; display: block; margin-bottom: 2px;">Arrastra KML/KMZ aquí</strong>
+                            <span style="font-size: 0.65rem; color: var(--text-secondary);">o haz clic para buscar</span>
+                            <input type="file" id="teamKmlInput" accept=".kml,.kmz" style="display: none;" onchange="handleTeamKmlUpload(event)">
+                        </div>
+                        
+                        <div id="teamUploadProgress" style="display: none; margin-top: 2px; font-size: 0.75rem; color: var(--accent); text-align: center; font-weight: 500;">
+                            Subiendo tramos a Supabase... <span id="teamUploadPercent">0%</span>
+                        </div>
+
+                        <!-- Lista de carreteras del equipo -->
+                        <div style="flex: 1; max-height: 280px; overflow-y: auto; padding-right: 4px;">
+                            <ul id="teamSegmentsList" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+                                <li style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 2rem 0;">Ningún tramo asignado a este equipo.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
         </main>
-    </div>
-
-    <!-- Modal Flotante de Detalles del Equipo -->
-    <div id="teamDetailsModal" class="custom-dialog-overlay" style="display: none;">
-        <div class="custom-dialog-card animate-scale-up" style="max-width: 420px; padding: 1.5rem; text-align: left; align-items: stretch; gap: 0.75rem; box-sizing: border-box;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                <h3 id="teamDetailsTitle" style="font-size: 1.1rem; font-weight: bold; margin: 0; color: #fff;">Gestionar Equipo</h3>
-                <button onclick="closeTeamDetailsModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.25rem; cursor: pointer; padding: 4px;">×</button>
-            </div>
-            
-            <!-- Asignar Personal -->
-            <div class="card" style="padding: 0.75rem; background: rgba(255,255,255,0.01);">
-                <h4 style="font-size: 0.8rem; color: #fff; margin-bottom: 8px;">Añadir Operario al Equipo</h4>
-                <div style="display: flex; gap: 8px;">
-                    <select id="selectProfileToAssign" style="flex: 1; padding: 6px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-size: 0.8rem;"></select>
-                    <button onclick="assignProfileToTeam()" class="btn btn-primary btn-sm">Añadir</button>
-                </div>
-            </div>
-
-            <!-- Asignar Maquinaria -->
-            <div class="card" style="padding: 0.75rem; background: rgba(255,255,255,0.01);">
-                <h4 style="font-size: 0.8rem; color: #fff; margin-bottom: 8px;">Asignar Máquina al Equipo</h4>
-                <div style="display: flex; gap: 8px;">
-                    <select id="selectMachineryToAssign" style="flex: 1; padding: 6px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-size: 0.8rem;"></select>
-                    <button onclick="assignMachineryToTeam()" class="btn btn-primary btn-sm">Asignar</button>
-                </div>
-            </div>
-
-            <!-- Miembros Actuales -->
-            <div class="card" style="padding: 0.75rem; background: rgba(255,255,255,0.01);">
-                <h4 style="font-size: 0.8rem; color: #fff; margin-bottom: 6px;">Personal y Maquinaria Activa</h4>
-                <ul id="teamAssetsList" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.75rem; color: var(--text-secondary);"></ul>
-            </div>
-
-            <!-- Asignar Carreteras vía Drag & Drop KML/KMZ -->
-            <div class="card" style="padding: 0.75rem; background: rgba(255,255,255,0.01);">
-                <h4 style="font-size: 0.8rem; color: #fff; margin-bottom: 8px;">Asignar Carreteras (KML / KMZ)</h4>
-                <div id="teamDragDropArea" style="border: 2px dashed rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 1.25rem; text-align: center; cursor: pointer; background: rgba(16, 185, 129, 0.01); transition: var(--transition);" onclick="document.getElementById('teamKmlInput').click()">
-                    <div style="font-size: 1.5rem; margin-bottom: 4px;">📂</div>
-                    <span style="font-size: 0.75rem; color: #fff; font-weight: 500; display: block;">Arrastra KML/KMZ aquí</span>
-                    <span style="font-size: 0.65rem; color: var(--text-secondary);">o haz clic para examinar</span>
-                    <input type="file" id="teamKmlInput" accept=".kml,.kmz" style="display: none;" onchange="handleTeamKmlUpload(event)">
-                </div>
-                <div id="teamUploadProgress" style="display: none; margin-top: 8px; font-size: 0.7rem; color: var(--accent); text-align: center;">
-                    Procesando y subiendo tramos... <span id="teamUploadPercent">0%</span>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Modal Flotante de Autenticación / Registro (Supabase) -->
@@ -880,17 +914,32 @@
 
         async function openTeamDetails(teamId, teamName) {
             activeTeamId = teamId;
-            document.getElementById('teamDetailsTitle').innerText = `Gestionar: ${teamName}`;
-            document.getElementById('teamDetailsModal').style.display = 'flex';
             
+            // Ocultar todas las demás secciones del dashboard
+            document.querySelectorAll('.admin-panel-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Mostrar panel de equipo
+            const panel = document.getElementById('panelGestionEquipo');
+            panel.classList.add('active');
+
+            // Actualizar títulos
+            document.getElementById('teamViewTitle').innerText = `Gestionar: ${teamName}`;
+            const team = teams.find(t => t.id === teamId);
+            document.getElementById('teamViewDesc').innerText = team ? (team.description || 'Sin descripción de zona') : '';
+
+            // Cargar datos
             loadProfilesForAssign();
             loadMachineryForAssign();
             loadTeamAssets();
         }
 
-        function closeTeamDetailsModal() {
-            document.getElementById('teamDetailsModal').style.display = 'none';
-            activeTeamId = null;
+        function closeTeamDetails() {
+            // Devolver la vista al Resumen / Dashboard
+            document.getElementById('panelGestionEquipo').classList.remove('active');
+            
+            const tabResumen = document.querySelector('[data-tab="panelResumen"]');
+            if (tabResumen) tabResumen.click();
         }
 
         async function loadProfilesForAssign() {
@@ -951,59 +1000,120 @@
 
         async function loadTeamAssets() {
             if (!activeTeamId) return;
-            const container = document.getElementById('teamAssetsList');
-            container.innerHTML = '<li>Cargando...</li>';
+            const profilesList = document.getElementById('teamProfilesList');
+            const machineryList = document.getElementById('teamMachineryList');
+            const segmentsList = document.getElementById('teamSegmentsList');
+
+            profilesList.innerHTML = '<li>Cargando...</li>';
+            machineryList.innerHTML = '<li>Cargando...</li>';
+            segmentsList.innerHTML = '<li>Cargando...</li>';
 
             try {
+                // 1. Cargar Operarios
                 const { data: members } = await supabaseClient
                     .from('team_members')
                     .select('profiles(id, full_name, role)')
                     .eq('team_id', activeTeamId);
 
+                profilesList.innerHTML = '';
+                if (members && members.length > 0) {
+                    members.forEach(m => {
+                        const prof = m.profiles;
+                        if (prof) {
+                            const li = document.createElement('li');
+                            li.className = 'card';
+                            li.style.background = 'rgba(255,255,255,0.02)';
+                            li.style.padding = '0.75rem';
+                            li.style.display = 'flex';
+                            li.style.justifyContent = 'space-between';
+                            li.style.alignItems = 'center';
+                            li.innerHTML = `
+                                <div>
+                                    <strong style="color:#fff; font-size:0.85rem;">👤 ${prof.full_name}</strong>
+                                    <span style="font-size:0.7rem; color:var(--text-secondary); text-transform:capitalize; margin-left: 8px;">${prof.role}</span>
+                                </div>
+                                <button onclick="removeProfileFromTeam('${prof.id}')" class="btn-remove-file" title="Quitar operario" style="background:none; border:none; cursor:pointer; padding:4px;">
+                                    <i data-lucide="user-x" style="width: 14px; height: 14px; color: var(--danger); vertical-align: middle;"></i>
+                                </button>
+                            `;
+                            profilesList.appendChild(li);
+                        }
+                    });
+                } else {
+                    profilesList.innerHTML = '<li style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 2rem 0;">Ningún operario asignado.</li>';
+                }
+
+                // 2. Cargar Maquinaria
                 const { data: machines } = await supabaseClient
                     .from('team_machinery')
                     .select('machinery(id, type, model, license_plate)')
                     .eq('team_id', activeTeamId);
 
-                container.innerHTML = '';
-
-                if (members) {
-                    members.forEach(m => {
-                        const prof = m.profiles;
-                        if (prof) {
-                            const li = document.createElement('li');
-                            li.style.display = 'flex';
-                            li.style.justifyContent = 'space-between';
-                            li.style.alignItems = 'center';
-                            li.innerHTML = `
-                                <span>👤 <strong>${prof.full_name}</strong> (${prof.role})</span>
-                                <button onclick="removeProfileFromTeam('${prof.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.75rem;">Quitar</button>
-                            `;
-                            container.appendChild(li);
-                        }
-                    });
-                }
-
-                if (machines) {
+                machineryList.innerHTML = '';
+                if (machines && machines.length > 0) {
                     machines.forEach(m => {
                         const mach = m.machinery;
                         if (mach) {
                             const li = document.createElement('li');
+                            li.className = 'card';
+                            li.style.background = 'rgba(255,255,255,0.02)';
+                            li.style.padding = '0.75rem';
                             li.style.display = 'flex';
                             li.style.justifyContent = 'space-between';
                             li.style.alignItems = 'center';
                             li.innerHTML = `
-                                <span>🚜 <strong style="text-transform:capitalize;">${mach.type}</strong> - ${mach.model}</span>
-                                <button onclick="removeMachineryFromTeam('${mach.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.75rem;">Quitar</button>
+                                <div>
+                                    <strong style="color:#fff; font-size:0.85rem; text-transform:capitalize;">🚜 ${mach.type}</strong>
+                                    <span style="font-size:0.7rem; color:var(--text-secondary); margin-left: 8px;">${mach.model} (${mach.license_plate})</span>
+                                </div>
+                                <button onclick="removeMachineryFromTeam('${mach.id}')" class="btn-remove-file" title="Quitar máquina" style="background:none; border:none; cursor:pointer; padding:4px;">
+                                    <i data-lucide="trash-2" style="width: 14px; height: 14px; color: var(--danger); vertical-align: middle;"></i>
+                                </button>
                             `;
-                            container.appendChild(li);
+                            machineryList.appendChild(li);
                         }
                     });
+                } else {
+                    machineryList.innerHTML = '<li style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 2rem 0;">Ninguna máquina asignada.</li>';
                 }
 
-                if (container.children.length === 0) {
-                    container.innerHTML = '<li>Sin personal ni maquinaria asignada.</li>';
+                // 3. Cargar Carreteras Asignadas
+                const { data: logs } = await supabaseClient
+                    .from('work_logs')
+                    .select('status, segment_id, segments(id, name, length_meters)')
+                    .eq('team_id', activeTeamId)
+                    .is('deleted_at', null);
+
+                segmentsList.innerHTML = '';
+                if (logs && logs.length > 0) {
+                    logs.forEach(l => {
+                        const seg = l.segments;
+                        if (seg) {
+                            const km = (seg.length_meters / 1000).toFixed(1);
+                            const li = document.createElement('li');
+                            li.className = 'card';
+                            li.style.background = 'rgba(255,255,255,0.02)';
+                            li.style.padding = '0.75rem';
+                            li.style.display = 'flex';
+                            li.style.justifyContent = 'space-between';
+                            li.style.alignItems = 'center';
+                            li.innerHTML = `
+                                <div>
+                                    <strong style="color:#fff; font-size:0.85rem;">🛣️ ${seg.name}</strong>
+                                    <span style="font-size:0.7rem; color:var(--text-secondary); margin-left: 8px;">${km} km | Estado: ${l.status.toUpperCase()}</span>
+                                </div>
+                                <button onclick="assignTramoToTeam('${seg.id}', '')" class="btn-remove-file" title="Desasignar carretera" style="background:none; border:none; cursor:pointer; padding:4px;">
+                                    <i data-lucide="unlink" style="width: 14px; height: 14px; color: var(--danger); vertical-align: middle;"></i>
+                                </button>
+                            `;
+                            segmentsList.appendChild(li);
+                        }
+                    });
+                } else {
+                    segmentsList.innerHTML = '<li style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 2rem 0;">Ningún tramo asignado a este equipo.</li>';
                 }
+
+                if (window.lucide) window.lucide.createIcons();
             } catch (err) {
                 console.error(err);
             }
