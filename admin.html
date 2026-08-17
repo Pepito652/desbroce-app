@@ -178,7 +178,7 @@
             </nav>
             
             <div style="margin-top: auto; font-size: 11px; color: var(--text-secondary); text-align: center; border-top: 1px solid var(--border-color); padding-top: 1rem;">
-                Código de control: <strong style="color: var(--accent);">#2310</strong>
+                Código de control: <strong style="color: var(--accent);">#2320</strong>
             </div>
         </aside>
 
@@ -1438,13 +1438,28 @@
                         .eq('segment_id', segmentId);
                     if (error) throw error;
                 } else {
+                    // Primero, buscar si ya existe un registro de asignación para este tramo
+                    const { data: existing } = await supabaseClient
+                        .from('work_logs')
+                        .select('id')
+                        .eq('segment_id', segmentId)
+                        .maybeSingle();
+
+                    const payload = {
+                        segment_id: segmentId,
+                        team_id: teamId,
+                        status: 'pendiente'
+                    };
+
+                    // Si ya existe, añadimos su id para hacer un update limpio
+                    if (existing) {
+                        payload.id = existing.id;
+                    }
+
                     const { error } = await supabaseClient
                         .from('work_logs')
-                        .upsert({
-                            segment_id: segmentId,
-                            team_id: teamId,
-                            status: 'pendiente'
-                        }, { onConflict: 'segment_id' });
+                        .upsert(payload);
+                        
                     if (error) throw error;
                 }
                 loadSegmentsAndLogs();
