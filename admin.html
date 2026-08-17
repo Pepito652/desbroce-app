@@ -394,6 +394,20 @@
                 <h4 style="font-size: 0.8rem; color: #fff; margin-bottom: 6px;">Personal y Maquinaria Activa</h4>
                 <ul id="teamAssetsList" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.75rem; color: var(--text-secondary);"></ul>
             </div>
+
+            <!-- Asignar Carreteras vía Drag & Drop KML/KMZ -->
+            <div class="card" style="padding: 0.75rem; background: rgba(255,255,255,0.01);">
+                <h4 style="font-size: 0.8rem; color: #fff; margin-bottom: 8px;">Asignar Carreteras (KML / KMZ)</h4>
+                <div id="teamDragDropArea" style="border: 2px dashed rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 1.25rem; text-align: center; cursor: pointer; background: rgba(16, 185, 129, 0.01); transition: var(--transition);" onclick="document.getElementById('teamKmlInput').click()">
+                    <div style="font-size: 1.5rem; margin-bottom: 4px;">📂</div>
+                    <span style="font-size: 0.75rem; color: #fff; font-weight: 500; display: block;">Arrastra KML/KMZ aquí</span>
+                    <span style="font-size: 0.65rem; color: var(--text-secondary);">o haz clic para examinar</span>
+                    <input type="file" id="teamKmlInput" accept=".kml,.kmz" style="display: none;" onchange="handleTeamKmlUpload(event)">
+                </div>
+                <div id="teamUploadProgress" style="display: none; margin-top: 8px; font-size: 0.7rem; color: var(--accent); text-align: center;">
+                    Procesando y subiendo tramos... <span id="teamUploadPercent">0%</span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -489,6 +503,36 @@
                     loadAllDashboardData();
                 })
                 .subscribe();
+
+            // Configurar Drag & Drop del Modal de Equipos
+            const dropArea = document.getElementById('teamDragDropArea');
+            if (dropArea) {
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropArea.style.borderColor = 'var(--accent)';
+                        dropArea.style.background = 'rgba(16, 185, 129, 0.08)';
+                    }, false);
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropArea.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                        dropArea.style.background = 'rgba(16, 185, 129, 0.01)';
+                    }, false);
+                });
+
+                dropArea.addEventListener('drop', (e) => {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    if (files && files.length > 0) {
+                        handleTeamKmlFiles(files[0]);
+                    }
+                }, false);
+            }
 
             if (window.lucide) window.lucide.createIcons();
         });
@@ -1221,6 +1265,174 @@
                 doc.save(`reporte_desbroce_${new Date().toLocaleDateString()}.pdf`);
             }
         }
+
+        // --- PROCESAMIENTO Y SUBIDA DRAG & DROP KML/KMZ ---
+
+        function handleTeamKmlUpload(event) {
+            const file = event.target.files[0];
+            if (file) handleTeamKmlFiles(file);
+        }
+
+        function handleTeamKmlFiles(file) {
+            if (!activeTeamId) {
+                alert("Debes tener un equipo seleccionado.");
+                return;
+            }
+
+            const extension = file.name.split('.').pop().toLowerCase();
+            const reader = new FileReader();
+
+            document.getElementById('teamUploadProgress').style.display = 'block';
+            document.getElementById('teamUploadPercent').innerText = '0%';
+
+            if (extension === 'kmz') {
+                reader.onload = function(event) {
+                    JSZip.loadAsync(event.target.result).then(zip => {
+                        const kmlFileKey = Object.keys(zip.files).find(key => key.toLowerCase().endsWith('.kml'));
+                        if (!kmlFileKey) throw new Error("No hay KML en el KMZ.");
+                        return zip.files[kmlFileKey].async('string');
+                    }).then(kmlText => {
+                        processKmlAndUpload(kmlText);
+                    }).catch(err => {
+                        alert("Error leyendo KMZ: " + err.message);
+                        document.getElementById('teamUploadProgress').style.display = 'none';
+                    });
+                };
+                reader.readAsArrayBuffer(file);
+            } else if (extension === 'kml') {
+                reader.onload = function(event) {
+                    processKmlAndUpload(event.target.result);
+                };
+                reader.readAsText(file);
+            } else {
+                alert("Extensión de archivo no soportada. Solo .kml y .kmz");
+                document.getElementById('teamUploadProgress').style.display = 'none';
+            }
+        }
+
+        async function processKmlAndUpload(kmlText) {
+            try {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(kmlText, 'text/xml');
+                const placemarks = xmlDoc.getElementsByTagName('Placemark');
+
+                if (placemarks.length === 0) {
+                    alert("No se encontraron tramos en el archivo.");
+                    document.getElementById('teamUploadProgress').style.display = 'none';
+                    return;
+                }
+
+                const uploadBatch = [];
+                for (let i = 0; i < placemarks.length; i++) {
+                    const pm = placemarks[i];
+                    
+                    // Extraer nombre de la carretera
+                    let name = "Tramo sin nombre";
+                    const nameNode = pm.getElementsByTagName('name')[0];
+                    if (nameNode) name = nameNode.textContent.trim();
+
+                    // Extraer coordenadas
+                    const coordsNode = pm.getElementsByTagName('coordinates')[0];
+                    if (!coordsNode) continue;
+
+                    const coordText = coordsNode.textContent.trim();
+                    const coordinates = parseKMLCoordinates(coordText);
+                    if (coordinates.length < 2) continue;
+
+                    const lengthMeters = calculateLineLength(coordinates);
+
+                    uploadBatch.push({
+                        name: name,
+                        kml_data: JSON.stringify(coordinates),
+                        length_meters: lengthMeters
+                    });
+                }
+
+                if (uploadBatch.length === 0) {
+                    alert("No se encontraron tramos lineales válidos.");
+                    document.getElementById('teamUploadProgress').style.display = 'none';
+                    return;
+                }
+
+                document.getElementById('teamUploadPercent').innerText = '50%';
+
+                // 1. Subir tramos a tabla segments
+                const { data: insertedSegments, error: segErr } = await supabaseClient
+                    .from('segments')
+                    .insert(uploadBatch)
+                    .select('id');
+
+                if (segErr) throw segErr;
+
+                document.getElementById('teamUploadPercent').innerText = '80%';
+
+                // 2. Asociar cada tramo a work_logs con el team_id
+                const logsBatch = insertedSegments.map(seg => ({
+                    segment_id: seg.id,
+                    team_id: activeTeamId,
+                    status: 'pendiente'
+                }));
+
+                const { error: logErr } = await supabaseClient
+                    .from('work_logs')
+                    .insert(logsBatch);
+
+                if (logErr) throw logErr;
+
+                document.getElementById('teamUploadPercent').innerText = '100%';
+                setTimeout(() => {
+                    document.getElementById('teamUploadProgress').style.display = 'none';
+                    alert(`¡Subida completada con éxito! Se han asignado ${uploadBatch.length} tramos al equipo.`);
+                    loadSegmentsAndLogs();
+                }, 500);
+
+            } catch (err) {
+                alert("Error al procesar y subir KML: " + err.message);
+                document.getElementById('teamUploadProgress').style.display = 'none';
+            }
+        }
+
+        // Analizador de coordenadas KML
+        function parseKMLCoordinates(coordText) {
+            const coords = [];
+            const parts = coordText.split(/\s+/);
+            parts.forEach(p => {
+                const c = p.split(',');
+                if (c.length >= 2) {
+                    const lon = parseFloat(c[0]);
+                    const lat = parseFloat(c[1]);
+                    if (!isNaN(lon) && !isNaN(lat)) {
+                        coords.push([lat, lon]); // Leaflet espera [lat, lon]
+                    }
+                }
+            });
+            return coords;
+        }
+
+        // Calcular distancia Haversine acumulada de un tramo
+        function calculateLineLength(coords) {
+            let total = 0;
+            for (let i = 0; i < coords.length - 1; i++) {
+                const p1 = coords[i];
+                const p2 = coords[i+1];
+                total += getHaversineDistance(p1[0], p1[1], p2[0], p2[1]);
+            }
+            return Math.round(total);
+        }
+
+        function getHaversineDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371000; // Radio de la tierra en metros
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+        
+        window.handleTeamKmlUpload = handleTeamKmlUpload;
+        window.handleTeamKmlFiles = handleTeamKmlFiles;
     </script>
 </body>
 </html>
