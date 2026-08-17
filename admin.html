@@ -364,8 +364,18 @@
             <section class="admin-panel-content" id="panelGestionEquipo">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <div>
-                        <h2 id="teamViewTitle" style="font-weight: 700; font-size: 1.5rem; letter-spacing: -0.5px; margin: 0;">Gestionar Equipo</h2>
-                        <p id="teamViewDesc" style="font-size: 0.8rem; color: var(--text-secondary); margin: 4px 0 0 0;"></p>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <h2 id="teamViewTitle" style="font-weight: 700; font-size: 1.5rem; letter-spacing: -0.5px; margin: 0;">Gestionar Equipo</h2>
+                            <button onclick="editTeamName()" style="background: none; border: none; padding: 4px; cursor: pointer; color: var(--text-secondary); display: flex; align-items: center;" title="Editar nombre del equipo">
+                                <i data-lucide="pencil" style="width: 14px; height: 14px;"></i>
+                            </button>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+                            <p id="teamViewDesc" style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;"></p>
+                            <button onclick="editTeamDescription()" style="background: none; border: none; padding: 2px; cursor: pointer; color: var(--text-secondary); display: flex; align-items: center;" title="Editar descripción del equipo">
+                                <i data-lucide="pencil" style="width: 11px; height: 11px;"></i>
+                            </button>
+                        </div>
                     </div>
                     <button onclick="closeTeamDetails()" class="btn btn-secondary btn-sm" style="display: flex; align-items: center; gap: 6px;">
                         <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Volver al Resumen
@@ -932,6 +942,62 @@
             loadProfilesForAssign();
             loadMachineryForAssign();
             loadTeamAssets();
+        }
+
+        async function editTeamName() {
+            if (!activeTeamId) return;
+            const team = teams.find(t => t.id === activeTeamId);
+            if (!team) return;
+
+            const newName = prompt("Introduce el nuevo nombre del equipo:", team.name);
+            if (newName === null) return; // Cancelado
+            const cleanName = newName.trim();
+            if (!cleanName) {
+                alert("El nombre no puede estar vacío.");
+                return;
+            }
+
+            try {
+                const { error } = await supabaseClient
+                    .from('work_teams')
+                    .update({ name: cleanName })
+                    .eq('id', activeTeamId);
+
+                if (error) throw error;
+                
+                // Actualizar estado local y UI
+                team.name = cleanName;
+                document.getElementById('teamViewTitle').innerText = `Gestionar: ${cleanName}`;
+                loadTeams(); // Recargar lista principal
+            } catch (err) {
+                alert("Error al actualizar nombre: " + err.message);
+            }
+        }
+
+        async function editTeamDescription() {
+            if (!activeTeamId) return;
+            const team = teams.find(t => t.id === activeTeamId);
+            if (!team) return;
+
+            const newDesc = prompt("Introduce la nueva descripción del equipo:", team.description || '');
+            if (newDesc === null) return; // Cancelado
+            const cleanDesc = newDesc.trim();
+
+            try {
+                const { error } = await supabaseClient
+                    .from('work_teams')
+                    .update({ description: cleanDesc })
+                    .eq('id', activeTeamId);
+
+                if (error) throw error;
+                
+                // Actualizar estado local y UI
+                team.description = cleanDesc;
+                document.getElementById('teamViewDesc').innerText = cleanDesc || 'Sin descripción de zona';
+                loadTeams(); // Recargar lista principal
+            } catch (err) {
+                alert("Error al actualizar descripción: " + err.message);
+            }
         }
 
         function closeTeamDetails() {
