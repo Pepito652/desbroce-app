@@ -2539,7 +2539,7 @@ function toggleTramoCompletion() {
             });
         }
 
-        saveToLocalStorage();
+        saveToLocalStorage(state.selectedTramoId);
         updateUI();
         closeRoadDetail();
     } catch (e) {

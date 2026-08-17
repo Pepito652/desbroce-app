@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2330';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2340';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Panel de gestión de archivos en oficina y desplegables por KML.';
+const UPDATE_NOTES = 'Versión 0.1.12: Corrección en el envío de ID de tramos seleccionados y forzado de actualización.';
 
 const ASSETS = [
   './',
