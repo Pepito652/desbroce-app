@@ -460,7 +460,27 @@
         document.addEventListener('DOMContentLoaded', () => {
             initAdminMap();
             initDashboardTabs();
-            loadAllDashboardData();
+
+            // Escuchar cambios de autenticación de Supabase de forma reactiva
+            if (supabaseClient) {
+                supabaseClient.auth.onAuthStateChange((event, session) => {
+                    console.log(`[Auth] Evento de sesión detectado: ${event}`);
+                    if (session) {
+                        loadAllDashboardData();
+                    } else {
+                        // Limpiar datos visuales si se cierra sesión
+                        teams = [];
+                        machinery = [];
+                        operators = [];
+                        segments = [];
+                        workLogs = [];
+                        renderTeamsList();
+                        renderMachineryList();
+                        renderOperatorsList();
+                        renderSegmentsOnMapAndList();
+                    }
+                });
+            }
 
             // Suscribirse a cambios en tiempo real
             supabaseClient
