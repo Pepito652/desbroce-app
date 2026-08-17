@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.11-2180';
-const VERSION = '0.1.11';
-const UPDATE_NOTES = 'Hotfix #2180: Corregido el fallo del botón de visibilidad de los archivos cargados.';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2250';
+const VERSION = '0.1.12';
+const UPDATE_NOTES = 'Versión 0.1.12: Pantalla de Bienvenida Dinámica y Sincronización Automática de Carreteras.';
 
 const ASSETS = [
   './',

@@ -5697,3 +5697,151 @@ function removeObservation(tramoId, obsId) {
     }
 }
 
+// --- PANTALLA DE BIENVENIDA Y CARGA DE NUBE ---
+
+function welcomeActionAuth() {
+    const welcomeOverlay = document.getElementById('welcomeScreenOverlay');
+    // Abrir el modal de login de Supabase Auth
+    if (typeof openAuthModal === 'function') {
+        openAuthModal();
+    }
+    // Modificar temporalmente el listener de login para ocultar la pantalla de bienvenida al entrar
+    const originalLoginSubmit = window.handleLoginSubmit;
+    window.handleLoginSubmit = async function(e) {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        try {
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) {
+                alert("Error de acceso: " + error.message);
+            } else {
+                closeAuthModal();
+                if (welcomeOverlay) {
+                    welcomeOverlay.classList.add('fade-out');
+                    setTimeout(() => welcomeOverlay.style.display = 'none', 500);
+                }
+                checkSessionState();
+                if (data.user) {
+                    loadAssignedSegments(data.user.id);
+                }
+            }
+        } catch (err) {
+            alert("Error al conectar.");
+        }
+    };
+}
+
+function welcomeActionLocal() {
+    const welcomeOverlay = document.getElementById('welcomeScreenOverlay');
+    if (welcomeOverlay) {
+        welcomeOverlay.classList.add('fade-out');
+        setTimeout(() => welcomeOverlay.style.display = 'none', 500);
+    }
+}
+
+// Descargar tramos asignados al equipo del operario desde Supabase
+async function loadAssignedSegments(userId) {
+    if (!supabaseClient) return;
+    try {
+        logDebug("Descargando carreteras asignadas por la oficina...");
+        
+        // 1. Obtener el equipo del usuario
+        const { data: memberData } = await supabaseClient
+            .from('team_members')
+            .select('team_id')
+            .eq('profile_id', userId)
+            .maybeSingle();
+
+        if (!memberData || !memberData.team_id) {
+            logDebug("No tienes ningún equipo de trabajo asignado en la oficina.", "warn");
+            return;
+        }
+
+        // 2. Obtener los partes (work_logs) asignados a ese equipo
+        const { data: logsData } = await supabaseClient
+            .from('work_logs')
+            .select('*')
+            .eq('team_id', memberData.team_id)
+            .is('deleted_at', null);
+
+        if (!logsData || logsData.length === 0) {
+            logDebug("Tu equipo no tiene tramos de carretera asignados hoy.", "info");
+            return;
+        }
+
+        const segmentIds = logsData.map(l => l.segment_id);
+
+        // 3. Obtener los tramos correspondientes
+        const { data: segmentsData } = await supabaseClient
+            .from('segments')
+            .select('*')
+            .in('id', segmentIds)
+            .is('deleted_at', null);
+
+        if (!segmentsData || segmentsData.length === 0) return;
+
+        // Limpiar tramos anteriores si los hubiera
+        state.tramos = [];
+        state.loadedFiles = [];
+        tramosLayerGroup.clearLayers();
+
+        const fileId = "cloud-assigned";
+        state.loadedFiles.push({
+            id: fileId,
+            name: "Carreteras Asignadas (Nube)",
+            tramosCount: segmentsData.length
+        });
+
+        segmentsData.forEach(seg => {
+            const log = logsData.find(l => l.segment_id === seg.id);
+            let coords = [];
+            if (seg.kml_data) {
+                try {
+                    coords = JSON.parse(seg.kml_data);
+                } catch (e) {
+                    console.error("Error parseando geometría del tramo:", seg.name);
+                }
+            }
+
+            state.tramos.push({
+                id: seg.id,
+                name: seg.name,
+                fileId: fileId,
+                coordinates: coords,
+                originalCoordinates: coords.map(c => [...c]),
+                length: seg.length_meters || 1000,
+                status: log ? log.status : 'pending',
+                rightMarginStatus: log && log.status === 'completado' ? 'completed' : 'pending',
+                leftMarginStatus: log && log.status === 'completado' ? 'completed' : 'pending',
+                dateCompleted: log ? log.updated_at : null,
+                color: '#6366f1',
+                weekNumber: 1,
+                weekCompleted: null,
+                observaciones: [],
+                mapLayer: null
+            });
+        });
+
+        state.fileLoaded = true;
+        saveToLocalStorage();
+        renderTramosOnMap();
+        updateTramosList();
+        updateStats();
+
+        // Auto-encuadrar el mapa en las carreteras asignadas
+        if (tramosLayerGroup.getLayers().length > 0) {
+            map.fitBounds(tramosLayerGroup.getBounds());
+        }
+
+        logDebug("Carreteras asignadas cargadas y listas en el mapa.", "success");
+    } catch (err) {
+        logDebug("Fallo al descargar tramos: " + err.message, "error");
+    }
+}
+
+// Exponer funciones globalmente
+window.welcomeActionAuth = welcomeActionAuth;
+window.welcomeActionLocal = welcomeActionLocal;
+window.loadAssignedSegments = loadAssignedSegments;
+

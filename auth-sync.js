@@ -257,16 +257,34 @@ window.addEventListener('online', () => {
     triggerOfflineSync();
 });
 
-// Al cargar el documento, evaluar si mostramos el banner de invitación
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(async () => {
-        if (!supabaseClient) return;
+// Al cargar el documento, evaluar si mostramos la pantalla de bienvenida o recuperamos la sesión
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!supabaseClient) {
+        welcomeActionLocal();
+        return;
+    }
+
+    try {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        const banner = document.getElementById('authInviteBanner');
-        if (!session && banner) {
-            // Mostrar banner sutil de login tras 3 segundos si no está autenticado
-            banner.style.display = 'flex';
+        if (session) {
+            // Ya está logueado, ocultar pantalla de bienvenida de inmediato
+            const welcomeOverlay = document.getElementById('welcomeScreenOverlay');
+            if (welcomeOverlay) {
+                welcomeOverlay.style.display = 'none';
+            }
+            checkSessionState();
+            // Cargar tramos asignados de forma automática
+            if (typeof loadAssignedSegments === 'function') {
+                loadAssignedSegments(session.user.id);
+            }
+        } else {
+            // Mostrar pantalla de bienvenida interactiva
+            const welcomeOverlay = document.getElementById('welcomeScreenOverlay');
+            if (welcomeOverlay) {
+                welcomeOverlay.style.display = 'flex';
+            }
         }
-        checkSessionState();
-    }, 3000);
+    } catch (e) {
+        console.error("[Session] Error al recuperar sesión inicial:", e);
+    }
 });

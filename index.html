@@ -34,6 +34,37 @@
         </div>
     </div>
 
+    <!-- Pantalla de Bienvenida Premium e Interactiva -->
+    <div id="welcomeScreenOverlay" class="welcome-screen-overlay">
+        <div class="welcome-card-container">
+            <div class="welcome-logo-container">
+                <div class="welcome-tractor-icon">🚜</div>
+                <h1 class="welcome-title">DesbroceApp</h1>
+                <p class="welcome-subtitle">Gestión de limpieza y desbroce de márgenes de carreteras offline-first</p>
+            </div>
+
+            <div class="welcome-choices">
+                <!-- Opción 1: Iniciar Sesión (Oficina) -->
+                <div class="welcome-choice-card" onclick="welcomeActionAuth()">
+                    <div class="welcome-choice-icon">📡</div>
+                    <div class="welcome-choice-text">
+                        <span class="welcome-choice-title">Conectarse con Oficina</span>
+                        <span class="welcome-choice-desc">Accede para recibir tus tramos de desbroce asignados y subir tus avances automáticamente.</span>
+                    </div>
+                </div>
+
+                <!-- Opción 2: Trabajo sin cuenta (Modo Local) -->
+                <div class="welcome-choice-card" onclick="welcomeActionLocal()">
+                    <div class="welcome-choice-icon">📂</div>
+                    <div class="welcome-choice-text">
+                        <span class="welcome-choice-title">Trabajar sin Cuenta (Local)</span>
+                        <span class="welcome-choice-desc">Carga tus planos KML/KMZ de manera manual en el dispositivo y trabaja 100% offline.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Sidebar Panel -->
         <aside class="sidebar" id="sidebar">
@@ -78,7 +109,7 @@
                         <span>RAM JS Usada:</span> <strong id="perfRam" style="color: #fff;">0.0 MB</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 4px; margin-top: 2px;">
-                        <span>Código de control:</span> <strong style="color: #60a5fa;">#2180</strong>
+                        <span>Código de control:</span> <strong style="color: #60a5fa;">#2250</strong>
                     </div>
                 </div>
                 <div id="appDebugLog" style="color: #e4e4e7; line-height: 1.3;">Ningún error registrado. La app está funcionando.</div>
