@@ -5839,6 +5839,7 @@ async function loadAssignedSegments(userId) {
         saveToLocalStorage();
         renderTramosOnMap();
         updateTramosList();
+        updateLoadedFilesList(); // <-- Fuerza la limpieza visual de archivos locales de invitado
         updateStats();
 
         // Auto-encuadrar el mapa en las carreteras asignadas

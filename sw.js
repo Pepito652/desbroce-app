@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2270';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2280';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Corrección en la limpieza reactiva de planos locales al iniciar sesión.';
+const UPDATE_NOTES = 'Versión 0.1.12: Forzado de refresco visual en el listado de archivos KML asignados.';
 
 const ASSETS = [
   './',
