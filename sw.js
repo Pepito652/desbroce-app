@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2519';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2520';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Sincronización Realtime instantánea entre oficina y operarios, auto-refresco al desbloquear y eliminación total de alertas nativas.';
+const UPDATE_NOTES = 'Versión 0.1.12: Corrección de sintaxis y restauración completa de supabaseClient, modales y sincronización en vivo.';
 
 const ASSETS = [
   './',

@@ -359,6 +359,8 @@ async function triggerOfflineSync() {
     } finally {
         isSyncing = false;
     }
+}
+
 // --- CANAL REALTIME Y AUTO-ACTUALIZACIÓN SILENCIOSA DE FONDO ---
 
 let realtimeChannel = null;
