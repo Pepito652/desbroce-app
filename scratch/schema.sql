@@ -115,6 +115,28 @@ CREATE TRIGGER update_segments_modtime BEFORE UPDATE ON public.segments FOR EACH
 DROP TRIGGER IF EXISTS update_work_logs_modtime ON public.work_logs;
 CREATE TRIGGER update_work_logs_modtime BEFORE UPDATE ON public.work_logs FOR EACH ROW EXECUTE FUNCTION public.update_modified_column();
 
+-- 11. Trigger para sincronizar automáticamente nuevos usuarios de auth.users a public.profiles
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.profiles (id, full_name, role)
+    VALUES (
+        NEW.id,
+        COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+        COALESCE((NEW.raw_user_meta_data->>'role')::public.user_role, 'peon'::public.user_role)
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        full_name = EXCLUDED.full_name,
+        role = EXCLUDED.role;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 -- Habilitar RLS (Seguridad a Nivel de Fila)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_teams ENABLE ROW LEVEL SECURITY;
