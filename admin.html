@@ -178,7 +178,7 @@
             </nav>
             
             <div style="margin-top: auto; font-size: 11px; color: var(--text-secondary); text-align: center; border-top: 1px solid var(--border-color); padding-top: 1rem;">
-                Código de control: <strong style="color: var(--accent);">#2480</strong>
+                Código de control: <strong style="color: var(--accent);">#2490</strong>
             </div>
         </aside>
 
@@ -564,6 +564,13 @@
 
             // Escuchar cambios de autenticación de Supabase de forma reactiva
             if (supabaseClient) {
+                // Comprobación de sesión inicial inmediata
+                supabaseClient.auth.getSession().then(({ data: { session } }) => {
+                    if (session) {
+                        loadAllDashboardData();
+                    }
+                }).catch(e => console.warn(e));
+
                 supabaseClient.auth.onAuthStateChange((event, session) => {
                     console.log(`[Auth] Evento de sesión detectado: ${event}`);
                     if (session) {
