@@ -2125,6 +2125,16 @@ function toggleMarginStatusPopup(tramoId, marginSide) {
 
         saveToLocalStorage(tramoId);
         
+        // Sincronización directa e inmediata con la nube
+        if (typeof window.queueTramoForSync === 'function') {
+            window.queueTramoForSync(tramo.id, {
+                status: tramo.status,
+                rightMarginStatus: tramo.rightMarginStatus,
+                leftMarginStatus: tramo.leftMarginStatus,
+                comment: (tramo.observaciones && tramo.observaciones.length > 0) ? tramo.observaciones.map(o => o.text).join(' | ') : ''
+            });
+        }
+        
         // Re-renderizar mapa y listas
         renderTramosOnMap();
         updateUI();
@@ -2542,6 +2552,17 @@ function toggleTramoCompletion() {
 
         const targetTramoId = state.selectedTramoId;
         saveToLocalStorage(targetTramoId);
+
+        // Sincronización directa e inmediata con la nube
+        if (typeof window.queueTramoForSync === 'function') {
+            window.queueTramoForSync(tramo.id, {
+                status: tramo.status,
+                rightMarginStatus: tramo.rightMarginStatus,
+                leftMarginStatus: tramo.leftMarginStatus,
+                comment: (tramo.observaciones && tramo.observaciones.length > 0) ? tramo.observaciones.map(o => o.text).join(' | ') : ''
+            });
+        }
+
         updateUI();
         closeRoadDetail();
     } catch (e) {
@@ -4021,25 +4042,20 @@ const STORAGE_KEY_ONLINE = 'desbroce_cloud_store';
 function getLocalStorageKey() {
     // Si el usuario está conectado a Supabase, usamos la clave online. Si no, la clave local.
     if (window.supabaseClient) {
-        let hasActiveSession = false;
-        try {
-            const sessionObj = supabaseClient.auth.session ? supabaseClient.auth.session() : null;
-            if (sessionObj) hasActiveSession = true;
-        } catch(e) {}
+        if (window.currentAuthSession && window.currentAuthSession.user) {
+            return STORAGE_KEY_ONLINE;
+        }
 
-        if (!hasActiveSession) {
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.endsWith('-auth-token')) {
-                    const tokenVal = localStorage.getItem(key);
-                    if (tokenVal) {
-                        hasActiveSession = true;
-                        break;
-                    }
+        // Respaldo secundario: buscar token en localStorage
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.endsWith('-auth-token')) {
+                const tokenVal = localStorage.getItem(key);
+                if (tokenVal) {
+                    return STORAGE_KEY_ONLINE;
                 }
             }
         }
-        if (hasActiveSession) return STORAGE_KEY_ONLINE;
     }
     return STORAGE_KEY_OFFLINE;
 }

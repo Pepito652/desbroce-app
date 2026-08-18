@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2430';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2440';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Smart Cache offline-first, aislamiento estricto de memoria y actualización directa de partes.';
+const UPDATE_NOTES = 'Versión 0.1.12: Sesión síncrona en memoria global y sincronización directa inmediata al pulsar márgenes.';
 
 const ASSETS = [
   './',

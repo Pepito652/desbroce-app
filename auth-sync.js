@@ -8,6 +8,18 @@ let supabaseClient = null;
 // Inicializar el cliente
 if (typeof supabase !== 'undefined') {
     supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+    // Mantener la sesión activa en memoria global síncrona
+    window.currentAuthSession = null;
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+        window.currentAuthSession = session;
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            console.log("[Auth] Sesión activa confirmada:", session?.user?.email);
+        }
+    });
+    // Obtener sesión inicial
+    supabaseClient.auth.getSession().then(({ data: { session } }) => {
+        window.currentAuthSession = session;
+    }).catch(e => console.warn("Error recuperando sesión:", e));
 } else {
     console.warn("Librería de Supabase no cargada. Trabajando en modo local offline.");
 }
