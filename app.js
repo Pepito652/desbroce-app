@@ -1796,7 +1796,7 @@ function completeTramoQuick(tramoId, event) {
         });
     }
 
-    saveToLocalStorage();
+    saveToLocalStorage(tramoId);
     updateUI();
     
     // Si estaba abierto en detalle, volver a abrirlo para reflejar estado
@@ -4017,8 +4017,19 @@ let saveToLocalStorageTimeout = null;
 function getLocalStorageKey() {
     // Si el usuario está conectado a Supabase, usamos la clave online. Si no, la clave local.
     if (window.supabaseClient) {
-        const session = localStorage.getItem('sb-ttxshuqgjieqooirlldt-auth-token'); // Supabase guarda el token con su ref
-        if (session) return 'desbroce_app_state_online';
+        // Buscar dinámicamente cualquier clave de localstorage que termine en auth-token (para soportar cambios de ref o dominios)
+        let hasActiveSession = false;
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.endsWith('-auth-token')) {
+                const tokenVal = localStorage.getItem(key);
+                if (tokenVal) {
+                    hasActiveSession = true;
+                    break;
+                }
+            }
+        }
+        if (hasActiveSession) return 'desbroce_app_state_online';
     }
     return 'desbroce_app_state_local';
 }
