@@ -5830,6 +5830,24 @@ async function loadAssignedSegments(userId) {
                 }
             }
 
+            let localStatus = 'pending';
+            let rMargin = 'pending';
+            let lMargin = 'pending';
+            if (log) {
+                if (log.status === 'completado') {
+                    localStatus = 'completed';
+                    rMargin = 'completed';
+                    lMargin = 'completed';
+                } else if (log.status === 'en_progreso') {
+                    localStatus = 'partial';
+                    // Intentamos inferir márgenes completados en local si se guardan notas de margen o por defecto ponemos uno
+                    rMargin = 'completed';
+                    lMargin = 'pending';
+                } else if (log.status === 'incidencia') {
+                    localStatus = 'incidencia';
+                }
+            }
+
             state.tramos.push({
                 id: seg.id,
                 name: seg.name,
@@ -5837,9 +5855,9 @@ async function loadAssignedSegments(userId) {
                 coordinates: coords,
                 originalCoordinates: coords.map(c => [...c]),
                 length: seg.length_meters || 1000,
-                status: log ? log.status : 'pending',
-                rightMarginStatus: log && log.status === 'completado' ? 'completed' : 'pending',
-                leftMarginStatus: log && log.status === 'completado' ? 'completed' : 'pending',
+                status: localStatus,
+                rightMarginStatus: rMargin,
+                leftMarginStatus: lMargin,
                 dateCompleted: log ? log.updated_at : null,
                 color: '#6366f1',
                 weekNumber: 1,

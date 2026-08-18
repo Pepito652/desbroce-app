@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2380';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2390';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Detección dinámica multi-dominio del token de Supabase Auth.';
+const UPDATE_NOTES = 'Versión 0.1.12: Unificación bidireccional de traducciones de estado Castellano-Inglés.';
 
 const ASSETS = [
   './',
