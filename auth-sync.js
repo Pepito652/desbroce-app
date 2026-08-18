@@ -340,3 +340,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error("[Session] Error al recuperar sesión inicial:", e);
     }
 });
+
+// Exponer funciones globales de sincronización para app.js
+window.queueTramoForSync = queueTramoForSync;
+window.triggerOfflineSync = triggerOfflineSync;
