@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2525';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2526';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Edición completa de fichas de operarios desde el panel de administración y reasignación directa de equipos.';
+const UPDATE_NOTES = 'Versión 0.1.12: Corrección en apertura del modal de edición de ficha de operario en el panel de administración.';
 
 const ASSETS = [
   './',
