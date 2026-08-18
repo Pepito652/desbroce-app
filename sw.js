@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2470';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2480';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Sincronización enriquecida con desglose de márgenes, semanas, fechas y alertas geolocalizadas.';
+const UPDATE_NOTES = 'Versión 0.1.12: Filtrado por equipo en oficina, auto-sincronización periódica cada 15s y botón de refresco.';
 
 const ASSETS = [
   './',

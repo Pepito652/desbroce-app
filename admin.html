@@ -178,7 +178,7 @@
             </nav>
             
             <div style="margin-top: auto; font-size: 11px; color: var(--text-secondary); text-align: center; border-top: 1px solid var(--border-color); padding-top: 1rem;">
-                Código de control: <strong style="color: var(--accent);">#2470</strong>
+                Código de control: <strong style="color: var(--accent);">#2480</strong>
             </div>
         </aside>
 
@@ -187,7 +187,28 @@
             
             <!-- SECCIÓN 1: RESUMEN / DASHBOARD -->
             <section class="admin-panel-content active" id="panelResumen">
-                <h2 style="font-weight: 700; font-size: 1.5rem; letter-spacing: -0.5px;">Panel de Resumen</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h2 style="font-weight: 700; font-size: 1.5rem; letter-spacing: -0.5px; margin: 0;">Panel de Resumen</h2>
+                        <p style="color: var(--text-secondary); font-size: 0.8rem; margin: 4px 0 0 0;">Monitoreo en tiempo real de cuadrillas y avance de carreteras</p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <!-- Selector de Filtrado por Equipo -->
+                        <div style="display: flex; align-items: center; gap: 6px; background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 8px;">
+                            <i data-lucide="filter" style="width: 14px; height: 14px; color: var(--accent);"></i>
+                            <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">Equipo:</span>
+                            <select id="adminTeamFilterSelect" onchange="handleAdminTeamFilterChange(this.value)" style="background: transparent; border: none; color: #fff; font-size: 0.8rem; font-weight: 600; cursor: pointer; outline: none;">
+                                <option value="all">Todos los Equipos</option>
+                            </select>
+                        </div>
+                        <!-- Botón Actualizar Datos -->
+                        <button onclick="loadAllDashboardData(true)" class="btn btn-primary btn-sm" id="btnAdminRefresh" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.8rem;">
+                            <i data-lucide="refresh-cw" id="iconAdminRefresh" style="width: 14px; height: 14px;"></i>
+                            <span>Actualizar</span>
+                        </button>
+                    </div>
+                </div>
+
                 <div class="metrics-grid">
                     <div class="metric-card">
                         <span class="stat-label">Progreso de Obra</span>
@@ -209,8 +230,16 @@
                 <div class="dashboard-grid">
                     <!-- Mapa integrado -->
                     <div class="card" style="padding: 1rem; gap: 0.5rem;">
-                        <h3>Monitoreo de Carreteras</h3>
-                        <p class="card-desc">Estado visual de los tramos cargados en la base de datos.</p>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h3 style="margin: 0;">Monitoreo de Carreteras</h3>
+                                <p class="card-desc" style="margin: 2px 0 0 0;">Estado visual de los tramos cargados en la base de datos.</p>
+                            </div>
+                            <span id="adminAutoSyncStatus" style="font-size: 0.65rem; color: #10b981; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); padding: 2px 8px; border-radius: 12px; display: flex; align-items: center; gap: 4px;">
+                                <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                                Auto-sync (15s)
+                            </span>
+                        </div>
                         <div class="admin-map-wrapper" id="adminMap"></div>
                     </div>
                     <!-- Tramos y Asignaciones -->
@@ -562,6 +591,9 @@
                 })
                 .subscribe();
 
+            // Iniciar sincronización periódica de respaldo cada 15s
+            startAdminAutoSync();
+
             // Configurar Drag & Drop del Modal de Equipos
             const dropArea = document.getElementById('teamDragDropArea');
             if (dropArea) {
@@ -633,8 +665,15 @@
             });
         }
 
-        // Cargar todos los datos combinados de la DB
-        async function loadAllDashboardData() {
+        // Cargar todos los datos combinados de la DB con soporte de botón e indicador de auto-sync
+        async function loadAllDashboardData(isManual = false) {
+            const refreshIcon = document.getElementById('iconAdminRefresh');
+            if (refreshIcon && isManual) {
+                refreshIcon.style.transition = 'transform 0.5s ease';
+                refreshIcon.style.transform = 'rotate(360deg)';
+                setTimeout(() => { if (refreshIcon) refreshIcon.style.transform = 'none'; }, 600);
+            }
+
             await Promise.all([
                 loadTeams(),
                 loadMachinery(),
@@ -642,6 +681,19 @@
                 loadSegmentsAndLogs()
             ]);
             updateDashboardMetrics();
+            updateAdminTeamFilterDropdown();
+        }
+
+        // Iniciar ciclo de actualización automática cada 15 segundos para la oficina
+        function startAdminAutoSync() {
+            if (adminAutoSyncInterval) clearInterval(adminAutoSyncInterval);
+            adminAutoSyncInterval = setInterval(() => {
+                // Solo auto-actualizar si la pestaña activa es la de Resumen o Informes
+                const activeTab = document.querySelector('.admin-panel-content.active');
+                if (activeTab && (activeTab.id === 'panelResumen' || activeTab.id === 'panelInformes')) {
+                    loadSegmentsAndLogs();
+                }
+            }, 15000); // Cada 15 segundos
         }
 
         // Cargar Equipos
@@ -656,6 +708,7 @@
                 teams = data || [];
                 renderTeamsList();
                 updateReportTeamFilters();
+                updateAdminTeamFilterDropdown();
             } catch (err) {
                 console.error("Error al cargar equipos:", err);
             }
@@ -1318,6 +1371,29 @@
             }
         }
 
+        // Variable global del filtro de equipo seleccionado en el panel de resumen
+        let currentAdminTeamFilter = 'all';
+        let adminAutoSyncInterval = null;
+
+        function updateAdminTeamFilterDropdown() {
+            const select = document.getElementById('adminTeamFilterSelect');
+            if (!select) return;
+            const currentVal = select.value || currentAdminTeamFilter;
+            select.innerHTML = '<option value="all">Todos los Equipos</option>';
+            teams.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.innerText = `Equipo: ${t.name}`;
+                if (t.id === currentVal) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        function handleAdminTeamFilterChange(teamId) {
+            currentAdminTeamFilter = teamId;
+            renderSegmentsOnMapAndList();
+        }
+
         // --- MAPA Y ASIGNACIONES ---
 
         function renderSegmentsOnMapAndList() {
@@ -1326,16 +1402,25 @@
             list.innerHTML = '';
 
             let completedCount = 0;
+            let totalFilteredCount = 0;
 
             if (segments.length === 0) {
                 list.innerHTML = '<li style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 2rem 0;">Ningún tramo cargado en la base de datos.</li>';
                 return;
             }
 
-            // Agrupar segmentos por archivo
+            // Agrupar segmentos por archivo aplicando filtro de equipo si corresponde
             const filesMap = {};
             segments.forEach(seg => {
                 const log = workLogs.find(l => l.segment_id === seg.id);
+                const assignedTeamId = log ? log.team_id : null;
+
+                // Filtrar según el equipo seleccionado
+                if (currentAdminTeamFilter !== 'all' && assignedTeamId !== currentAdminTeamFilter) {
+                    return; // Omitir este tramo si no coincide con el equipo
+                }
+
+                totalFilteredCount++;
                 const status = log ? log.status : 'pendiente';
 
                 let color = '#9ca3af';
@@ -1363,6 +1448,9 @@
                     } catch(e) {}
                 }
 
+                const teamObj = teams.find(t => t.id === assignedTeamId);
+                const teamName = teamObj ? teamObj.name : 'Sin Asignar';
+
                 if (seg.kml_data) {
                     try {
                         const coords = JSON.parse(seg.kml_data);
@@ -1370,13 +1458,23 @@
                             const polyline = L.polyline(coords, {
                                 color: color,
                                 weight: 4,
-                                opacity: 0.8
+                                opacity: 0.85
                             }).addTo(segmentsLayerGroup);
 
-                            let popupHtml = `<strong>${seg.name}</strong><br>Estado: <strong>${status.toUpperCase()}</strong>`;
-                            if (week) popupHtml += `<br>Semana: <strong>${week}</strong>`;
-                            popupHtml += `<br>Márgenes: Izq: <strong>${leftMargin === 'completed' ? 'Finalizado' : 'Pendiente'}</strong> | Der: <strong>${rightMargin === 'completed' ? 'Finalizado' : 'Pendiente'}</strong>`;
-                            if (alerts.length > 0) popupHtml += `<br>⚠️ Alertas registradas: <strong>${alerts.length}</strong>`;
+                            let popupHtml = `<div style="font-family: var(--font-family); font-size: 0.75rem; color: #fff;">
+                                <strong style="font-size: 0.85rem; color: #60a5fa;">${seg.name}</strong><br>
+                                <div style="margin-top: 4px;">Equipo: <strong style="color: var(--accent);">${teamName}</strong></div>
+                                <div>Estado General: <strong style="text-transform: uppercase; color: ${color};">${status}</strong></div>`;
+                            if (week) popupHtml += `<div>Semana: <strong style="color: #818cf8;">${week}</strong></div>`;
+                            popupHtml += `<div style="margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 4px;">
+                                Márgenes:<br>
+                                • Izquierdo: <strong style="color: ${leftMargin === 'completed' ? '#10b981' : '#a1a1aa'};">${leftMargin === 'completed' ? 'Finalizado' : 'Pendiente'}</strong><br>
+                                • Derecho: <strong style="color: ${rightMargin === 'completed' ? '#10b981' : '#a1a1aa'};">${rightMargin === 'completed' ? 'Finalizado' : 'Pendiente'}</strong>
+                            </div>`;
+                            if (alerts.length > 0) {
+                                popupHtml += `<div style="margin-top: 4px; color: #ef4444; font-weight: 600;">⚠️ ${alerts.length} Alerta(s) registrada(s)</div>`;
+                            }
+                            popupHtml += `</div>`;
                             polyline.bindPopup(popupHtml);
                         }
                     } catch (e) {
@@ -1389,14 +1487,18 @@
                     alerts.forEach(a => {
                         if (a.lat && a.lng) {
                             const alertMarker = L.circleMarker([a.lat, a.lng], {
-                                radius: 5,
+                                radius: 6,
                                 fillColor: '#ef4444',
                                 color: '#ffffff',
-                                weight: 1.5,
+                                weight: 2,
                                 opacity: 1,
-                                fillOpacity: 0.9
+                                fillOpacity: 0.95
                             }).addTo(segmentsLayerGroup);
-                            alertMarker.bindPopup(`⚠️ <strong>${a.label || 'Alerta'}</strong><br>${a.comment || ''}`);
+                            alertMarker.bindPopup(`<div style="font-family:var(--font-family); font-size:0.75rem;">
+                                <strong style="color:#ef4444;">⚠️ ${a.label || 'Peligro / Alerta'}</strong><br>
+                                <span>Tramo: ${seg.name}</span><br>
+                                <span style="color:#a1a1aa;">${a.comment || 'Sin descripción adicional'}</span>
+                            </div>`);
                         }
                     });
                 }
@@ -1405,10 +1507,18 @@
                 if (!filesMap[fName]) {
                     filesMap[fName] = [];
                 }
-                filesMap[fName].push({ seg, log, status, color, leftMargin, rightMargin, week, alertsCount: alerts.length });
+                filesMap[fName].push({ seg, log, status, color, leftMargin, rightMargin, week, alertsCount: alerts.length, teamName });
             });
 
-            // Renderizar desplegables por archivo
+            // Ajustar encuadre de mapa al equipo seleccionado
+            if (segmentsLayerGroup.getLayers().length > 0) {
+                adminMap.fitBounds(segmentsLayerGroup.getBounds(), { padding: [30, 30] });
+            }
+
+            const totalBasis = totalFilteredCount > 0 ? totalFilteredCount : segments.length;
+            const progress = Math.round((completedCount / totalBasis) * 100) || 0;
+            document.getElementById('metricsPercent').innerText = `${progress}%`;
+            document.getElementById('metricsProgressBar').style.width = `${progress}%`;
             const filesListContainer = document.getElementById('adminUploadedFilesList');
             if (filesListContainer) {
                 filesListContainer.innerHTML = '';
