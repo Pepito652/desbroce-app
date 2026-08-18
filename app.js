@@ -1349,7 +1349,8 @@ function handleTramoClick(tramo, latlng) {
 }
 
 function fitMapToBounds() {
-    if (tramosLayerGroup.getLayers().length > 0) {
+    if (!map || !tramosLayerGroup) return;
+    if (typeof tramosLayerGroup.getLayers === 'function' && tramosLayerGroup.getLayers().length > 0) {
         map.fitBounds(tramosLayerGroup.getBounds(), { padding: [40, 40] });
     }
 }
@@ -4162,10 +4163,12 @@ function loadFromLocalStorage() {
 
         if (state.fileLoaded && state.tramos.length > 0) {
             stabilizeRouteOrder();
-            renderTramosOnMap();
+            if (map && tramosLayerGroup) {
+                renderTramosOnMap();
+                fitMapToBounds();
+            }
             adjustDefaultFilter();
             updateUI();
-            fitMapToBounds();
         }
     } catch (e) {
         console.error('Error cargando de LocalStorage:', e);
@@ -5931,14 +5934,13 @@ async function loadAssignedSegments(userId) {
         state.fileLoaded = true;
 
         saveToLocalStorage();
-        renderTramosOnMap();
+        if (map && tramosLayerGroup) {
+            renderTramosOnMap();
+            fitMapToBounds();
+        }
         updateTramosList();
         updateLoadedFilesList();
         updateStats();
-
-        if (tramosLayerGroup.getLayers().length > 0) {
-            map.fitBounds(tramosLayerGroup.getBounds());
-        }
 
         logDebug(`Carreteras sincronizadas con éxito (${newTramos.length} tramos).`, "success");
     } catch (err) {

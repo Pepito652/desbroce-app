@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2440';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2450';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Sesión síncrona en memoria global y sincronización directa inmediata al pulsar márgenes.';
+const UPDATE_NOTES = 'Versión 0.1.12: Corrección de condición de carrera en inicio y protección contra bloqueos al cargar mapa.';
 
 const ASSETS = [
   './',
