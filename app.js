@@ -6199,7 +6199,7 @@ function cancelEarthDrawMode() {
 
 function finishEarthDrawMode() {
     if (earthDrawPoints.length < 2) {
-        alert("Debes añadir al menos 2 puntos para crear una carretera.");
+        appAlert("Debes añadir al menos 2 puntos para crear una carretera.", 'warning');
         return;
     }
 
@@ -6333,7 +6333,7 @@ async function handleConfirmSaveManualTramo(e) {
 
     closeSaveManualTramoModal();
     cancelEarthDrawMode();
-    alert(`¡Carretera guardada con éxito en "${selectedPlan}"!\nLongitud: ${finalMeters} metros.`);
+    appAlert(`¡Carretera guardada con éxito en "${selectedPlan}"!\nLongitud registrada: ${finalMeters} metros.`, 'success');
     logDebug(`Carretera manual creada: ${newRoadObj.name} en plano '${selectedPlan}' (${finalMeters} m).`, "success");
 }
 
@@ -6364,7 +6364,8 @@ async function resolveTramoRework(tramoId) {
     const tramo = state.tramos.find(t => t.id === tramoId);
     if (!tramo) return;
 
-    if (!confirm(`¿Confirmas que el repaso de "${tramo.name}" ha sido completado y solventado?`)) return;
+    const confirmed = await appConfirm(`¿Confirmas que el repaso de "${tramo.name}" ha sido completado y solventado?`, 'Resolver Repaso');
+    if (!confirmed) return;
 
     const today = new Date();
     const dateStr = today.toISOString().split('T')[0];
@@ -6407,7 +6408,7 @@ async function resolveTramoRework(tramoId) {
         });
     }
 
-    alert("¡Repaso registrado como solventado! El tramo ha vuelto a estar completado.");
+    appAlert("¡Repaso registrado como solventado! El tramo ha vuelto a estar completado.", 'success');
     logDebug(`Repaso solventado en tramo '${tramo.name}'.`, "success");
 }
 

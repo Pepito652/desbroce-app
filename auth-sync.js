@@ -137,7 +137,7 @@ async function checkSessionState() {
 async function handleLoginSubmit(event) {
     event.preventDefault();
     if (!supabaseClient) {
-        alert("El servicio de base de datos no está disponible.");
+        if (typeof appAlert === 'function') appAlert("El servicio de base de datos no está disponible.", 'error');
         return;
     }
 
@@ -151,12 +151,19 @@ async function handleLoginSubmit(event) {
         });
 
         if (error) {
-            alert("Error de acceso: " + error.message);
+            if (typeof appAlert === 'function') appAlert("Error de acceso: " + error.message, 'error');
         } else {
             closeAuthModal();
             checkSessionState();
             
-            // Forzar recarga del LocalStorage bajo la nueva sesión online
+            // Iniciar sincronización Realtime con el ID del usuario
+            if (data.session && data.session.user) {
+                initRealtimeSync(data.session.user.id);
+                if (typeof loadAssignedSegments === 'function') {
+                    loadAssignedSegments(data.session.user.id);
+                }
+            }
+
             if (typeof loadFromLocalStorage === 'function') {
                 loadFromLocalStorage();
             }
@@ -166,7 +173,7 @@ async function handleLoginSubmit(event) {
             }
         }
     } catch (err) {
-        alert("Fallo de red al intentar conectar.");
+        if (typeof appAlert === 'function') appAlert("Fallo de red al intentar conectar: " + err.message, 'error');
     }
 }
 
@@ -352,12 +359,76 @@ async function triggerOfflineSync() {
     } finally {
         isSyncing = false;
     }
+// --- CANAL REALTIME Y AUTO-ACTUALIZACIÓN SILENCIOSA DE FONDO ---
+
+let realtimeChannel = null;
+let realtimePollInterval = null;
+
+function initRealtimeSync(userId) {
+    if (!supabaseClient || !userId) return;
+
+    // 1. Limpiar canal previo si existía
+    if (realtimeChannel) {
+        supabaseClient.removeChannel(realtimeChannel);
+        realtimeChannel = null;
+    }
+
+    try {
+        // 2. Suscribirse en tiempo real a cualquier cambio en work_logs y segments
+        realtimeChannel = supabaseClient
+            .channel('desbroce-app-realtime-' + userId)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'work_logs' }, (payload) => {
+                console.log("[Realtime] Cambio detectado en asignaciones de trabajo (work_logs):", payload);
+                if (typeof loadAssignedSegments === 'function') {
+                    loadAssignedSegments(userId);
+                }
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'segments' }, (payload) => {
+                console.log("[Realtime] Cambio detectado en tramos / geometrías (segments):", payload);
+                if (typeof loadAssignedSegments === 'function') {
+                    loadAssignedSegments(userId);
+                }
+            })
+            .subscribe((status) => {
+                console.log("[Realtime] Estado de suscripción en vivo:", status);
+            });
+    } catch (err) {
+        console.warn("[Realtime] Fallo al iniciar canal de tiempo real:", err);
+    }
+
+    // 3. Polling silencioso de respaldo cada 20 segundos
+    if (realtimePollInterval) clearInterval(realtimePollInterval);
+    realtimePollInterval = setInterval(() => {
+        if (navigator.onLine && typeof loadAssignedSegments === 'function') {
+            loadAssignedSegments(userId);
+        }
+    }, 20000);
 }
+
+// 4. Auto-recarga inmediata al desbloquear la pantalla o volver a poner la app en primer plano
+document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible' && supabaseClient) {
+        try {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session && typeof loadAssignedSegments === 'function') {
+                console.log("[App] Volviendo a primer plano -> Sincronizando tramos con la oficina...");
+                loadAssignedSegments(session.user.id);
+            }
+        } catch (e) {}
+    }
+});
 
 // Escuchar cambios de red de forma nativa para disparar sincronizaciones pendientes
 window.addEventListener('online', () => {
     console.log("[Red] Conexión recuperada. Disparando cola de sincronización...");
     triggerOfflineSync();
+    if (supabaseClient) {
+        supabaseClient.auth.getSession().then(({ data: { session } }) => {
+            if (session && typeof loadAssignedSegments === 'function') {
+                loadAssignedSegments(session.user.id);
+            }
+        });
+    }
 });
 
 // Al cargar el documento, evaluar si mostramos la pantalla de bienvenida o recuperamos la sesión
@@ -376,10 +447,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 welcomeOverlay.style.display = 'none';
             }
             checkSessionState();
-            // Cargar tramos asignados de forma automática
+            // Cargar tramos asignados de forma automática y arrancar canal en tiempo real
             if (typeof loadAssignedSegments === 'function') {
                 loadAssignedSegments(session.user.id);
             }
+            initRealtimeSync(session.user.id);
         } else {
             // Mostrar pantalla de bienvenida interactiva
             const welcomeOverlay = document.getElementById('welcomeScreenOverlay');
@@ -395,3 +467,5 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Exponer funciones globales de sincronización para app.js
 window.queueTramoForSync = queueTramoForSync;
 window.triggerOfflineSync = triggerOfflineSync;
+window.initRealtimeSync = initRealtimeSync;
+

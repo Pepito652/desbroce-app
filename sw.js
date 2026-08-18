@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2518';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2519';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Corrección en guardado de órdenes de repaso con fotos Drag & Drop (máx. 3), compresión automática y compatibilidad total con base de datos.';
+const UPDATE_NOTES = 'Versión 0.1.12: Sincronización Realtime instantánea entre oficina y operarios, auto-refresco al desbloquear y eliminación total de alertas nativas.';
 
 const ASSETS = [
   './',
