@@ -4017,15 +4017,25 @@ let saveToLocalStorageTimeout = null;
 function getLocalStorageKey() {
     // Si el usuario está conectado a Supabase, usamos la clave online. Si no, la clave local.
     if (window.supabaseClient) {
-        // Buscar dinámicamente cualquier clave de localstorage que termine en auth-token (para soportar cambios de ref o dominios)
         let hasActiveSession = false;
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.endsWith('-auth-token')) {
-                const tokenVal = localStorage.getItem(key);
-                if (tokenVal) {
-                    hasActiveSession = true;
-                    break;
+        try {
+            // 1. Intentar obtener la sesión directamente desde el objeto en memoria del cliente JS
+            const sessionObj = supabaseClient.auth.session ? supabaseClient.auth.session() : null;
+            if (sessionObj) {
+                hasActiveSession = true;
+            }
+        } catch(e) {}
+
+        // 2. Si falla lo anterior, buscar en localStorage de forma dinámica
+        if (!hasActiveSession) {
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.endsWith('-auth-token')) {
+                    const tokenVal = localStorage.getItem(key);
+                    if (tokenVal) {
+                        hasActiveSession = true;
+                        break;
+                    }
                 }
             }
         }

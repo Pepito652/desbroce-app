@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2390';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2400';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Unificación bidireccional de traducciones de estado Castellano-Inglés.';
+const UPDATE_NOTES = 'Versión 0.1.12: Validación híbrida de token en memoria y persistencia local storage.';
 
 const ASSETS = [
   './',
