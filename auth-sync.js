@@ -279,8 +279,8 @@ async function triggerOfflineSync() {
         for (const item of syncQueue) {
             // Mapear estados locales del tramo a estados de Supabase
             let dbStatus = 'pendiente';
-            if (item.changes.status === 'completed') dbStatus = 'completado';
-            else if (item.changes.status === 'partial') dbStatus = 'en_progreso';
+            if (item.changes.status === 'completed' || item.changes.status === 'completado') dbStatus = 'completado';
+            else if (item.changes.status === 'partial' || item.changes.status === 'en_progreso') dbStatus = 'en_progreso';
             else if (item.changes.status === 'incidencia') dbStatus = 'incidencia';
 
             // Construir un paquete de información rica en formato JSON estructurado dentro del campo notes
@@ -291,6 +291,8 @@ async function triggerOfflineSync() {
                 date: item.changes.dateCompleted || new Date().toISOString(),
                 alerts_count: item.changes.observaciones ? item.changes.observaciones.length : 0,
                 alerts: item.changes.observaciones || [],
+                active_rework: (item.changes.active_rework !== undefined) ? item.changes.active_rework : null,
+                repass_history: item.changes.repass_history || [],
                 user_comment: item.changes.comment || ''
             };
             const enrichedNotesStr = JSON.stringify(enrichedNotesObj);

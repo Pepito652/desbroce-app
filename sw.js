@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2520';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2521';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Corrección de sintaxis y restauración completa de supabaseClient, modales y sincronización en vivo.';
+const UPDATE_NOTES = 'Versión 0.1.12: Consistencia bidireccional total entre móvil y base de datos Supabase para tramos completados y repasos.';
 
 const ASSETS = [
   './',

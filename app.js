@@ -6004,7 +6004,7 @@ async function loadAssignedSegments(userId) {
                 }
             }
 
-            if (log && log.status === 'repaso') {
+            if (activeReworkObj || (log && log.status === 'repaso')) {
                 localStatus = 'repaso';
             }
 
@@ -6019,7 +6019,7 @@ async function loadAssignedSegments(userId) {
 
             const chosenWeek = weekComp || (localStatus === 'completed' ? 'W34-2026' : null);
             let chosenColor = '#6366f1';
-            if (localStatus === 'completed') chosenColor = getWeekColor(chosenWeek);
+            if (localStatus === 'completed') chosenColor = getWeekColor(chosenWeek) || '#10b981';
             else if (localStatus === 'repaso') chosenColor = '#f97316';
             else if (localStatus === 'partial') chosenColor = '#f59e0b';
 
