@@ -1887,5 +1887,65 @@ body, html {
     line-height: 1.4;
 }
 
+/* ==========================================================================
+   ESTILOS GLOBALES DE FORMULARIO Y SCROLLBARS REUTILIZABLES
+   ========================================================================== */
+
+/* Scrollbars globales */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: var(--border-color);
+    border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(16, 185, 129, 0.4);
+}
+
+/* Estilos de Select y Desplegables Temáticos */
+select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-color: var(--bg-primary);
+    background-image: url("data:image/svg+xml;utf8,<svg fill='%239ca3af' height='16' viewBox='0 0 24 24' width='16' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 14px;
+    padding-right: 26px !important;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+select option {
+    background-color: #1e1e24;
+    color: #f3f4f6;
+    padding: 8px 12px;
+}
+
+
 
 

@@ -171,7 +171,7 @@
                             <span class="upload-text">Arrastra tu archivo aquí o</span>
                             <label class="btn btn-secondary btn-sm" style="cursor: pointer;">
                                 Seleccionar archivo
-                                <input type="file" id="fileInput" accept=".kml,.kmz" style="display: none;">
+                                <input type="file" id="fileInput" name="fileInput" accept=".kml,.kmz" style="display: none;">
                             </label>
                         </div>
                         <div class="loaded-files-container">
@@ -205,7 +205,7 @@
                 <!-- TAB 3: Lista de Tramos -->
                 <div class="tab-content" id="tabTramos">
                     <div class="card search-card">
-                        <input type="text" id="searchTramo" placeholder="🔍 Buscar carretera o tramo...">
+                        <input type="text" id="searchTramo" name="searchTramo" placeholder="🔍 Buscar carretera o tramo...">
                         <div class="filter-buttons">
                             <button class="btn-filter active" data-filter="all">Todos</button>
                             <button class="btn-filter" data-filter="pending">Pendientes</button>
@@ -329,16 +329,16 @@
             </div>
             
             <!-- Vista de Login -->
-            <form id="loginForm" onsubmit="handleLoginSubmit(event)" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <form id="loginForm" name="loginForm" onsubmit="handleLoginSubmit(event)" style="display: flex; flex-direction: column; gap: 0.75rem;">
                 <div style="display: flex; flex-direction: column; gap: 4px;">
                     <label for="loginEmail" style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">Correo Electrónico</label>
-                    <input type="email" id="loginEmail" placeholder="nombre@ejemplo.com" required style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-family: var(--font-family); font-size: 0.85rem; box-sizing: border-box;">
+                    <input type="email" id="loginEmail" name="loginEmail" autocomplete="username" placeholder="nombre@ejemplo.com" required style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-family: var(--font-family); font-size: 0.85rem; box-sizing: border-box;">
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
                     <label for="loginPassword" style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">Contraseña</label>
-                    <input type="password" id="loginPassword" placeholder="••••••••" required style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-family: var(--font-family); font-size: 0.85rem; box-sizing: border-box;">
+                    <input type="password" id="loginPassword" name="loginPassword" autocomplete="current-password" placeholder="••••••••" required style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-family: var(--font-family); font-size: 0.85rem; box-sizing: border-box;">
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.6rem; font-size: 0.85rem; margin-top: 0.25rem;">Ingresar</button>
+                <button type="submit" id="btnLoginSubmit" name="btnLoginSubmit" class="btn btn-primary" style="width: 100%; padding: 0.6rem; font-size: 0.85rem; margin-top: 0.25rem;">Ingresar</button>
             </form>
 
             <!-- Vista de Perfil de Usuario Conectado -->

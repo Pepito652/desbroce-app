@@ -335,16 +335,16 @@
                 <div class="dashboard-grid">
                     <div class="card">
                         <h3>Crear Nuevo Equipo</h3>
-                        <form id="createTeamForm" onsubmit="handleCreateTeam(event)">
+                        <form id="createTeamForm" name="createTeamForm" onsubmit="handleCreateTeam(event)">
                             <div class="form-group">
                                 <label for="teamName">Nombre del Equipo</label>
-                                <input type="text" id="teamName" placeholder="Ej. Equipo Norte - Zona A" required>
+                                <input type="text" id="teamName" name="teamName" placeholder="Ej. Equipo Norte - Zona A" required>
                             </div>
                             <div class="form-group">
                                 <label for="teamDescription">Zona / Descripción</label>
-                                <input type="text" id="teamDescription" placeholder="Ej. Carreteras de Colloto y Limites">
+                                <input type="text" id="teamDescription" name="teamDescription" placeholder="Ej. Carreteras de Colloto y Limites">
                             </div>
-                            <button type="submit" class="btn btn-primary btn-sm w-100">Crear Equipo</button>
+                            <button type="submit" id="btnSubmitTeam" name="btnSubmitTeam" class="btn btn-primary btn-sm w-100">Crear Equipo</button>
                         </form>
                     </div>
                     <div class="card">
@@ -362,10 +362,10 @@
                 <div class="dashboard-grid">
                     <div class="card">
                         <h3>Dar de Alta Máquina</h3>
-                        <form id="createMachineryForm" onsubmit="handleCreateMachinery(event)">
+                        <form id="createMachineryForm" name="createMachineryForm" onsubmit="handleCreateMachinery(event)">
                             <div class="form-group">
                                 <label for="machineryType">Tipo de Máquina</label>
-                                <select id="machineryType" required>
+                                <select id="machineryType" name="machineryType" required>
                                     <option value="tractor">Tractor</option>
                                     <option value="dumper">Dumper</option>
                                     <option value="limpiacunetas">Limpiacunetas</option>
@@ -375,13 +375,13 @@
                             </div>
                             <div class="form-group">
                                 <label for="machineryModel">Modelo / Marca</label>
-                                <input type="text" id="machineryModel" placeholder="Ej. John Deere 6120M" required>
+                                <input type="text" id="machineryModel" name="machineryModel" placeholder="Ej. John Deere 6120M" required>
                             </div>
                             <div class="form-group">
                                 <label for="machineryPlate">Matrícula</label>
-                                <input type="text" id="machineryPlate" placeholder="Ej. 1234-BBB" required>
+                                <input type="text" id="machineryPlate" name="machineryPlate" placeholder="Ej. 1234-BBB" required>
                             </div>
-                            <button type="submit" class="btn btn-primary btn-sm w-100">Registrar Máquina</button>
+                            <button type="submit" id="btnSubmitMachinery" name="btnSubmitMachinery" class="btn btn-primary btn-sm w-100">Registrar Máquina</button>
                         </form>
                     </div>
                     <div class="card">
@@ -399,28 +399,28 @@
                 <div class="dashboard-grid">
                     <div class="card">
                         <h3>Crear Nuevo Operario</h3>
-                        <form id="createOperatorForm" onsubmit="handleCreateOperator(event)">
+                        <form id="createOperatorForm" name="createOperatorForm" onsubmit="handleCreateOperator(event)">
                             <div class="form-group">
                                 <label for="opEmail">Correo Electrónico</label>
-                                <input type="email" id="opEmail" placeholder="operario@empresa.com" required>
+                                <input type="email" id="opEmail" name="opEmail" autocomplete="username" placeholder="operario@empresa.com" required>
                             </div>
                             <div class="form-group">
                                 <label for="opPassword">Contraseña Temporal</label>
-                                <input type="password" id="opPassword" placeholder="Ej. 123456" required>
+                                <input type="password" id="opPassword" name="opPassword" autocomplete="new-password" placeholder="Ej. 123456" required>
                             </div>
                             <div class="form-group">
                                 <label for="opName">Nombre Completo</label>
-                                <input type="text" id="opName" placeholder="Ej. Juan Pérez" required>
+                                <input type="text" id="opName" name="opName" placeholder="Ej. Juan Pérez" required>
                             </div>
                             <div class="form-group">
                                 <label for="opRole">Puesto de Trabajo</label>
-                                <select id="opRole" required>
+                                <select id="opRole" name="opRole" required>
                                     <option value="tractorista">Tractorista</option>
                                     <option value="peon">Peón de desbroce</option>
                                     <option value="conductor">Conductor</option>
                                 </select>
                             </div>
-                            <button type="submit" class="btn btn-primary btn-sm w-100">Crear Operario</button>
+                            <button type="submit" id="btnSubmitOperator" name="btnSubmitOperator" class="btn btn-primary btn-sm w-100">Crear Operario</button>
                         </form>
                     </div>
                     <div class="card">
@@ -442,17 +442,17 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
                         <div class="form-group">
                             <label for="reportTeamFilter">Filtrar por Equipo</label>
-                            <select id="reportTeamFilter">
+                            <select id="reportTeamFilter" name="reportTeamFilter">
                                 <option value="all">Todos los Equipos</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label for="reportDateStart">Fecha Inicio</label>
-                            <input type="date" id="reportDateStart">
+                            <input type="date" id="reportDateStart" name="reportDateStart">
                         </div>
                         <div class="form-group">
                             <label for="reportDateEnd">Fecha Fin</label>
-                            <input type="date" id="reportDateEnd">
+                            <input type="date" id="reportDateEnd" name="reportDateEnd">
                         </div>
                     </div>
                     
@@ -567,16 +567,16 @@
             </div>
             
             <!-- Vista de Login -->
-            <form id="loginForm" onsubmit="handleLoginSubmit(event)" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <form id="loginForm" name="loginForm" onsubmit="handleLoginSubmit(event)" style="display: flex; flex-direction: column; gap: 0.75rem;">
                 <div style="display: flex; flex-direction: column; gap: 4px;">
                     <label for="loginEmail" style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">Correo Electrónico</label>
-                    <input type="email" id="loginEmail" placeholder="nombre@ejemplo.com" required style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-family: var(--font-family); font-size: 0.85rem; box-sizing: border-box;">
+                    <input type="email" id="loginEmail" name="loginEmail" autocomplete="username" placeholder="nombre@ejemplo.com" required style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-family: var(--font-family); font-size: 0.85rem; box-sizing: border-box;">
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
                     <label for="loginPassword" style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">Contraseña</label>
-                    <input type="password" id="loginPassword" placeholder="••••••••" required style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-family: var(--font-family); font-size: 0.85rem; box-sizing: border-box;">
+                    <input type="password" id="loginPassword" name="loginPassword" autocomplete="current-password" placeholder="••••••••" required style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-family: var(--font-family); font-size: 0.85rem; box-sizing: border-box;">
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.6rem; font-size: 0.85rem; margin-top: 0.25rem;">Ingresar</button>
+                <button type="submit" id="btnLoginSubmit" name="btnLoginSubmit" class="btn btn-primary" style="width: 100%; padding: 0.6rem; font-size: 0.85rem; margin-top: 0.25rem;">Ingresar</button>
             </form>
 
             <!-- Vista de Perfil de Usuario Conectado -->

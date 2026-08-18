@@ -1,15 +1,17 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2512';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2513';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Nueva sección de Archivos y Planimetría con asignación masiva/flexible por equipo, preservación de desplegables en auto-sync y selector de equipos limpio.';
+const UPDATE_NOTES = 'Versión 0.1.12: Modularización en carpeta components/, estandarización de atributos name/id en formularios y scrollbars/selects temáticos globales.';
 
 const ASSETS = [
   './',
   './index.html',
-  './admin.html', // <-- Añadido para forzar la actualización de la oficina
+  './admin.html',
   './styles.css',
   './app.js',
   './auth-sync.js',
   './feedback-recorder.js',
+  './components/badges.js',
+  './components/form-controls.js',
   './libs/leaflet.css',
   './libs/leaflet.js',
   './libs/leaflet-rotate.js',
