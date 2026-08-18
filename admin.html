@@ -178,7 +178,7 @@
             </nav>
             
             <div style="margin-top: auto; font-size: 11px; color: var(--text-secondary); text-align: center; border-top: 1px solid var(--border-color); padding-top: 1rem;">
-                Código de control: <strong style="color: var(--accent);">#2500</strong>
+                Código de control: <strong style="color: var(--accent);">#2510</strong>
             </div>
         </aside>
 
@@ -1381,6 +1381,7 @@
         // Variable global del filtro de equipo seleccionado en el panel de resumen
         let currentAdminTeamFilter = 'all';
         let adminAutoSyncInterval = null;
+        let isFirstAdminMapLoad = true;
 
         function updateAdminTeamFilterDropdown() {
             const select = document.getElementById('adminTeamFilterSelect');
@@ -1398,12 +1399,20 @@
 
         function handleAdminTeamFilterChange(teamId) {
             currentAdminTeamFilter = teamId;
-            renderSegmentsOnMapAndList();
+            renderSegmentsOnMapAndList(true); // Al cambiar de equipo, sí re-encuadrar al nuevo equipo
         }
 
         // --- MAPA Y ASIGNACIONES ---
 
-        function renderSegmentsOnMapAndList() {
+        function renderSegmentsOnMapAndList(shouldFitBounds = false) {
+            // Guardar estado de popup abierto si existe
+            let openPopupLatLng = null;
+            let openPopupContent = null;
+            if (adminMap && adminMap._popup && adminMap._popup.isOpen()) {
+                openPopupLatLng = adminMap._popup.getLatLng();
+                openPopupContent = adminMap._popup.getContent();
+            }
+
             segmentsLayerGroup.clearLayers();
             const list = document.getElementById('adminTramosList');
             list.innerHTML = '';
@@ -1517,9 +1526,20 @@
                 filesMap[fName].push({ seg, log, status, color, leftMargin, rightMargin, week, alertsCount: alerts.length, teamName });
             });
 
-            // Ajustar encuadre de mapa al equipo seleccionado
+            // Ajustar encuadre de mapa SOLO si es la primera carga o cambio explícito de equipo
             if (segmentsLayerGroup.getLayers().length > 0) {
-                adminMap.fitBounds(segmentsLayerGroup.getBounds(), { padding: [30, 30] });
+                if (isFirstAdminMapLoad || shouldFitBounds) {
+                    adminMap.fitBounds(segmentsLayerGroup.getBounds(), { padding: [30, 30] });
+                    isFirstAdminMapLoad = false;
+                }
+            }
+
+            // Restaurar popup si estaba abierto
+            if (openPopupLatLng && openPopupContent) {
+                L.popup()
+                    .setLatLng(openPopupLatLng)
+                    .setContent(openPopupContent)
+                    .openOn(adminMap);
             }
 
             const totalBasis = totalFilteredCount > 0 ? totalFilteredCount : segments.length;
