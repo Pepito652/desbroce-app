@@ -2142,6 +2142,8 @@
                 card.style.flexDirection = 'column';
                 card.style.gap = '10px';
 
+                const safeFileId = encodeURIComponent(fName).replace(/[^a-zA-Z0-9]/g, '_');
+
                 card.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
                         <div>
@@ -2168,12 +2170,33 @@
                         </select>
                     </div>
 
-                    <!-- Acordeón para ver/cambiar tramo a tramo si se desea repartir -->
+                    <!-- Acordeón para ver/cambiar tramo a tramo con selección múltiple -->
                     <details style="border-top:1px solid rgba(255,255,255,0.05); padding-top:6px;">
                         <summary style="font-size:0.75rem; color:var(--accent); cursor:pointer; font-weight:500;">
                             Ver / Editar tramos individuales de este plano (${totalTramos})
                         </summary>
-                        <div style="margin-top:8px; max-height:200px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right:4px;">
+                        
+                        <!-- Barra de Herramientas de Selección Múltiple -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin:8px 0; padding:6px 8px; background:rgba(255,255,255,0.02); border:1px solid var(--border-color); border-radius:6px;">
+                            <label style="display:flex; align-items:center; gap:6px; font-size:0.7rem; color:var(--text-secondary); cursor:pointer;">
+                                <input type="checkbox" onchange="toggleSelectAllTramosInFile('${fName}', this.checked)" style="accent-color:var(--accent); cursor:pointer;">
+                                <span>Seleccionar todos</span>
+                            </label>
+                            
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-size:0.68rem; color:var(--text-secondary);">Acción:</span>
+                                <select id="batchTeamSelect_${safeFileId}" style="padding:2px 6px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:4px; color:#fff; font-size:0.68rem;">
+                                    <option value="">Elegir equipo...</option>
+                                    ${teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
+                                    <option value="UNASSIGN">Desasignar</option>
+                                </select>
+                                <button onclick="applyBatchAssignForFile('${fName}', '${safeFileId}')" class="btn btn-primary btn-sm" style="padding:2px 8px; font-size:0.68rem;">
+                                    Aplicar
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right:4px;">
                             ${tramos.map(item => {
                                 let indOpts = `<option value="">Sin asignar</option>`;
                                 teams.forEach(t => {
@@ -2183,7 +2206,10 @@
                                 const trKm = (item.seg.length_meters / 1000).toFixed(1);
                                 return `
                                     <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:0.7rem; background:rgba(255,255,255,0.01); padding:4px 8px; border-radius:4px; border-left:3px solid ${item.color};">
-                                        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px;" title="${item.seg.name}">🛣️ ${item.seg.name} (${trKm}km)</span>
+                                        <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
+                                            <input type="checkbox" class="tramo-batch-checkbox-${safeFileId}" value="${item.seg.id}" style="accent-color:var(--accent); cursor:pointer;">
+                                            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:210px; color:#fff;" title="${item.seg.name}">${item.seg.name} (${trKm}km)</span>
+                                        </div>
                                         <select onchange="assignTramoToTeam('${item.seg.id}', this.value)" style="padding:2px 4px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:4px; color:#fff; font-size:0.65rem;">
                                             ${indOpts}
                                         </select>
@@ -2198,6 +2224,67 @@
             });
 
             if (window.lucide) window.lucide.createIcons();
+        }
+
+        function toggleSelectAllTramosInFile(fileName, isChecked) {
+            const safeFileId = encodeURIComponent(fileName).replace(/[^a-zA-Z0-9]/g, '_');
+            const checkboxes = document.querySelectorAll(`.tramo-batch-checkbox-${safeFileId}`);
+            checkboxes.forEach(cb => cb.checked = isChecked);
+        }
+
+        async function applyBatchAssignForFile(fileName, safeFileId) {
+            const selectEl = document.getElementById(`batchTeamSelect_${safeFileId}`);
+            if (!selectEl) return;
+            const targetTeamId = selectEl.value;
+
+            if (!targetTeamId) {
+                alert("Selecciona un equipo de destino o 'Desasignar'.");
+                return;
+            }
+
+            const checkedBoxes = document.querySelectorAll(`.tramo-batch-checkbox-${safeFileId}:checked`);
+            if (checkedBoxes.length === 0) {
+                alert("Marca al menos una carretera con su casilla de verificación.");
+                return;
+            }
+
+            const selectedSegmentIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+            try {
+                if (targetTeamId === 'UNASSIGN') {
+                    if (!confirm(`¿Desasignar los ${selectedSegmentIds.length} tramos seleccionados?`)) return;
+                    const { error } = await supabaseClient
+                        .from('work_logs')
+                        .delete()
+                        .in('segment_id', selectedSegmentIds);
+                    if (error) throw error;
+                } else {
+                    const selectedTeam = teams.find(t => t.id === targetTeamId);
+                    const teamName = selectedTeam ? selectedTeam.name : 'el equipo';
+                    if (!confirm(`¿Asignar los ${selectedSegmentIds.length} tramos seleccionados a ${teamName}?`)) return;
+
+                    for (const sId of selectedSegmentIds) {
+                        const { data: existing } = await supabaseClient
+                            .from('work_logs')
+                            .select('id')
+                            .eq('segment_id', sId)
+                            .maybeSingle();
+
+                        const payload = {
+                            segment_id: sId,
+                            team_id: targetTeamId,
+                            status: 'pendiente'
+                        };
+                        if (existing) payload.id = existing.id;
+
+                        await supabaseClient.from('work_logs').upsert(payload);
+                    }
+                }
+
+                loadSegmentsAndLogs();
+            } catch (err) {
+                alert("Error en asignación por lotes: " + err.message);
+            }
         }
 
         async function handleMassAssignFile(fileName, targetTeamId) {
@@ -2439,6 +2526,8 @@
         window.handleMasterKmlUpload = handleMasterKmlUpload;
         window.handleMasterKmlFiles = handleMasterKmlFiles;
         window.handleMassAssignFile = handleMassAssignFile;
+        window.toggleSelectAllTramosInFile = toggleSelectAllTramosInFile;
+        window.applyBatchAssignForFile = applyBatchAssignForFile;
     </script>
 </body>
 </html>

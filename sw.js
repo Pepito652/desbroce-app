@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2513';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2514';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Modularización en carpeta components/, estandarización de atributos name/id en formularios y scrollbars/selects temáticos globales.';
+const UPDATE_NOTES = 'Versión 0.1.12: Selección múltiple por casillas de verificación para asignar tramos en bloque y limpieza de iconos de carreteras.';
 
 const ASSETS = [
   './',
