@@ -178,7 +178,7 @@
             </nav>
             
             <div style="margin-top: auto; font-size: 11px; color: var(--text-secondary); text-align: center; border-top: 1px solid var(--border-color); padding-top: 1rem;">
-                Código de control: <strong style="color: var(--accent);">#2460</strong>
+                Código de control: <strong style="color: var(--accent);">#2470</strong>
             </div>
         </aside>
 
@@ -1348,6 +1348,21 @@
                     color = '#ef4444';
                 }
 
+                let leftMargin = 'pending';
+                let rightMargin = 'pending';
+                let week = null;
+                let alerts = [];
+
+                if (log && log.notes && typeof log.notes === 'string' && log.notes.startsWith('{')) {
+                    try {
+                        const parsed = JSON.parse(log.notes);
+                        if (parsed.left_margin) leftMargin = parsed.left_margin;
+                        if (parsed.right_margin) rightMargin = parsed.right_margin;
+                        if (parsed.week) week = parsed.week;
+                        if (Array.isArray(parsed.alerts)) alerts = parsed.alerts;
+                    } catch(e) {}
+                }
+
                 if (seg.kml_data) {
                     try {
                         const coords = JSON.parse(seg.kml_data);
@@ -1357,21 +1372,42 @@
                                 weight: 4,
                                 opacity: 0.8
                             }).addTo(segmentsLayerGroup);
-                            polyline.bindPopup(`<strong>${seg.name}</strong><br>Estado: ${status.toUpperCase()}`);
+
+                            let popupHtml = `<strong>${seg.name}</strong><br>Estado: <strong>${status.toUpperCase()}</strong>`;
+                            if (week) popupHtml += `<br>Semana: <strong>${week}</strong>`;
+                            popupHtml += `<br>Márgenes: Izq: <strong>${leftMargin === 'completed' ? 'Finalizado' : 'Pendiente'}</strong> | Der: <strong>${rightMargin === 'completed' ? 'Finalizado' : 'Pendiente'}</strong>`;
+                            if (alerts.length > 0) popupHtml += `<br>⚠️ Alertas registradas: <strong>${alerts.length}</strong>`;
+                            polyline.bindPopup(popupHtml);
                         }
                     } catch (e) {
                         console.error(e);
                     }
                 }
 
+                // Pintar alertas en el mapa de oficina
+                if (alerts.length > 0) {
+                    alerts.forEach(a => {
+                        if (a.lat && a.lng) {
+                            const alertMarker = L.circleMarker([a.lat, a.lng], {
+                                radius: 5,
+                                fillColor: '#ef4444',
+                                color: '#ffffff',
+                                weight: 1.5,
+                                opacity: 1,
+                                fillOpacity: 0.9
+                            }).addTo(segmentsLayerGroup);
+                            alertMarker.bindPopup(`⚠️ <strong>${a.label || 'Alerta'}</strong><br>${a.comment || ''}`);
+                        }
+                    });
+                }
+
                 const fName = seg.file_name || "Tramos sueltos / Sin archivo";
                 if (!filesMap[fName]) {
                     filesMap[fName] = [];
                 }
-                filesMap[fName].push({ seg, log, status, color });
+                filesMap[fName].push({ seg, log, status, color, leftMargin, rightMargin, week, alertsCount: alerts.length });
             });
 
-            // Renderizar desplegables por archivo
             // Renderizar desplegables por archivo
             const filesListContainer = document.getElementById('adminUploadedFilesList');
             if (filesListContainer) {
@@ -1442,10 +1478,23 @@
                     li.style.padding = '6px 8px';
                     li.style.borderRadius = '4px';
                     li.style.fontSize = '0.7rem';
+                    
+                    const leftBadge = item.leftMargin === 'completed' ? '<span style="color:#10b981;">Izq: Finalizado</span>' : '<span style="color:#71717a;">Izq: Pend</span>';
+                    const rightBadge = item.rightMargin === 'completed' ? '<span style="color:#10b981;">Der: Finalizado</span>' : '<span style="color:#71717a;">Der: Pend</span>';
+                    const alertsBadge = item.alertsCount > 0 ? `<span style="background:rgba(239,68,68,0.2); color:#ef4444; padding:1px 4px; border-radius:3px; font-size:0.6rem;">⚠️ ${item.alertsCount}</span>` : '';
+                    const weekBadge = item.week ? `<span style="background:rgba(99,102,241,0.15); color:#818cf8; padding:1px 4px; border-radius:3px; font-size:0.6rem;">${item.week}</span>` : '';
+
                     li.innerHTML = `
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
-                            <strong>${item.seg.name}</strong>
-                            <span style="font-size:0.65rem; text-transform:uppercase; font-weight:bold; color:${item.color};">${item.status}</span>
+                            <strong style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;" title="${item.seg.name}">${item.seg.name}</strong>
+                            <div style="display:flex; gap:4px; align-items:center;">
+                                ${weekBadge}
+                                ${alertsBadge}
+                                <span style="font-size:0.65rem; text-transform:uppercase; font-weight:bold; color:${item.color};">${item.status}</span>
+                            </div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 4px; font-size: 0.65rem;">
+                            ${leftBadge} | ${rightBadge}
                         </div>
                         <div style="display:flex; align-items:center; gap:6px;">
                             <span style="font-size:0.65rem; color:var(--text-secondary);">Equipo:</span>

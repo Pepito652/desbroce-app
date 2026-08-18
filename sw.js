@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2460';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2470';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Sincronización completa bidireccional en todos los botones de cambio de estado y popups.';
+const UPDATE_NOTES = 'Versión 0.1.12: Sincronización enriquecida con desglose de márgenes, semanas, fechas y alertas geolocalizadas.';
 
 const ASSETS = [
   './',

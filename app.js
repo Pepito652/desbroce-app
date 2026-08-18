@@ -2073,7 +2073,10 @@ function toggleTramoStatusPopup(tramoId) {
                 status: tramo.status,
                 rightMarginStatus: tramo.rightMarginStatus,
                 leftMarginStatus: tramo.leftMarginStatus,
-                comment: (tramo.observaciones && tramo.observaciones.length > 0) ? tramo.observaciones.map(o => o.text).join(' | ') : ''
+                weekCompleted: tramo.weekCompleted,
+                dateCompleted: tramo.dateCompleted,
+                observaciones: tramo.observaciones || [],
+                comment: (tramo.observaciones && tramo.observaciones.length > 0) ? tramo.observaciones.map(o => o.text || o.label).join(' | ') : ''
             });
         }
 
@@ -2142,7 +2145,10 @@ function toggleMarginStatusPopup(tramoId, marginSide) {
                 status: tramo.status,
                 rightMarginStatus: tramo.rightMarginStatus,
                 leftMarginStatus: tramo.leftMarginStatus,
-                comment: (tramo.observaciones && tramo.observaciones.length > 0) ? tramo.observaciones.map(o => o.text).join(' | ') : ''
+                weekCompleted: tramo.weekCompleted,
+                dateCompleted: tramo.dateCompleted,
+                observaciones: tramo.observaciones || [],
+                comment: (tramo.observaciones && tramo.observaciones.length > 0) ? tramo.observaciones.map(o => o.text || o.label).join(' | ') : ''
             });
         }
         
@@ -2570,7 +2576,10 @@ function toggleTramoCompletion() {
                 status: tramo.status,
                 rightMarginStatus: tramo.rightMarginStatus,
                 leftMarginStatus: tramo.leftMarginStatus,
-                comment: (tramo.observaciones && tramo.observaciones.length > 0) ? tramo.observaciones.map(o => o.text).join(' | ') : ''
+                weekCompleted: tramo.weekCompleted,
+                dateCompleted: tramo.dateCompleted,
+                observaciones: tramo.observaciones || [],
+                comment: (tramo.observaciones && tramo.observaciones.length > 0) ? tramo.observaciones.map(o => o.text || o.label).join(' | ') : ''
             });
         }
 
@@ -5059,9 +5068,22 @@ async function addObservationAtGps() {
             tramo.observaciones = tramo.observaciones || [];
             tramo.observaciones.push(newObs);
 
-            saveToLocalStorage();
+            saveToLocalStorage(tramoId);
+            
+            if (typeof window.queueTramoForSync === 'function') {
+                window.queueTramoForSync(tramo.id, {
+                    status: tramo.status,
+                    rightMarginStatus: tramo.rightMarginStatus,
+                    leftMarginStatus: tramo.leftMarginStatus,
+                    weekCompleted: tramo.weekCompleted,
+                    dateCompleted: tramo.dateCompleted,
+                    observaciones: tramo.observaciones,
+                    comment: tramo.observaciones.map(o => o.text || o.label).join(' | ')
+                });
+            }
+
             renderTramosOnMap();
-            appAlert(`Alerta "${obsData.label}" registrada con éxito en el mapa.`, "success");
+            appAlert(`Alerta "${obsData.label}" registrada con éxito en el mapa y sincronizada.`, "success");
         }
     } catch (err) {
         console.error("Error en addObservationAtGps:", err);
@@ -5220,9 +5242,22 @@ async function handleObsManualClick(tramo, latlng) {
             tramo.observaciones = tramo.observaciones || [];
             tramo.observaciones.push(newObs);
 
-            saveToLocalStorage();
+            saveToLocalStorage(tramoId);
+            
+            if (typeof window.queueTramoForSync === 'function') {
+                window.queueTramoForSync(tramo.id, {
+                    status: tramo.status,
+                    rightMarginStatus: tramo.rightMarginStatus,
+                    leftMarginStatus: tramo.leftMarginStatus,
+                    weekCompleted: tramo.weekCompleted,
+                    dateCompleted: tramo.dateCompleted,
+                    observaciones: tramo.observaciones,
+                    comment: tramo.observaciones.map(o => o.text || o.label).join(' | ')
+                });
+            }
+
             renderTramosOnMap();
-            appAlert(`Alerta "${obsData.label}" guardada con éxito.`, "success");
+            appAlert(`Alerta "${obsData.label}" guardada y sincronizada con éxito.`, "success");
             openRoadDetail(tramoId);
         }
     } catch (err) {
@@ -5897,6 +5932,8 @@ async function loadAssignedSegments(userId) {
             let rMargin = 'pending';
             let lMargin = 'pending';
             let dateComp = log ? log.updated_at : null;
+            let weekComp = null;
+            let cloudAlerts = [];
 
             if (log) {
                 if (log.status === 'completado') {
@@ -5910,6 +5947,18 @@ async function loadAssignedSegments(userId) {
                 } else if (log.status === 'incidencia') {
                     localStatus = 'incidencia';
                 }
+
+                // Intentar parsear información estructurada si existe en notes
+                if (log.notes && typeof log.notes === 'string' && log.notes.startsWith('{')) {
+                    try {
+                        const parsedNotes = JSON.parse(log.notes);
+                        if (parsedNotes.left_margin) lMargin = parsedNotes.left_margin;
+                        if (parsedNotes.right_margin) rMargin = parsedNotes.right_margin;
+                        if (parsedNotes.week) weekComp = parsedNotes.week;
+                        if (parsedNotes.date) dateComp = parsedNotes.date;
+                        if (Array.isArray(parsedNotes.alerts)) cloudAlerts = parsedNotes.alerts;
+                    } catch(e) {}
+                }
             }
 
             // Si hay un estado local modificado pendiente de subir, priorizar el estado del operario
@@ -5918,7 +5967,11 @@ async function loadAssignedSegments(userId) {
                 rMargin = existingLocal.rightMarginStatus;
                 lMargin = existingLocal.leftMarginStatus;
                 dateComp = existingLocal.dateCompleted;
+                weekComp = existingLocal.weekCompleted;
             }
+
+            const chosenWeek = weekComp || (localStatus === 'completed' ? 'W34-2026' : null);
+            const chosenColor = localStatus === 'completed' ? getWeekColor(chosenWeek) : (localStatus === 'partial' ? '#f59e0b' : '#6366f1');
 
             newTramos.push({
                 id: seg.id,
@@ -5931,10 +5984,10 @@ async function loadAssignedSegments(userId) {
                 rightMarginStatus: rMargin,
                 leftMarginStatus: lMargin,
                 dateCompleted: dateComp,
-                color: localStatus === 'completed' ? getWeekColor('W34-2026') : (localStatus === 'partial' ? '#f59e0b' : '#6366f1'),
+                color: chosenColor,
                 weekNumber: 1,
-                weekCompleted: localStatus === 'completed' ? 'W34-2026' : null,
-                observaciones: existingLocal ? existingLocal.observaciones : [],
+                weekCompleted: chosenWeek,
+                observaciones: (existingLocal && existingLocal.observaciones && existingLocal.observaciones.length > 0) ? existingLocal.observaciones : cloudAlerts,
                 mapLayer: null
             });
         });

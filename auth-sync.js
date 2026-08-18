@@ -276,13 +276,25 @@ async function triggerOfflineSync() {
             else if (item.changes.status === 'partial') dbStatus = 'en_progreso';
             else if (item.changes.status === 'incidencia') dbStatus = 'incidencia';
 
+            // Construir un paquete de información rica en formato JSON estructurado dentro del campo notes
+            const enrichedNotesObj = {
+                left_margin: item.changes.leftMarginStatus || 'pending',
+                right_margin: item.changes.rightMarginStatus || 'pending',
+                week: item.changes.weekCompleted || null,
+                date: item.changes.dateCompleted || new Date().toISOString(),
+                alerts_count: item.changes.observaciones ? item.changes.observaciones.length : 0,
+                alerts: item.changes.observaciones || [],
+                user_comment: item.changes.comment || ''
+            };
+            const enrichedNotesStr = JSON.stringify(enrichedNotesObj);
+
             // 1. Intentar actualizar directamente el registro existente en work_logs para este segmento
             let query = supabaseClient
                 .from('work_logs')
                 .update({
                     status: dbStatus,
                     reported_by: session.user.id,
-                    notes: item.changes.comment || '',
+                    notes: enrichedNotesStr,
                     updated_at: new Date(item.timestamp).toISOString()
                 })
                 .eq('segment_id', item.tramoId);
@@ -311,7 +323,7 @@ async function triggerOfflineSync() {
                             team_id: operTeamId,
                             reported_by: session.user.id,
                             status: dbStatus,
-                            notes: item.changes.comment || '',
+                            notes: enrichedNotesStr,
                             updated_at: new Date(item.timestamp).toISOString()
                         });
                     if (insErr) {
