@@ -5899,4 +5899,7 @@ async function loadAssignedSegments(userId) {
 window.welcomeActionAuth = welcomeActionAuth;
 window.welcomeActionLocal = welcomeActionLocal;
 window.loadAssignedSegments = loadAssignedSegments;
+window.toggleMarginStatusPopup = toggleMarginStatusPopup;
+window.toggleTramoStatusPopup = toggleTramoStatusPopup;
+window.toggleTramoCompletion = toggleTramoCompletion;
 

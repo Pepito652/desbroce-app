@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2400';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2410';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Validación híbrida de token en memoria y persistencia local storage.';
+const UPDATE_NOTES = 'Versión 0.1.12: Exposición global de funciones de actualización de margen y tramo para Leaflet popups.';
 
 const ASSETS = [
   './',
