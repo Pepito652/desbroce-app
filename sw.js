@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2420';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2430';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Exposición global de las colas de sincronización offline de Supabase.';
+const UPDATE_NOTES = 'Versión 0.1.12: Smart Cache offline-first, aislamiento estricto de memoria y actualización directa de partes.';
 
 const ASSETS = [
   './',

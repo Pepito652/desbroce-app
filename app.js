@@ -4014,19 +4014,19 @@ function stabilizeRouteOrder() {
 
 let saveToLocalStorageTimeout = null;
 
+// Claves de almacenamiento aisladas
+const STORAGE_KEY_OFFLINE = 'desbroce_offline_store';
+const STORAGE_KEY_ONLINE = 'desbroce_cloud_store';
+
 function getLocalStorageKey() {
     // Si el usuario está conectado a Supabase, usamos la clave online. Si no, la clave local.
     if (window.supabaseClient) {
         let hasActiveSession = false;
         try {
-            // 1. Intentar obtener la sesión directamente desde el objeto en memoria del cliente JS
             const sessionObj = supabaseClient.auth.session ? supabaseClient.auth.session() : null;
-            if (sessionObj) {
-                hasActiveSession = true;
-            }
+            if (sessionObj) hasActiveSession = true;
         } catch(e) {}
 
-        // 2. Si falla lo anterior, buscar en localStorage de forma dinámica
         if (!hasActiveSession) {
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
@@ -4039,9 +4039,9 @@ function getLocalStorageKey() {
                 }
             }
         }
-        if (hasActiveSession) return 'desbroce_app_state_online';
+        if (hasActiveSession) return STORAGE_KEY_ONLINE;
     }
-    return 'desbroce_app_state_local';
+    return STORAGE_KEY_OFFLINE;
 }
 
 function saveToLocalStorage(modifiedTramoId = null) {
@@ -4062,25 +4062,31 @@ function saveToLocalStorage(modifiedTramoId = null) {
                 }),
                 routeOrder: state.routeOrder,
                 currentBaseLayer: currentBaseLayer,
-                customColors: state.customColors
+                customColors: state.customColors,
+                lastSavedAt: new Date().toISOString()
             };
             const key = getLocalStorageKey();
             localStorage.setItem(key, JSON.stringify(localData));
-            console.log(`Avance y progreso persistidos con éxito en ${key}.`);
+            console.log(`[Storage] Datos guardados con éxito en ${key}.`);
             
-            // Si el operario está conectado y hay tramos, encolar el tramo modificado para sincronizar con Supabase
+            // Si estamos en modo online, encolar y sincronizar inmediatamente con Supabase
             const targetId = modifiedTramoId || state.selectedTramoId;
-            if (key === 'desbroce_app_state_online' && typeof queueTramoForSync === 'function' && targetId) {
+            if (key === STORAGE_KEY_ONLINE && typeof window.queueTramoForSync === 'function' && targetId) {
                 const tr = state.tramos.find(t => t.id === targetId);
                 if (tr) {
-                    queueTramoForSync(tr.id, { status: tr.status, rightMarginStatus: tr.rightMarginStatus, leftMarginStatus: tr.leftMarginStatus });
+                    window.queueTramoForSync(tr.id, { 
+                        status: tr.status, 
+                        rightMarginStatus: tr.rightMarginStatus, 
+                        leftMarginStatus: tr.leftMarginStatus,
+                        comment: (tr.observaciones && tr.observaciones.length > 0) ? tr.observaciones.map(o => o.text).join(' | ') : ''
+                    });
                 }
             }
         } catch (e) {
             console.error('Error guardando en LocalStorage:', e);
         }
         saveToLocalStorageTimeout = null;
-    }, 300); // Retardo de 300 ms para agrupar múltiples llamadas seguidas
+    }, 200);
 }
 
 function loadFromLocalStorage() {
@@ -4088,7 +4094,7 @@ function loadFromLocalStorage() {
         const key = getLocalStorageKey();
         const rawData = localStorage.getItem(key);
         
-        // Si no hay datos cargados, limpiar el estado del mapa
+        // Si no hay datos cargados en esta clave, limpiar el estado del mapa
         if (!rawData) {
             state.loadedFiles = [];
             state.fileLoaded = false;
@@ -4108,7 +4114,6 @@ function loadFromLocalStorage() {
 
         // Reconstruir originalCoordinates y campos de márgenes para compatibilidad
         state.tramos.forEach(t => {
-            // Eliminar claves de caché serializadas de forma incorrecta como JSON plano
             delete t.latLngsCache;
             delete t.totalLength;
             delete t.accumLengths;
@@ -4116,7 +4121,7 @@ function loadFromLocalStorage() {
             t.observaciones = t.observaciones || [];
 
             if (!t.originalCoordinates) {
-                t.originalCoordinates = t.coordinates.map(c => [...c]);
+                t.originalCoordinates = t.coordinates ? t.coordinates.map(c => [...c]) : [];
             }
             if (t.rightMarginStatus === undefined) {
                 t.rightMarginStatus = t.status === 'completed' ? 'completed' : 'pending';
@@ -5776,30 +5781,44 @@ function welcomeActionLocal() {
     }
 }
 
-// Descargar tramos asignados al equipo del operario desde Supabase
+// Descargar tramos asignados al equipo del operario desde Supabase (Smart Cache)
 async function loadAssignedSegments(userId) {
     if (!supabaseClient) return;
+
+    // 1. Cargar inmediatamente desde la caché local si existe (para respuesta instantánea offline)
+    loadFromLocalStorage();
+
     try {
-        logDebug("Descargando carreteras asignadas por la oficina...");
+        logDebug("Sincronizando carreteras asignadas con la oficina...");
         
-        // 1. Obtener el equipo del usuario
-        const { data: memberData } = await supabaseClient
+        // 2. Obtener el equipo del usuario
+        const { data: memberData, error: memberErr } = await supabaseClient
             .from('team_members')
             .select('team_id')
             .eq('profile_id', userId)
             .maybeSingle();
+
+        if (memberErr) {
+            logDebug("Error consultando equipo: " + memberErr.message, "error");
+            return;
+        }
 
         if (!memberData || !memberData.team_id) {
             logDebug("No tienes ningún equipo de trabajo asignado en la oficina.", "warn");
             return;
         }
 
-        // 2. Obtener los partes (work_logs) asignados a ese equipo
-        const { data: logsData } = await supabaseClient
+        // 3. Obtener los partes (work_logs) asignados a ese equipo
+        const { data: logsData, error: logsErr } = await supabaseClient
             .from('work_logs')
             .select('*')
             .eq('team_id', memberData.team_id)
             .is('deleted_at', null);
+
+        if (logsErr) {
+            logDebug("Error descargando partes de trabajo: " + logsErr.message, "error");
+            return;
+        }
 
         if (!logsData || logsData.length === 0) {
             logDebug("Tu equipo no tiene tramos de carretera asignados hoy.", "info");
@@ -5808,29 +5827,34 @@ async function loadAssignedSegments(userId) {
 
         const segmentIds = logsData.map(l => l.segment_id);
 
-        // 3. Obtener los tramos correspondientes
-        const { data: segmentsData } = await supabaseClient
+        // 4. Obtener los tramos correspondientes
+        const { data: segmentsData, error: segsErr } = await supabaseClient
             .from('segments')
             .select('*')
             .in('id', segmentIds)
             .is('deleted_at', null);
 
+        if (segsErr) {
+            logDebug("Error descargando geometrías: " + segsErr.message, "error");
+            return;
+        }
+
         if (!segmentsData || segmentsData.length === 0) return;
 
-        // Limpiar tramos anteriores si los hubiera
-        state.tramos = [];
-        state.loadedFiles = [];
-        tramosLayerGroup.clearLayers();
-
         const fileId = "cloud-assigned";
-        state.loadedFiles.push({
+        const cloudFiles = [{
             id: fileId,
             name: "Carreteras Asignadas (Nube)",
             tramosCount: segmentsData.length
-        });
+        }];
+
+        // Combinar datos manteniendo avances locales pendientes que aún no hayan subido
+        const newTramos = [];
 
         segmentsData.forEach(seg => {
             const log = logsData.find(l => l.segment_id === seg.id);
+            const existingLocal = state.tramos.find(t => t.id === seg.id);
+
             let coords = [];
             if (seg.kml_data) {
                 try {
@@ -5843,6 +5867,8 @@ async function loadAssignedSegments(userId) {
             let localStatus = 'pending';
             let rMargin = 'pending';
             let lMargin = 'pending';
+            let dateComp = log ? log.updated_at : null;
+
             if (log) {
                 if (log.status === 'completado') {
                     localStatus = 'completed';
@@ -5850,7 +5876,6 @@ async function loadAssignedSegments(userId) {
                     lMargin = 'completed';
                 } else if (log.status === 'en_progreso') {
                     localStatus = 'partial';
-                    // Intentamos inferir márgenes completados en local si se guardan notas de margen o por defecto ponemos uno
                     rMargin = 'completed';
                     lMargin = 'pending';
                 } else if (log.status === 'incidencia') {
@@ -5858,7 +5883,15 @@ async function loadAssignedSegments(userId) {
                 }
             }
 
-            state.tramos.push({
+            // Si hay un estado local modificado pendiente de subir, priorizar el estado del operario
+            if (existingLocal && existingLocal.status !== 'pending' && (!log || log.status === 'pendiente')) {
+                localStatus = existingLocal.status;
+                rMargin = existingLocal.rightMarginStatus;
+                lMargin = existingLocal.leftMarginStatus;
+                dateComp = existingLocal.dateCompleted;
+            }
+
+            newTramos.push({
                 id: seg.id,
                 name: seg.name,
                 fileId: fileId,
@@ -5868,30 +5901,32 @@ async function loadAssignedSegments(userId) {
                 status: localStatus,
                 rightMarginStatus: rMargin,
                 leftMarginStatus: lMargin,
-                dateCompleted: log ? log.updated_at : null,
-                color: '#6366f1',
+                dateCompleted: dateComp,
+                color: localStatus === 'completed' ? getWeekColor('W34-2026') : (localStatus === 'partial' ? '#f59e0b' : '#6366f1'),
                 weekNumber: 1,
-                weekCompleted: null,
-                observaciones: [],
+                weekCompleted: localStatus === 'completed' ? 'W34-2026' : null,
+                observaciones: existingLocal ? existingLocal.observaciones : [],
                 mapLayer: null
             });
         });
 
+        state.tramos = newTramos;
+        state.loadedFiles = cloudFiles;
         state.fileLoaded = true;
+
         saveToLocalStorage();
         renderTramosOnMap();
         updateTramosList();
-        updateLoadedFilesList(); // <-- Fuerza la limpieza visual de archivos locales de invitado
+        updateLoadedFilesList();
         updateStats();
 
-        // Auto-encuadrar el mapa en las carreteras asignadas
         if (tramosLayerGroup.getLayers().length > 0) {
             map.fitBounds(tramosLayerGroup.getBounds());
         }
 
-        logDebug("Carreteras asignadas cargadas y listas en el mapa.", "success");
+        logDebug(`Carreteras sincronizadas con éxito (${newTramos.length} tramos).`, "success");
     } catch (err) {
-        logDebug("Fallo al descargar tramos: " + err.message, "error");
+        logDebug("Fallo en sincronización inteligente: " + err.message, "error");
     }
 }
 

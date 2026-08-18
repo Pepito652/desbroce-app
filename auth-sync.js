@@ -239,57 +239,78 @@ async function triggerOfflineSync() {
         if (syncQueue.length === 0) return;
 
         isSyncing = true;
-        console.log(`[Sync] Sincronizando ${syncQueue.length} cambios pendientes con Supabase...`);
+        if (typeof logDebug === 'function') {
+            logDebug(`[Nube] Enviando ${syncQueue.length} avance(s) a Supabase...`, 'info');
+        }
 
         // Obtener el team_id al que pertenece este operario
-        const { data: memberData } = await supabaseClient
+        const { data: memberData, error: memErr } = await supabaseClient
             .from('team_members')
             .select('team_id')
             .eq('profile_id', session.user.id)
             .maybeSingle();
 
+        if (memErr) {
+            if (typeof logDebug === 'function') logDebug(`[Nube] Error equipo: ${memErr.message}`, 'error');
+        }
+
         const operTeamId = memberData ? memberData.team_id : null;
 
-        // Procesar en orden cronológico
+        // Procesar cada tramo modificado en la cola
         for (const item of syncQueue) {
-            if (!operTeamId) {
-                console.warn(`[Sync] El operario ${session.user.id} no pertenece a ningún equipo. No se puede sincronizar.`);
-                continue;
-            }
-
             // Mapear estados locales del tramo a estados de Supabase
             let dbStatus = 'pendiente';
             if (item.changes.status === 'completed') dbStatus = 'completado';
             else if (item.changes.status === 'partial') dbStatus = 'en_progreso';
+            else if (item.changes.status === 'incidencia') dbStatus = 'incidencia';
 
-            // Buscar si ya existe un registro de trabajo para este segmento y equipo
-            const { data: existingLog } = await supabaseClient
+            // 1. Intentar actualizar directamente el registro existente en work_logs para este segmento
+            let query = supabaseClient
                 .from('work_logs')
-                .select('id')
-                .eq('segment_id', item.tramoId)
-                .eq('team_id', operTeamId)
-                .maybeSingle();
+                .update({
+                    status: dbStatus,
+                    reported_by: session.user.id,
+                    notes: item.changes.comment || '',
+                    updated_at: new Date(item.timestamp).toISOString()
+                })
+                .eq('segment_id', item.tramoId);
 
-            const upsertPayload = {
-                segment_id: item.tramoId,
-                team_id: operTeamId,
-                reported_by: session.user.id,
-                status: dbStatus,
-                notes: item.changes.comment || '',
-                updated_at: new Date(item.timestamp).toISOString()
-            };
-
-            if (existingLog) {
-                upsertPayload.id = existingLog.id;
+            if (operTeamId) {
+                query = query.eq('team_id', operTeamId);
             }
 
-            const { error } = await supabaseClient
-                .from('work_logs')
-                .upsert(upsertPayload);
+            const { data: updatedRows, error: updateErr } = await query.select();
 
-            if (error) {
-                console.error(`[Sync] Error al sincronizar tramo ${item.tramoId}:`, error);
-                throw error;
+            if (updateErr) {
+                console.error(`[Sync] Error al actualizar tramo ${item.tramoId}:`, updateErr);
+                if (typeof logDebug === 'function') {
+                    logDebug(`[Nube] Error Supabase: ${updateErr.message}`, 'error');
+                }
+                throw updateErr;
+            }
+
+            // Si no existía la fila asignada, insertarla
+            if (!updatedRows || updatedRows.length === 0) {
+                if (operTeamId) {
+                    const { error: insErr } = await supabaseClient
+                        .from('work_logs')
+                        .insert({
+                            segment_id: item.tramoId,
+                            team_id: operTeamId,
+                            reported_by: session.user.id,
+                            status: dbStatus,
+                            notes: item.changes.comment || '',
+                            updated_at: new Date(item.timestamp).toISOString()
+                        });
+                    if (insErr) {
+                        if (typeof logDebug === 'function') logDebug(`[Nube] Error insert: ${insErr.message}`, 'error');
+                        throw insErr;
+                    }
+                }
+            }
+
+            if (typeof logDebug === 'function') {
+                logDebug(`[Nube] Tramo guardado en Supabase -> Estado: ${dbStatus}`, 'success');
             }
         }
 
@@ -298,6 +319,9 @@ async function triggerOfflineSync() {
         console.log("[Sync] Sincronización offline completada con éxito.");
     } catch (e) {
         console.error("[Sync] Fallo en el ciclo de sincronización:", e.message);
+        if (typeof logDebug === 'function') {
+            logDebug(`[Nube] Fallo de sincronización: ${e.message}`, 'warn');
+        }
     } finally {
         isSyncing = false;
     }
