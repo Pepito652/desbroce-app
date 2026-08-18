@@ -288,13 +288,16 @@ async function triggerOfflineSync() {
             };
             const enrichedNotesStr = JSON.stringify(enrichedNotesObj);
 
+            // Si el estado vuelve a pendiente (ambos márgenes sin hacer), reported_by se limpia a null
+            const reportedByVal = dbStatus === 'pendiente' ? null : session.user.id;
+
             // 1. Intentar actualizar directamente el registro existente en work_logs para este segmento
             let query = supabaseClient
                 .from('work_logs')
                 .update({
                     status: dbStatus,
-                    reported_by: session.user.id,
-                    notes: enrichedNotesStr,
+                    reported_by: reportedByVal,
+                    notes: dbStatus === 'pendiente' ? null : enrichedNotesStr,
                     updated_at: new Date(item.timestamp).toISOString()
                 })
                 .eq('segment_id', item.tramoId);
@@ -321,9 +324,9 @@ async function triggerOfflineSync() {
                         .insert({
                             segment_id: item.tramoId,
                             team_id: operTeamId,
-                            reported_by: session.user.id,
+                            reported_by: reportedByVal,
                             status: dbStatus,
-                            notes: enrichedNotesStr,
+                            notes: dbStatus === 'pendiente' ? null : enrichedNotesStr,
                             updated_at: new Date(item.timestamp).toISOString()
                         });
                     if (insErr) {

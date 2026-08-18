@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2510';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2511';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Preservación de zoom y popups durante la auto-sincronización en panel de oficina.';
+const UPDATE_NOTES = 'Versión 0.1.12: Corrección de zoom estático en auto-sync y reseteo de reported_by al pasar tramo a pendiente.';
 
 const ASSETS = [
   './',

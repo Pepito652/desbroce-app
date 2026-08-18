@@ -1413,6 +1413,14 @@
                 openPopupContent = adminMap._popup.getContent();
             }
 
+            // Guardar el centro y zoom EXACTOS que el usuario tiene puestos en pantalla
+            let savedCenter = null;
+            let savedZoom = null;
+            if (adminMap && !isFirstAdminMapLoad) {
+                savedCenter = adminMap.getCenter();
+                savedZoom = adminMap.getZoom();
+            }
+
             segmentsLayerGroup.clearLayers();
             const list = document.getElementById('adminTramosList');
             list.innerHTML = '';
@@ -1526,11 +1534,14 @@
                 filesMap[fName].push({ seg, log, status, color, leftMargin, rightMargin, week, alertsCount: alerts.length, teamName });
             });
 
-            // Ajustar encuadre de mapa SOLO si es la primera carga o cambio explícito de equipo
+            // Encuadrar SOLO si es primera carga o si el usuario hizo un cambio explícito de equipo
             if (segmentsLayerGroup.getLayers().length > 0) {
                 if (isFirstAdminMapLoad || shouldFitBounds) {
                     adminMap.fitBounds(segmentsLayerGroup.getBounds(), { padding: [30, 30] });
                     isFirstAdminMapLoad = false;
+                } else if (savedCenter && savedZoom !== null) {
+                    // Mantener estricta y fijamente el centro y zoom que el usuario tenía
+                    adminMap.setView(savedCenter, savedZoom, { animate: false });
                 }
             }
 
@@ -1646,11 +1657,6 @@
                 details.appendChild(ul);
                 list.appendChild(details);
             });
-
-            // Ajustar encuadre de mapa
-            if (segmentsLayerGroup.getLayers().length > 0) {
-                adminMap.fitBounds(segmentsLayerGroup.getBounds());
-            }
 
             if (window.lucide) window.lucide.createIcons();
         }
