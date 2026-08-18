@@ -434,12 +434,24 @@
 
             <!-- SECCIÓN 5: INFORMES -->
             <section class="admin-panel-content" id="panelInformes">
-                <h2 style="font-weight: 700; font-size: 1.5rem; letter-spacing: -0.5px;">Reportes e Informes</h2>
-                <div class="card">
-                    <h3>Generar Reporte de Rendimiento</h3>
-                    <p class="card-desc">Filtra y exporta tramos completados y metros desbrozados por fechas y equipos.</p>
+                <h2 style="font-weight: 700; font-size: 1.5rem; letter-spacing: -0.5px;">Reportes e Informes de Avance</h2>
+                <div class="card" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div>
+                        <h3 style="margin: 0;">Generar Reporte de Rendimiento y Certificación</h3>
+                        <p class="card-desc" style="margin: 4px 0 0 0;">Filtra tramos completados, metros desbrozados por márgenes y exporta partes oficiales para ayuntamientos y control interno.</p>
+                    </div>
+
+                    <!-- Botones de Selección Rápida de Periodo -->
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-right: 4px;">Periodo Rápido:</span>
+                        <button type="button" onclick="setReportDateRange('this_week')" class="btn btn-secondary btn-sm" style="font-size: 0.72rem; padding: 4px 10px;">Esta Semana</button>
+                        <button type="button" onclick="setReportDateRange('last_week')" class="btn btn-secondary btn-sm" style="font-size: 0.72rem; padding: 4px 10px;">Semana Anterior</button>
+                        <button type="button" onclick="setReportDateRange('this_month')" class="btn btn-secondary btn-sm" style="font-size: 0.72rem; padding: 4px 10px;">Este Mes</button>
+                        <button type="button" onclick="setReportDateRange('last_month')" class="btn btn-secondary btn-sm" style="font-size: 0.72rem; padding: 4px 10px;">Mes Anterior</button>
+                        <button type="button" onclick="setReportDateRange('all')" class="btn btn-secondary btn-sm" style="font-size: 0.72rem; padding: 4px 10px;">Todo el Histórico</button>
+                    </div>
                     
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
                         <div class="form-group">
                             <label for="reportTeamFilter">Filtrar por Equipo</label>
                             <select id="reportTeamFilter" name="reportTeamFilter">
@@ -456,9 +468,13 @@
                         </div>
                     </div>
                     
-                    <div style="display: flex; gap: 8px; margin-top: 1rem;">
-                        <button onclick="generateReport('pdf')" class="btn btn-primary" style="flex: 1;"><i data-lucide="file-down"></i> Descargar PDF</button>
-                        <button onclick="generateReport('csv')" class="btn btn-secondary" style="flex: 1;"><i data-lucide="download"></i> Descargar Excel (CSV)</button>
+                    <div style="display: flex; gap: 10px; margin-top: 0.5rem;">
+                        <button onclick="generateReport('pdf')" class="btn btn-primary" style="flex: 1; padding: 0.65rem; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600;">
+                            <i data-lucide="file-down" style="width: 16px; height: 16px;"></i> Descargar Informe PDF
+                        </button>
+                        <button onclick="generateReport('csv')" class="btn btn-secondary" style="flex: 1; padding: 0.65rem; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600;">
+                            <i data-lucide="download" style="width: 16px; height: 16px;"></i> Descargar Excel (CSV)
+                        </button>
                     </div>
                 </div>
             </section>
@@ -1559,6 +1575,8 @@
                 let color = '#9ca3af';
                 if (status === 'completado') {
                     color = '#10b981';
+                } else if (status === 'repaso') {
+                    color = '#f97316'; // Naranja / Ámbar para Repaso Solicitado
                 } else if (status === 'en_progreso') {
                     color = '#fbbf24';
                 } else if (status === 'incidencia') {
@@ -1878,15 +1896,63 @@
 
         // --- EXPORTAR REPORTES ---
 
+        // --- EXPORTAR REPORTES Y CERTIFICACIONES ---
+
         function updateReportTeamFilters() {
             const select = document.getElementById('reportTeamFilter');
+            if (!select) return;
+            const currentVal = select.value || 'all';
             select.innerHTML = '<option value="all">Todos los Equipos</option>';
             teams.forEach(t => {
                 const opt = document.createElement('option');
                 opt.value = t.id;
                 opt.innerText = t.name;
+                if (t.id === currentVal) opt.selected = true;
                 select.appendChild(opt);
             });
+        }
+
+        function setReportDateRange(rangeType) {
+            const startInput = document.getElementById('reportDateStart');
+            const endInput = document.getElementById('reportDateEnd');
+            if (!startInput || !endInput) return;
+
+            const now = new Date();
+            
+            if (rangeType === 'this_week') {
+                const day = now.getDay() || 7; // Lunes = 1, Domingo = 7
+                const monday = new Date(now);
+                monday.setDate(now.getDate() - day + 1);
+                const sunday = new Date(monday);
+                sunday.setDate(monday.getDate() + 6);
+
+                startInput.value = monday.toISOString().split('T')[0];
+                endInput.value = sunday.toISOString().split('T')[0];
+            } else if (rangeType === 'last_week') {
+                const day = now.getDay() || 7;
+                const lastMonday = new Date(now);
+                lastMonday.setDate(now.getDate() - day - 6);
+                const lastSunday = new Date(lastMonday);
+                lastSunday.setDate(lastMonday.getDate() + 6);
+
+                startInput.value = lastMonday.toISOString().split('T')[0];
+                endInput.value = lastSunday.toISOString().split('T')[0];
+            } else if (rangeType === 'this_month') {
+                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+                startInput.value = firstDay.toISOString().split('T')[0];
+                endInput.value = lastDay.toISOString().split('T')[0];
+            } else if (rangeType === 'last_month') {
+                const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+
+                startInput.value = firstDay.toISOString().split('T')[0];
+                endInput.value = lastDay.toISOString().split('T')[0];
+            } else if (rangeType === 'all') {
+                startInput.value = '';
+                endInput.value = '';
+            }
         }
 
         async function generateReport(format) {
@@ -1894,70 +1960,139 @@
             const start = document.getElementById('reportDateStart').value;
             const end = document.getElementById('reportDateEnd').value;
 
-            // Filtrar partes de trabajo
-            let filteredLogs = [...workLogs];
-            if (teamId !== 'all') {
-                filteredLogs = filteredLogs.filter(l => l.team_id === teamId);
-            }
+            const startDateObj = start ? new Date(start + "T00:00:00") : null;
+            const endDateObj = end ? new Date(end + "T23:59:59") : null;
 
-            // Crear datos formateados
+            // Filtrar partes de trabajo por equipo y fecha de actualización/ejecución
+            let filteredLogs = workLogs.filter(log => {
+                if (teamId !== 'all' && log.team_id !== teamId) return false;
+                
+                if (startDateObj || endDateObj) {
+                    const logDate = log.updated_at ? new Date(log.updated_at) : (log.work_date ? new Date(log.work_date) : null);
+                    if (logDate) {
+                        if (startDateObj && logDate < startDateObj) return false;
+                        if (endDateObj && logDate > endDateObj) return false;
+                    }
+                }
+                return true;
+            });
+
+            // Crear datos formateados calculando metros desbrozados por margen
             const reportData = [];
+            let totalKmCalculados = 0;
+
             filteredLogs.forEach(log => {
                 const seg = segments.find(s => s.id === log.segment_id);
                 const team = teams.find(t => t.id === log.team_id);
-                if (seg) {
-                    reportData.push({
-                        carretera: seg.name,
-                        equipo: team ? team.name : 'Sin asignar',
-                        estado: log.status,
-                        fecha: log.updated_at ? new Date(log.updated_at).toLocaleDateString() : 'Pendiente'
-                    });
+                if (!seg) return;
+
+                let leftMargin = 'pending';
+                let rightMargin = 'pending';
+                let week = '-';
+                let operatorName = '-';
+
+                if (log.notes && typeof log.notes === 'string' && log.notes.startsWith('{')) {
+                    try {
+                        const parsed = JSON.parse(log.notes);
+                        if (parsed.left_margin) leftMargin = parsed.left_margin;
+                        if (parsed.right_margin) rightMargin = parsed.right_margin;
+                        if (parsed.week) week = parsed.week;
+                    } catch(e) {}
                 }
+
+                if (log.reported_by) {
+                    const op = operators.find(o => o.id === log.reported_by);
+                    if (op) operatorName = op.full_name;
+                }
+
+                const lengthM = seg.length_meters || 0;
+                let factor = 0;
+                if (leftMargin === 'completed') factor += 0.5;
+                if (rightMargin === 'completed') factor += 0.5;
+                if (factor === 0 && log.status === 'completado') factor = 1.0;
+
+                const kmDesbrozados = ((lengthM * factor) / 1000).toFixed(2);
+                totalKmCalculados += parseFloat(kmDesbrozados);
+
+                reportData.push({
+                    carretera: seg.name,
+                    equipo: team ? team.name : 'Sin asignar',
+                    operario: operatorName,
+                    estado: log.status,
+                    margenIzq: leftMargin === 'completed' ? 'Hecho' : 'Pendiente',
+                    margenDer: rightMargin === 'completed' ? 'Hecho' : 'Pendiente',
+                    longitudTotalKm: (lengthM / 1000).toFixed(2),
+                    kmDesbrozados: kmDesbrozados,
+                    fecha: log.updated_at ? new Date(log.updated_at).toLocaleDateString() : (log.work_date || 'Pendiente')
+                });
             });
 
             if (reportData.length === 0) {
-                alert("No hay registros en los filtros seleccionados para generar el reporte.");
+                alert("No hay registros en el rango de fechas y equipo seleccionados.");
                 return;
             }
 
+            const teamObj = teams.find(t => t.id === teamId);
+            const teamTitle = teamObj ? `Equipo: ${teamObj.name}` : "Todos los Equipos";
+            const dateRangeLabel = (start || end) ? `${start || 'Inicio'} a ${end || 'Actualidad'}` : "Histórico Completo";
+
             if (format === 'csv') {
-                let csvContent = "data:text/csv;charset=utf-8,";
-                csvContent += "Carretera,Equipo,Estado,Ultima Actualizacion\n";
+                let csvContent = "\uFEFF"; // BOM UTF-8 para Excel
+                csvContent += `Reporte de Desbroce - ${teamTitle} (${dateRangeLabel})\n`;
+                csvContent += `Total Km Desbrozados Certificados: ${totalKmCalculados.toFixed(2)} km\n\n`;
+                csvContent += "Carretera,Equipo,Operario,Estado,Margen Izq,Margen Der,Longitud Tramo (km),Km Ejecutados,Fecha\n";
+                
                 reportData.forEach(r => {
-                    csvContent += `"${r.carretera}","${r.equipo}","${r.estado}","${r.fecha}"\n`;
+                    csvContent += `"${r.carretera}","${r.equipo}","${r.operario}","${r.estado.toUpperCase()}","${r.margenIzq}","${r.margenDer}","${r.longitudTotalKm}","${r.kmDesbrozados}","${r.fecha}"\n`;
                 });
                 
-                const encodedUri = encodeURI(csvContent);
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
                 const link = document.createElement("a");
-                link.setAttribute("href", encodedUri);
-                link.setAttribute("download", `reporte_desbroce_${new Date().toLocaleDateString()}.csv`);
+                link.setAttribute("href", url);
+                link.setAttribute("download", `informe_desbroce_${new Date().toISOString().split('T')[0]}.csv`);
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
             } else if (format === 'pdf') {
                 const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
+                const doc = new jsPDF('landscape');
                 
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(16);
-                doc.text("Reporte de Avance - DesbroceApp", 14, 20);
+                doc.setTextColor(16, 185, 129);
+                doc.text("INFORME DE AVANCE Y CERTIFICACIÓN DE DESBROCE", 14, 18);
                 
                 doc.setFont("helvetica", "normal");
-                doc.setFontSize(10);
-                doc.text(`Fecha de generacion: ${new Date().toLocaleDateString()}`, 14, 28);
+                doc.setFontSize(9);
+                doc.setTextColor(100, 100, 100);
+                doc.text(`Filtro: ${teamTitle} | Periodo: ${dateRangeLabel} | Fecha de emisión: ${new Date().toLocaleDateString()}`, 14, 25);
+                doc.text(`TOTAL CERTIFICADO EN ESTE PERIODO: ${totalKmCalculados.toFixed(2)} KM`, 14, 31);
                 
-                const headers = [["Carretera", "Equipo Asignado", "Estado", "Fecha Act."]];
-                const body = reportData.map(r => [r.carretera, r.equipo, r.estado.toUpperCase(), r.fecha]);
+                const headers = [["Carretera", "Equipo", "Operario", "Margen Izq", "Margen Der", "Long. Total", "Km Ejecutados", "Estado", "Fecha"]];
+                const body = reportData.map(r => [
+                    r.carretera,
+                    r.equipo,
+                    r.operario,
+                    r.margenIzq,
+                    r.margenDer,
+                    `${r.longitudTotalKm} km`,
+                    `${r.kmDesbrozados} km`,
+                    r.estado.toUpperCase(),
+                    r.fecha
+                ]);
                 
                 doc.autoTable({
-                    startY: 34,
+                    startY: 36,
                     head: headers,
                     body: body,
                     theme: 'striped',
-                    headStyles: { fillColor: [16, 185, 129] }
+                    styles: { fontSize: 8, cellPadding: 3 },
+                    headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], fontStyle: 'bold' },
+                    alternateRowStyles: { fillColor: [245, 247, 250] }
                 });
                 
-                doc.save(`reporte_desbroce_${new Date().toLocaleDateString()}.pdf`);
+                doc.save(`informe_desbroce_${new Date().toISOString().split('T')[0]}.pdf`);
             }
         }
 

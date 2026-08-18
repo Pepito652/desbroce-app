@@ -6011,6 +6011,208 @@ async function loadAssignedSegments(userId) {
     }
 }
 
+// --- MODO DE TRAZADO MANUAL Y MEDICIÓN ESTILO GOOGLE EARTH ---
+
+let earthDrawPoints = [];
+let earthDrawLineLayer = null;
+let earthDrawMarkersGroup = null;
+let isEarthDrawActive = false;
+
+function startEarthDrawMode() {
+    isEarthDrawActive = true;
+    earthDrawPoints = [];
+    
+    // Ocultar menú lateral si está abierto
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+    }
+
+    const overlay = document.getElementById('earthDrawOverlay');
+    if (overlay) overlay.style.display = 'block';
+
+    if (!earthDrawMarkersGroup && map) {
+        earthDrawMarkersGroup = L.featureGroup().addTo(map);
+    } else if (earthDrawMarkersGroup) {
+        earthDrawMarkersGroup.clearLayers();
+    }
+
+    if (earthDrawLineLayer && map) {
+        map.removeLayer(earthDrawLineLayer);
+        earthDrawLineLayer = null;
+    }
+
+    updateEarthDrawUI();
+    if (window.lucide) window.lucide.createIcons();
+    logDebug("Modo de trazado manual estilo Google Earth iniciado. Mueve el mapa y añade puntos.");
+}
+
+function addEarthDrawPoint() {
+    if (!map || !isEarthDrawActive) return;
+
+    const center = map.getCenter();
+    const point = [center.lat, center.lng];
+    earthDrawPoints.push(point);
+
+    // Añadir un marcador visual pequeño en el punto anclado
+    const marker = L.circleMarker(point, {
+        radius: 5,
+        fillColor: '#10b981',
+        color: '#ffffff',
+        weight: 2,
+        fillOpacity: 1
+    }).addTo(earthDrawMarkersGroup);
+
+    redrawEarthDrawLine();
+    updateEarthDrawUI();
+}
+
+function undoEarthDrawPoint() {
+    if (earthDrawPoints.length === 0) return;
+    earthDrawPoints.pop();
+
+    if (earthDrawMarkersGroup) {
+        const layers = earthDrawMarkersGroup.getLayers();
+        if (layers.length > 0) {
+            earthDrawMarkersGroup.removeLayer(layers[layers.length - 1]);
+        }
+    }
+
+    redrawEarthDrawLine();
+    updateEarthDrawUI();
+}
+
+function redrawEarthDrawLine() {
+    if (!map) return;
+
+    if (earthDrawLineLayer) {
+        map.removeLayer(earthDrawLineLayer);
+        earthDrawLineLayer = null;
+    }
+
+    if (earthDrawPoints.length > 1) {
+        earthDrawLineLayer = L.polyline(earthDrawPoints, {
+            color: '#10b981',
+            weight: 4,
+            dashArray: '6, 6',
+            opacity: 0.9
+        }).addTo(map);
+    }
+}
+
+function updateEarthDrawUI() {
+    const countEl = document.getElementById('earthDrawPointsCount');
+    const distEl = document.getElementById('earthDrawDistanceLabel');
+    const btnUndo = document.getElementById('btnEarthUndo');
+    const btnFinish = document.getElementById('btnEarthFinish');
+
+    if (countEl) countEl.innerText = earthDrawPoints.length;
+
+    let totalMeters = 0;
+    if (earthDrawPoints.length > 1) {
+        for (let i = 0; i < earthDrawPoints.length - 1; i++) {
+            const p1 = L.latLng(earthDrawPoints[i]);
+            const p2 = L.latLng(earthDrawPoints[i+1]);
+            totalMeters += p1.distanceTo(p2);
+        }
+    }
+
+    if (distEl) {
+        if (totalMeters >= 1000) {
+            distEl.innerText = `${(totalMeters / 1000).toFixed(2)} km`;
+        } else {
+            distEl.innerText = `${Math.round(totalMeters)} m`;
+        }
+    }
+
+    if (btnUndo) btnUndo.disabled = earthDrawPoints.length === 0;
+    if (btnFinish) btnFinish.disabled = earthDrawPoints.length < 2;
+}
+
+function cancelEarthDrawMode() {
+    isEarthDrawActive = false;
+    const overlay = document.getElementById('earthDrawOverlay');
+    if (overlay) overlay.style.display = 'none';
+
+    if (earthDrawLineLayer && map) {
+        map.removeLayer(earthDrawLineLayer);
+        earthDrawLineLayer = null;
+    }
+    if (earthDrawMarkersGroup) {
+        earthDrawMarkersGroup.clearLayers();
+    }
+    earthDrawPoints = [];
+    logDebug("Modo de trazado manual cancelado.");
+}
+
+async function finishEarthDrawMode() {
+    if (earthDrawPoints.length < 2) {
+        alert("Debes añadir al menos 2 puntos para crear una carretera.");
+        return;
+    }
+
+    let defaultName = `Tramo Extra ${new Date().toLocaleDateString()}`;
+    const roadName = prompt("Introduce el nombre o referencia de este tramo extra:", defaultName);
+    if (!roadName || !roadName.trim()) return;
+
+    let totalMeters = 0;
+    for (let i = 0; i < earthDrawPoints.length - 1; i++) {
+        const p1 = L.latLng(earthDrawPoints[i]);
+        const p2 = L.latLng(earthDrawPoints[i+1]);
+        totalMeters += p1.distanceTo(p2);
+    }
+    const finalMeters = Math.round(totalMeters);
+
+    const newTramoId = 'manual_' + Date.now();
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0];
+    const { week, year } = getISOWeekAndYear(today);
+    const weekStr = `W${week}-${year}`;
+
+    const newRoadObj = {
+        id: newTramoId,
+        name: roadName.trim() + " [Extra]",
+        fileId: "tramos_manuales",
+        coordinates: earthDrawPoints.map(p => [...p]),
+        originalCoordinates: earthDrawPoints.map(p => [...p]),
+        length: finalMeters,
+        status: 'completed',
+        rightMarginStatus: 'completed',
+        leftMarginStatus: 'completed',
+        dateCompleted: dateStr,
+        color: getWeekColor(weekStr),
+        weekNumber: week,
+        weekCompleted: weekStr,
+        observaciones: [],
+        mapLayer: null
+    };
+
+    state.tramos.push(newRoadObj);
+    saveToLocalStorage();
+    renderTramosOnMap();
+    updateTramosList();
+    updateStats();
+
+    // Sincronizar inmediatamente con la nube en Supabase si está autenticado
+    if (typeof window.queueTramoForSync === 'function') {
+        window.queueTramoForSync(newTramoId, {
+            name: newRoadObj.name,
+            kml_data: JSON.stringify(earthDrawPoints),
+            length_meters: finalMeters,
+            status: 'completed',
+            rightMarginStatus: 'completed',
+            leftMarginStatus: 'completed',
+            weekCompleted: weekStr,
+            dateCompleted: dateStr,
+            observaciones: []
+        });
+    }
+
+    cancelEarthDrawMode();
+    alert(`¡Carretera guardada con éxito!\nLongitud registrada: ${finalMeters} metros.`);
+    logDebug(`Carretera manual creada: ${newRoadObj.name} (${finalMeters} m).`, "success");
+}
+
 // Exponer funciones globalmente
 window.welcomeActionAuth = welcomeActionAuth;
 window.welcomeActionLocal = welcomeActionLocal;
@@ -6018,4 +6220,9 @@ window.loadAssignedSegments = loadAssignedSegments;
 window.toggleMarginStatusPopup = toggleMarginStatusPopup;
 window.toggleTramoStatusPopup = toggleTramoStatusPopup;
 window.toggleTramoCompletion = toggleTramoCompletion;
+window.startEarthDrawMode = startEarthDrawMode;
+window.addEarthDrawPoint = addEarthDrawPoint;
+window.undoEarthDrawPoint = undoEarthDrawPoint;
+window.cancelEarthDrawMode = cancelEarthDrawMode;
+window.finishEarthDrawMode = finishEarthDrawMode;
 

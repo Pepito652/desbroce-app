@@ -14,8 +14,16 @@ export function createMarginBadge(side, status) {
 }
 
 export function createStatusBadge(status, color) {
-    const safeColor = color || (status === 'completado' ? '#10b981' : (status === 'en_progreso' ? '#fbbf24' : '#9ca3af'));
-    return `<span style="font-size:0.65rem; text-transform:uppercase; font-weight:700; color:${safeColor};">${status}</span>`;
+    let safeColor = color;
+    if (!safeColor) {
+        if (status === 'completado' || status === 'completed') safeColor = '#10b981';
+        else if (status === 'repaso' || status === 'repaso_requerido') safeColor = '#f97316';
+        else if (status === 'en_progreso' || status === 'partial') safeColor = '#fbbf24';
+        else if (status === 'incidencia') safeColor = '#ef4444';
+        else safeColor = '#9ca3af';
+    }
+    const label = status === 'repaso' ? 'REPASO' : status;
+    return `<span style="font-size:0.65rem; text-transform:uppercase; font-weight:700; color:${safeColor};">${label}</span>`;
 }
 
 export function createWeekBadge(week) {

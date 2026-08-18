@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2514';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2515';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Selección múltiple por casillas de verificación para asignar tramos en bloque y limpieza de iconos de carreteras.';
+const UPDATE_NOTES = 'Versión 0.1.12: Trazador manual de carreteras estilo Google Earth con mira fija, reportes periódicos de certificación en PDF/Excel y estado de Repaso.';
 
 const ASSETS = [
   './',
