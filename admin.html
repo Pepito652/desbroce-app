@@ -633,6 +633,47 @@
                 </div>
             </form>
         </div>
+    <!-- Modal de Edición de Ficha de Operario (Admin) -->
+    <div id="editOperatorModalOverlay" class="custom-dialog-overlay" style="display: none; z-index: 9999;">
+        <div class="custom-dialog-card animate-scale-up" style="max-width: 400px; padding: 1.5rem; text-align: left; align-items: stretch; gap: 0.85rem; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 1.1rem; font-weight: bold; margin: 0; color: #fff; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="user-cog" style="width: 18px; height: 18px; color: var(--accent);"></i> Editar Ficha de Operario
+                </h3>
+                <button onclick="closeEditOperatorModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.25rem; cursor: pointer; padding: 4px;">×</button>
+            </div>
+
+            <form id="editOperatorForm" name="editOperatorForm" onsubmit="handleSaveEditedOperator(event)" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <input type="hidden" id="editOpId" name="editOpId">
+
+                <div class="form-group">
+                    <label for="editOpName">Nombre Completo</label>
+                    <input type="text" id="editOpName" name="editOpName" required style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff;">
+                </div>
+
+                <div class="form-group">
+                    <label for="editOpRole">Puesto de Trabajo</label>
+                    <select id="editOpRole" name="editOpRole" required style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff;">
+                        <option value="tractorista">Tractorista</option>
+                        <option value="peon">Peón de desbroce</option>
+                        <option value="conductor">Conductor</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="editOpTeam">Equipo Asignado</label>
+                    <select id="editOpTeam" name="editOpTeam" style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff;">
+                        <option value="">Sin equipo asignado</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-top: 0.5rem;">
+                    <button type="button" onclick="closeEditOperatorModal()" class="btn btn-secondary btn-sm" style="flex: 1; padding: 0.6rem;">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-sm" style="flex: 1.2; padding: 0.6rem;">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- Modal Flotante de Autenticación / Registro (Supabase) -->
@@ -1110,7 +1151,7 @@
             }
         }
 
-        // Pintar Operarios
+        // Pintar Operarios con botón de Edición
         function renderOperatorsList() {
             const container = document.getElementById('operatorsListContainer');
             const noOperators = document.getElementById('noOperatorsLabel');
@@ -1130,9 +1171,14 @@
                                 <strong style="color:#fff; font-size:0.85rem;">${op.full_name}</strong>
                                 <span style="font-size:0.7rem; color:var(--text-secondary); text-transform:capitalize; margin-left: 8px; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px;">${op.role}</span>
                             </div>
-                            <button onclick="deleteOperator('${op.id}')" class="btn-remove-file" title="Dar de baja operario" style="background:none; border:none; padding:4px; cursor:pointer;">
-                                <i data-lucide="user-x" style="width: 14px; height: 14px; color: var(--danger); vertical-align: middle;"></i>
-                            </button>
+                            <div style="display:flex; gap:6px; align-items:center;">
+                                <button onclick="openEditOperatorModal('${op.id}')" class="btn-remove-file" title="Editar ficha de operario" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-color); border-radius:4px; padding:4px 6px; cursor:pointer;">
+                                    <i data-lucide="pencil" style="width: 14px; height: 14px; color: var(--accent); vertical-align: middle;"></i>
+                                </button>
+                                <button onclick="deleteOperator('${op.id}')" class="btn-remove-file" title="Dar de baja operario" style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); border-radius:4px; padding:4px 6px; cursor:pointer;">
+                                    <i data-lucide="user-x" style="width: 14px; height: 14px; color: var(--danger); vertical-align: middle;"></i>
+                                </button>
+                            </div>
                         </div>
                     `;
                     container.appendChild(card);
@@ -1143,6 +1189,86 @@
             } else {
                 if (noOperators) noOperators.style.display = 'block';
                 container.innerHTML = '<p class="card-desc" id="noOperatorsLabel">No hay operarios registrados.</p>';
+            }
+        }
+
+        async function openEditOperatorModal(opId) {
+            const op = operators.find(o => o.id === opId);
+            if (!op) return;
+
+            document.getElementById('editOpId').value = opId;
+            document.getElementById('editOpName').value = op.full_name;
+            document.getElementById('editOpRole').value = op.role;
+
+            // Rellenar selector de equipos
+            const teamSelect = document.getElementById('editOpTeam');
+            teamSelect.innerHTML = '<option value="">Sin equipo asignado</option>';
+            teams.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.innerText = t.name;
+                teamSelect.appendChild(opt);
+            });
+
+            // Consultar si tiene equipo actualmente
+            const { data: member } = await supabaseClient
+                .from('team_members')
+                .select('team_id')
+                .eq('profile_id', opId)
+                .maybeSingle();
+
+            if (member && member.team_id) {
+                teamSelect.value = member.team_id;
+            }
+
+            const modal = document.getElementById('editOperatorModalOverlay');
+            if (modal) {
+                modal.style.display = 'flex';
+                if (window.lucide) window.lucide.createIcons();
+            }
+        }
+
+        function closeEditOperatorModal() {
+            const modal = document.getElementById('editOperatorModalOverlay');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function handleSaveEditedOperator(e) {
+            if (e) e.preventDefault();
+
+            const opId = document.getElementById('editOpId').value;
+            const name = document.getElementById('editOpName').value;
+            const role = document.getElementById('editOpRole').value;
+            const teamId = document.getElementById('editOpTeam').value;
+
+            try {
+                // 1. Actualizar perfil en tabla profiles
+                const { error: profErr } = await supabaseClient
+                    .from('profiles')
+                    .update({ full_name: name, role: role, updated_at: new Date().toISOString() })
+                    .eq('id', opId);
+
+                if (profErr) throw profErr;
+
+                // 2. Actualizar pertenencia a equipo en team_members
+                await supabaseClient
+                    .from('team_members')
+                    .delete()
+                    .eq('profile_id', opId);
+
+                if (teamId) {
+                    const { error: teamErr } = await supabaseClient
+                        .from('team_members')
+                        .insert({ team_id: teamId, profile_id: opId });
+                    if (teamErr) throw teamErr;
+                }
+
+                closeEditOperatorModal();
+                alert("Ficha de operario actualizada con éxito.");
+                loadOperators();
+                if (activeTeamId) loadTeamAssets();
+            } catch (err) {
+                alert("Error al actualizar operario: " + err.message);
             }
         }
 
