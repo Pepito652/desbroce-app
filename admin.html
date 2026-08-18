@@ -178,7 +178,7 @@
             </nav>
             
             <div style="margin-top: auto; font-size: 11px; color: var(--text-secondary); text-align: center; border-top: 1px solid var(--border-color); padding-top: 1rem;">
-                Código de control: <strong style="color: var(--accent);">#2490</strong>
+                Código de control: <strong style="color: var(--accent);">#2500</strong>
             </div>
         </aside>
 
@@ -1632,9 +1632,6 @@
                 adminMap.fitBounds(segmentsLayerGroup.getBounds());
             }
 
-            const progress = Math.round((completedCount / segments.length) * 100) || 0;
-            document.getElementById('metricsPercent').innerText = `${progress}%`;
-            document.getElementById('metricsProgressBar').style.width = `${progress}%`;
             if (window.lucide) window.lucide.createIcons();
         }
 

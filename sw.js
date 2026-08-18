@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2490';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2500';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Carga inicial garantizada con getSession en panel de administración.';
+const UPDATE_NOTES = 'Versión 0.1.12: Corrección de sintaxis y renderizado óptimo de dashboard administrativo.';
 
 const ASSETS = [
   './',
