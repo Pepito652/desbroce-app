@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2515';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2516';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Trazador manual de carreteras estilo Google Earth con mira fija, reportes periódicos de certificación en PDF/Excel y estado de Repaso.';
+const UPDATE_NOTES = 'Versión 0.1.12: Alineación milimétrica y estilo uniforme para los botones flotantes del mapa (Trazador, Capas y GPS).';
 
 const ASSETS = [
   './',
