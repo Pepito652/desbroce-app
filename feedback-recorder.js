@@ -265,9 +265,70 @@
         panel.classList.remove('active');
     };
 
+    // Modal interactivo para solicitar permisos de micrófono
+    function showMicPermissionDialog(isDenied = false) {
+        return new Promise((resolve) => {
+            const existingModal = document.getElementById('micPermissionModal');
+            if (existingModal) existingModal.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'micPermissionModal';
+            modal.className = 'custom-dialog-overlay';
+            modal.style.display = 'flex';
+            modal.style.zIndex = '10000';
+
+            modal.innerHTML = `
+                <div class="custom-dialog-card animate-scale-up" style="max-width: 360px; text-align: center;">
+                    <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(239,68,68,0.15); color: #ef4444; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px auto;">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 28px; height: 28px;">
+                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                            <path d="M19 10v1a7 7 0 0 1-14 0v-1"></path>
+                            <line x1="12" x2="12" y1="19" y2="22"></line>
+                        </svg>
+                    </div>
+                    <h3 style="margin: 0 0 6px 0; font-size: 1.1rem; color: #fff;">Permiso de Micrófono</h3>
+                    <p style="margin: 0 0 14px 0; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.4;">
+                        ${isDenied 
+                            ? 'El acceso al micrófono está bloqueado en tu navegador. Toca el candado 🔒 en la barra superior o en ajustes y activa el <strong>Micrófono</strong>.' 
+                            : 'Para grabar notas de voz de diagnóstico y partes de incidencias sobre el terreno, necesitamos acceso al micrófono.'}
+                    </p>
+                    <div style="display: flex; gap: 8px; width: 100%;">
+                        <button id="btnCancelMicPerm" class="btn btn-secondary btn-sm" style="flex: 1; padding: 0.6rem;">Cancelar</button>
+                        <button id="btnAllowMicPerm" class="btn btn-primary btn-sm" style="flex: 1.2; padding: 0.6rem; background: #ef4444; border-color: #dc2626; font-weight: bold;">
+                            ${isDenied ? 'Reintentar' : 'Activar Micrófono'}
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            document.getElementById('btnAllowMicPerm').onclick = () => {
+                modal.remove();
+                resolve(true);
+            };
+
+            document.getElementById('btnCancelMicPerm').onclick = () => {
+                modal.remove();
+                resolve(false);
+            };
+        });
+    }
+
     // Evento de grabación del micrófono
     micBtn.onclick = async () => {
         if (!isRecording) {
+            // Comprobar estado de permisos previamente si la API está disponible
+            let isDenied = false;
+            if (navigator.permissions && navigator.permissions.query) {
+                try {
+                    const status = await navigator.permissions.query({ name: 'microphone' });
+                    if (status.state === 'denied') {
+                        isDenied = true;
+                    }
+                } catch(e) {}
+            }
+
             // Empezar a grabar
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -292,10 +353,18 @@
                 
                 // Pequeño sonido indicador o vibración si el móvil lo soporta
                 if (navigator.vibrate) navigator.vibrate(80);
+                if (window.appAlert) window.appAlert("🎙️ Grabando nota de voz...", "info");
             } catch (err) {
                 console.error("Error al acceder al micrófono:", err);
-                if (window.appAlert) {
-                    window.appAlert("No se pudo acceder al micrófono para grabar la nota de voz. Otorga los permisos necesarios.", "error");
+                const retry = await showMicPermissionDialog(true);
+                if (retry) {
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        stream.getTracks().forEach(track => track.stop());
+                        if (window.appAlert) window.appAlert("¡Permiso de micrófono concedido! Pulsa de nuevo para grabar.", "success");
+                    } catch(e2) {
+                        if (window.appAlert) window.appAlert("No se pudo activar el micrófono. Revisa los permisos del navegador en el candado 🔒 superior.", "error");
+                    }
                 }
             }
         } else {
@@ -306,6 +375,7 @@
             isRecording = false;
             micBtn.classList.remove('recording');
             if (navigator.vibrate) navigator.vibrate([40, 40]);
+            if (window.appAlert) window.appAlert("✓ Nota de voz guardada correctamente.", "success");
         }
     };
 

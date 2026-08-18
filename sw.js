@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2526';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2527';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Corrección en apertura del modal de edición de ficha de operario en el panel de administración.';
+const UPDATE_NOTES = 'Versión 0.1.12: Modal interactivo y gestión guiada de permisos para el micrófono y grabación de notas de voz.';
 
 const ASSETS = [
   './',
