@@ -5884,8 +5884,10 @@ function welcomeActionLocal() {
     }
 }
 
+let isFirstMapLoad = true;
+
 // Descargar tramos asignados al equipo del operario desde Supabase (Smart Cache)
-async function loadAssignedSegments(userId) {
+async function loadAssignedSegments(userId, shouldFitBounds = false) {
     if (!supabaseClient) return;
 
     // 1. Cargar inmediatamente desde la caché local si existe (para respuesta instantánea offline)
@@ -6050,8 +6052,20 @@ async function loadAssignedSegments(userId) {
 
         saveToLocalStorage();
         if (map && tramosLayerGroup) {
+            // Guardar posición, zoom y estado de popup del usuario antes de redibujar
+            const savedCenter = map.getCenter();
+            const savedZoom = map.getZoom();
+            const hadUserView = !isFirstMapLoad || !shouldFitBounds;
+
             renderTramosOnMap();
-            fitMapToBounds();
+
+            if (shouldFitBounds && isFirstMapLoad) {
+                fitMapToBounds();
+                isFirstMapLoad = false;
+            } else if (hadUserView && savedCenter && savedZoom) {
+                // Restaurar la vista exacta sin resetear el zoom ni mover el mapa
+                map.setView(savedCenter, savedZoom, { animate: false });
+            }
         }
         updateTramosList();
         updateLoadedFilesList();

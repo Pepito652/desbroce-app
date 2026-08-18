@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2521';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2522';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Consistencia bidireccional total entre móvil y base de datos Supabase para tramos completados y repasos.';
+const UPDATE_NOTES = 'Versión 0.1.12: Preservación absoluta del zoom, centro y vista del mapa móvil durante la sincronización automática en tiempo real.';
 
 const ASSETS = [
   './',
