@@ -4227,10 +4227,10 @@ function loadFromLocalStorage(shouldFitBounds = false) {
 
                 renderTramosOnMap();
 
-                if (shouldFitBounds && isFirstMapLoad) {
+                if (!mapHasFittedInitialData && state.tramos.length > 0) {
                     fitMapToBounds();
-                    isFirstMapLoad = false;
-                } else if (savedCenter && savedZoom) {
+                    mapHasFittedInitialData = true;
+                } else if (mapHasFittedInitialData && savedCenter && savedZoom) {
                     map.setView(savedCenter, savedZoom, { animate: false });
                 }
             }
@@ -5893,10 +5893,10 @@ function welcomeActionLocal() {
     }
 }
 
-let isFirstMapLoad = true;
+let mapHasFittedInitialData = false;
 
 // Descargar tramos asignados al equipo del operario desde Supabase (Smart Cache)
-async function loadAssignedSegments(userId, shouldFitBounds = false) {
+async function loadAssignedSegments(userId) {
     if (!supabaseClient) return;
 
     // 1. Cargar inmediatamente desde la caché local si existe (para respuesta instantánea offline)
@@ -6064,15 +6064,15 @@ async function loadAssignedSegments(userId, shouldFitBounds = false) {
             // Guardar posición, zoom y estado de popup del usuario antes de redibujar
             const savedCenter = map.getCenter();
             const savedZoom = map.getZoom();
-            const hadUserView = !isFirstMapLoad || !shouldFitBounds;
 
             renderTramosOnMap();
 
-            if (shouldFitBounds && isFirstMapLoad) {
+            if (!mapHasFittedInitialData && newTramos.length > 0) {
+                // Primer encuadre automático al abrir la app con tramos
                 fitMapToBounds();
-                isFirstMapLoad = false;
-            } else if (hadUserView && savedCenter && savedZoom) {
-                // Restaurar la vista exacta sin resetear el zoom ni mover el mapa
+                mapHasFittedInitialData = true;
+            } else if (mapHasFittedInitialData && savedCenter && savedZoom) {
+                // Actualizaciones en segundo plano: preservar exactamente el zoom y posición del usuario
                 map.setView(savedCenter, savedZoom, { animate: false });
             }
         }

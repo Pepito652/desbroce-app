@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2523';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2524';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Eliminación total de reseteos de zoom durante la sincronización de caché local y nube.';
+const UPDATE_NOTES = 'Versión 0.1.12: Encuadre automático inicial a los tramos asignados al abrir la app y preservación total del zoom en segundo plano.';
 
 const ASSETS = [
   './',
