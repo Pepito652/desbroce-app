@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2517';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2518';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Asignación de tramos extras a planos específicos y órdenes de repaso con fotos de inspección, enlace/coordenadas Google Maps e historial.';
+const UPDATE_NOTES = 'Versión 0.1.12: Corrección en guardado de órdenes de repaso con fotos Drag & Drop (máx. 3), compresión automática y compatibilidad total con base de datos.';
 
 const ASSETS = [
   './',

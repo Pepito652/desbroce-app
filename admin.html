@@ -603,11 +603,26 @@
                     <textarea id="reworkCommentInput" name="reworkCommentInput" required rows="3" placeholder="Ej: Repasar margen derecho desde la cantera al puente. Zarzas altas en bionda." style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-family: var(--font-family); font-size: 0.82rem; box-sizing: border-box; resize: vertical;"></textarea>
                 </div>
 
-                <!-- Fotos Adjuntas -->
+                <!-- Fotos Adjuntas Drag & Drop (Máximo 3 fotos) -->
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <label for="reworkPhotosInput" style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">Adjuntar Fotos de Inspección (Opcional)</label>
-                    <input type="file" id="reworkPhotosInput" name="reworkPhotosInput" accept="image/*" multiple onchange="handleReworkPhotosSelected(event)" style="font-size: 0.75rem; color: var(--text-secondary);">
-                    <div id="reworkPhotosPreview" style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;"></div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <label style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">Fotos de Inspección (Máx. 3 fotos)</label>
+                        <span id="reworkPhotoCounter" style="font-size: 0.68rem; color: var(--text-secondary);">0 / 3</span>
+                    </div>
+
+                    <div id="reworkDropZone" 
+                         onclick="document.getElementById('reworkPhotosInput').click()" 
+                         ondragover="handleReworkDragOver(event)" 
+                         ondragleave="handleReworkDragLeave(event)" 
+                         ondrop="handleReworkDrop(event)" 
+                         style="border: 2px dashed rgba(249,115,22,0.35); border-radius: 8px; padding: 1rem; text-align: center; cursor: pointer; background: rgba(249,115,22,0.03); transition: all 0.2s;">
+                        <div style="font-size: 1.5rem; margin-bottom: 2px;">📸</div>
+                        <strong style="font-size: 0.78rem; color: #fff; display: block;">Arrastra hasta 3 fotos aquí</strong>
+                        <span style="font-size: 0.65rem; color: var(--text-secondary);">o haz clic para seleccionar desde tu dispositivo</span>
+                        <input type="file" id="reworkPhotosInput" name="reworkPhotosInput" accept="image/*" multiple style="display: none;" onchange="handleReworkPhotosSelected(event)">
+                    </div>
+
+                    <div id="reworkPhotosPreview" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px;"></div>
                 </div>
 
                 <div style="display: flex; gap: 8px; margin-top: 0.5rem;">
@@ -1618,21 +1633,11 @@
                 const assignedTeamId = log ? log.team_id : null;
                 const status = log ? log.status : 'pendiente';
 
-                let color = '#9ca3af';
-                if (status === 'completado') {
-                    color = '#10b981';
-                } else if (status === 'repaso') {
-                    color = '#f97316'; // Naranja / Ámbar para Repaso Solicitado
-                } else if (status === 'en_progreso') {
-                    color = '#fbbf24';
-                } else if (status === 'incidencia') {
-                    color = '#ef4444';
-                }
-
                 let leftMargin = 'pending';
                 let rightMargin = 'pending';
                 let week = null;
                 let alerts = [];
+                let hasActiveRework = false;
 
                 if (log && log.notes && typeof log.notes === 'string' && log.notes.startsWith('{')) {
                     try {
@@ -1641,7 +1646,21 @@
                         if (parsed.right_margin) rightMargin = parsed.right_margin;
                         if (parsed.week) week = parsed.week;
                         if (Array.isArray(parsed.alerts)) alerts = parsed.alerts;
+                        if (parsed.active_rework) hasActiveRework = true;
                     } catch(e) {}
+                }
+
+                let effectiveStatus = status;
+                let color = '#9ca3af';
+                if (hasActiveRework || status === 'repaso') {
+                    effectiveStatus = 'repaso';
+                    color = '#f97316'; // Naranja para Repaso
+                } else if (status === 'completado') {
+                    color = '#10b981';
+                } else if (status === 'en_progreso') {
+                    color = '#fbbf24';
+                } else if (status === 'incidencia') {
+                    color = '#ef4444';
                 }
 
                 const teamObj = teams.find(t => t.id === assignedTeamId);
@@ -1650,7 +1669,7 @@
                 // Añadir siempre al mapa completo para la pestaña Archivos y Planos
                 const masterFName = seg.file_name || "Tramos sueltos / Sin archivo";
                 if (!allFilesMapForMaster[masterFName]) allFilesMapForMaster[masterFName] = [];
-                allFilesMapForMaster[masterFName].push({ seg, log, status, color, leftMargin, rightMargin, week, alertsCount: alerts.length, teamName, assignedTeamId });
+                allFilesMapForMaster[masterFName].push({ seg, log, status: effectiveStatus, color, leftMargin, rightMargin, week, alertsCount: alerts.length, teamName, assignedTeamId });
 
                 // Filtrar según el equipo seleccionado en el panel de resumen
                 if (currentAdminTeamFilter !== 'all' && assignedTeamId !== currentAdminTeamFilter) {
@@ -1658,7 +1677,7 @@
                 }
 
                 totalFilteredCount++;
-                if (status === 'completado') completedCount++;
+                if (effectiveStatus === 'completado') completedCount++;
 
                 if (seg.kml_data) {
                     try {
@@ -1673,7 +1692,7 @@
                             let popupHtml = `<div style="font-family: var(--font-family); font-size: 0.75rem; color: #fff;">
                                 <strong style="font-size: 0.85rem; color: #60a5fa;">${seg.name}</strong><br>
                                 <div style="margin-top: 4px;">Equipo: <strong style="color: var(--accent);">${teamName}</strong></div>
-                                <div>Estado General: <strong style="text-transform: uppercase; color: ${color};">${status}</strong></div>`;
+                                <div>Estado General: <strong style="text-transform: uppercase; color: ${color};">${effectiveStatus}</strong></div>`;
                             if (week) popupHtml += `<div>Semana: <strong style="color: #818cf8;">${week}</strong></div>`;
                             popupHtml += `<div style="margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 4px;">
                                 Márgenes:<br>
@@ -1863,7 +1882,7 @@
             if (window.lucide) window.lucide.createIcons();
         }
 
-        // --- GESTIÓN DE REPASOS CON FOTOS Y UBICACIÓN (ADMIN) ---
+        // --- GESTIÓN DE REPASOS CON FOTOS (DRAG & DROP, MÁX. 3) Y UBICACIÓN (ADMIN) ---
         let currentReworkPhotos = [];
 
         function openReworkModal(segmentId) {
@@ -1875,8 +1894,8 @@
             document.getElementById('reworkLocationInput').value = '';
             document.getElementById('reworkCommentInput').value = '';
             document.getElementById('reworkPhotosInput').value = '';
-            document.getElementById('reworkPhotosPreview').innerHTML = '';
             currentReworkPhotos = [];
+            renderReworkPhotosPreview();
 
             const modal = document.getElementById('reworkModalOverlay');
             if (modal) {
@@ -1890,28 +1909,119 @@
             if (modal) modal.style.display = 'none';
         }
 
+        function handleReworkDragOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const zone = document.getElementById('reworkDropZone');
+            if (zone) {
+                zone.style.borderColor = 'var(--accent)';
+                zone.style.background = 'rgba(16,185,129,0.08)';
+            }
+        }
+
+        function handleReworkDragLeave(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const zone = document.getElementById('reworkDropZone');
+            if (zone) {
+                zone.style.borderColor = 'rgba(249,115,22,0.35)';
+                zone.style.background = 'rgba(249,115,22,0.03)';
+            }
+        }
+
+        function handleReworkDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleReworkDragLeave(e);
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+            processReworkPhotoFiles(files);
+        }
+
         function handleReworkPhotosSelected(e) {
-            const files = Array.from(e.target.files);
-            const previewContainer = document.getElementById('reworkPhotosPreview');
-            previewContainer.innerHTML = '';
-            currentReworkPhotos = [];
+            const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+            processReworkPhotoFiles(files);
+        }
 
-            files.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const base64 = event.target.result;
-                    currentReworkPhotos.push(base64);
+        function processReworkPhotoFiles(files) {
+            if (files.length === 0) return;
 
-                    const img = document.createElement('img');
-                    img.src = base64;
-                    img.style.width = '55px';
-                    img.style.height = '55px';
-                    img.style.objectFit = 'cover';
-                    img.style.borderRadius = '4px';
-                    img.style.border = '1px solid var(--border-color)';
-                    previewContainer.appendChild(img);
+            const remainingSlots = 3 - currentReworkPhotos.length;
+            if (remainingSlots <= 0) {
+                alert("Ya has alcanzado el límite máximo de 3 fotos para esta orden de repaso.");
+                return;
+            }
+
+            const filesToProcess = files.slice(0, remainingSlots);
+            if (files.length > remainingSlots) {
+                alert(`Solo se han añadido las primeras ${remainingSlots} fotos (máximo 3 fotos permitidas).`);
+            }
+
+            filesToProcess.forEach(file => {
+                compressImageFile(file, 900, 0.75, (compressedBase64) => {
+                    if (currentReworkPhotos.length < 3) {
+                        currentReworkPhotos.push(compressedBase64);
+                        renderReworkPhotosPreview();
+                    }
+                });
+            });
+        }
+
+        // Compresor de imágenes en Canvas para evitar sobrecarga en la base de datos
+        function compressImageFile(file, maxDimension, quality, callback) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > maxDimension || height > maxDimension) {
+                        if (width > height) {
+                            height = Math.round((height * maxDimension) / width);
+                            width = maxDimension;
+                        } else {
+                            width = Math.round((width * maxDimension) / height);
+                            height = maxDimension;
+                        }
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+                    callback(compressedBase64);
                 };
-                reader.readAsDataURL(file);
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeReworkPhoto(index) {
+            currentReworkPhotos.splice(index, 1);
+            renderReworkPhotosPreview();
+        }
+
+        function renderReworkPhotosPreview() {
+            const previewContainer = document.getElementById('reworkPhotosPreview');
+            const counterEl = document.getElementById('reworkPhotoCounter');
+            if (counterEl) counterEl.innerText = `${currentReworkPhotos.length} / 3`;
+            if (!previewContainer) return;
+
+            previewContainer.innerHTML = '';
+            currentReworkPhotos.forEach((photoBase64, idx) => {
+                const card = document.createElement('div');
+                card.style.position = 'relative';
+                card.style.width = '64px';
+                card.style.height = '64px';
+
+                card.innerHTML = `
+                    <img src="${photoBase64}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color);">
+                    <button type="button" onclick="removeReworkPhoto(${idx})" style="position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; border-radius: 50%; background: #ef4444; color: #fff; border: none; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1;">×</button>
+                `;
+                previewContainer.appendChild(card);
             });
         }
 
@@ -1980,9 +2090,11 @@
                     existingNotesObj.repass_history = [];
                 }
 
+                // Guardamos en notes el estado 'repaso'.
+                // En status de la tabla usamos 'en_progreso' o 'repaso' según la versión del enum en BD
                 const payload = {
                     segment_id: segId,
-                    status: 'repaso',
+                    status: 'en_progreso',
                     notes: JSON.stringify(existingNotesObj),
                     updated_at: new Date().toISOString()
                 };
