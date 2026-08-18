@@ -571,7 +571,53 @@
                 </div>
             </section>
 
-        </main>
+    <!-- Modal de Orden de Repaso / Inspección (Admin) -->
+    <div id="reworkModalOverlay" class="custom-dialog-overlay" style="display: none; z-index: 9999;">
+        <div class="custom-dialog-card animate-scale-up" style="max-width: 440px; padding: 1.5rem; text-align: left; align-items: stretch; gap: 0.85rem; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 1.1rem; font-weight: bold; margin: 0; color: #f97316; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="alert-triangle" style="width: 18px; height: 18px;"></i> Solicitar Repaso / Inspección
+                </h3>
+                <button onclick="closeReworkModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.25rem; cursor: pointer; padding: 4px;">×</button>
+            </div>
+
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">
+                Carretera: <strong id="reworkTramoNameLabel" style="color: #fff;">-</strong>
+            </p>
+
+            <form id="reworkOrderForm" name="reworkOrderForm" onsubmit="handleSaveReworkOrder(event)" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <input type="hidden" id="reworkSegmentId" name="reworkSegmentId">
+
+                <!-- Ubicación: Enlace de Google Maps o Coordenadas -->
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label for="reworkLocationInput" style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">
+                        Ubicación (Enlace Google Maps o Lat,Lng)
+                    </label>
+                    <input type="text" id="reworkLocationInput" name="reworkLocationInput" placeholder="Ej: https://maps.app.goo.gl/... o 43.312,-5.834" style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-family: var(--font-family); font-size: 0.82rem; box-sizing: border-box;">
+                    <span style="font-size: 0.65rem; color: var(--text-secondary);">Pega el enlace de Maps que mandó el inspector o las coordenadas directas.</span>
+                </div>
+
+                <!-- Comentario / Instrucciones del Inspector -->
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label for="reworkCommentInput" style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">Instrucciones / Observaciones</label>
+                    <textarea id="reworkCommentInput" name="reworkCommentInput" required rows="3" placeholder="Ej: Repasar margen derecho desde la cantera al puente. Zarzas altas en bionda." style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-family: var(--font-family); font-size: 0.82rem; box-sizing: border-box; resize: vertical;"></textarea>
+                </div>
+
+                <!-- Fotos Adjuntas -->
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label for="reworkPhotosInput" style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">Adjuntar Fotos de Inspección (Opcional)</label>
+                    <input type="file" id="reworkPhotosInput" name="reworkPhotosInput" accept="image/*" multiple onchange="handleReworkPhotosSelected(event)" style="font-size: 0.75rem; color: var(--text-secondary);">
+                    <div id="reworkPhotosPreview" style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;"></div>
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-top: 0.5rem;">
+                    <button type="button" onclick="closeReworkModal()" class="btn btn-secondary btn-sm" style="flex: 1; padding: 0.6rem;">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-sm" style="flex: 1.5; padding: 0.6rem; background: #f97316; border-color: #ea580c; font-weight: bold;">
+                        Guardar y Notificar Repaso
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- Modal Flotante de Autenticación / Registro (Supabase) -->
@@ -1793,11 +1839,14 @@
                             <div style="display:flex; justify-content:space-between; margin-bottom: 4px; font-size: 0.65rem;">
                                 ${leftBadge} | ${rightBadge}
                             </div>
-                            <div style="display:flex; align-items:center; gap:6px;">
+                            <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
                                 <span style="font-size:0.65rem; color:var(--text-secondary);">Equipo:</span>
                                 <select onchange="assignTramoToTeam('${item.seg.id}', this.value)" style="flex:1; padding:2px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:4px; color:#fff; font-size:0.65rem; font-family:var(--font-family);">
                                     ${teamOpts}
                                 </select>
+                                <button onclick="openReworkModal('${item.seg.id}')" class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.65rem; background:rgba(249,115,22,0.15); color:#f97316; border:1px solid rgba(249,115,22,0.3); border-radius:4px; cursor:pointer;" title="Solicitar repaso con fotos y ubicación">
+                                    ⚠️ Repaso
+                                </button>
                             </div>
                         `;
                         ul.appendChild(li);
@@ -1812,6 +1861,146 @@
             renderMasterFilesManager(allFilesMapForMaster);
 
             if (window.lucide) window.lucide.createIcons();
+        }
+
+        // --- GESTIÓN DE REPASOS CON FOTOS Y UBICACIÓN (ADMIN) ---
+        let currentReworkPhotos = [];
+
+        function openReworkModal(segmentId) {
+            const seg = segments.find(s => s.id === segmentId);
+            if (!seg) return;
+
+            document.getElementById('reworkSegmentId').value = segmentId;
+            document.getElementById('reworkTramoNameLabel').innerText = seg.name;
+            document.getElementById('reworkLocationInput').value = '';
+            document.getElementById('reworkCommentInput').value = '';
+            document.getElementById('reworkPhotosInput').value = '';
+            document.getElementById('reworkPhotosPreview').innerHTML = '';
+            currentReworkPhotos = [];
+
+            const modal = document.getElementById('reworkModalOverlay');
+            if (modal) {
+                modal.style.display = 'flex';
+                if (window.lucide) window.lucide.createIcons();
+            }
+        }
+
+        function closeReworkModal() {
+            const modal = document.getElementById('reworkModalOverlay');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function handleReworkPhotosSelected(e) {
+            const files = Array.from(e.target.files);
+            const previewContainer = document.getElementById('reworkPhotosPreview');
+            previewContainer.innerHTML = '';
+            currentReworkPhotos = [];
+
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const base64 = event.target.result;
+                    currentReworkPhotos.push(base64);
+
+                    const img = document.createElement('img');
+                    img.src = base64;
+                    img.style.width = '55px';
+                    img.style.height = '55px';
+                    img.style.objectFit = 'cover';
+                    img.style.borderRadius = '4px';
+                    img.style.border = '1px solid var(--border-color)';
+                    previewContainer.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Extraer coordenadas de un enlace de Google Maps o string "lat, lng"
+        function extractCoordsFromInput(inputStr) {
+            if (!inputStr) return null;
+            const str = inputStr.trim();
+
+            // Formato 1: "43.31234, -5.83412"
+            const directMatch = str.match(/([-+]?\d{1,2}\.\d+)\s*,\s*([-+]?\d{1,3}\.\d+)/);
+            if (directMatch) {
+                return { lat: parseFloat(directMatch[1]), lng: parseFloat(directMatch[2]) };
+            }
+
+            // Formato 2: "@43.31234,-5.83412" en URLs de Google Maps
+            const urlAtMatch = str.match(/@([-+]?\d{1,2}\.\d+),([-+]?\d{1,3}\.\d+)/);
+            if (urlAtMatch) {
+                return { lat: parseFloat(urlAtMatch[1]), lng: parseFloat(urlAtMatch[2]) };
+            }
+
+            // Formato 3: "q=43.31234,-5.83412" o "destination=43.31234,-5.83412"
+            const qMatch = str.match(/[?&](?:q|destination|ll)=([-+]?\d{1,2}\.\d+),([-+]?\d{1,3}\.\d+)/);
+            if (qMatch) {
+                return { lat: parseFloat(qMatch[1]), lng: parseFloat(qMatch[2]) };
+            }
+
+            return null;
+        }
+
+        async function handleSaveReworkOrder(e) {
+            if (e) e.preventDefault();
+
+            const segId = document.getElementById('reworkSegmentId').value;
+            const locationStr = document.getElementById('reworkLocationInput').value;
+            const comment = document.getElementById('reworkCommentInput').value;
+
+            const coords = extractCoordsFromInput(locationStr);
+
+            try {
+                // Obtener work_log actual
+                const { data: existing } = await supabaseClient
+                    .from('work_logs')
+                    .select('*')
+                    .eq('segment_id', segId)
+                    .maybeSingle();
+
+                let existingNotesObj = {};
+                if (existing && existing.notes && typeof existing.notes === 'string' && existing.notes.startsWith('{')) {
+                    try { existingNotesObj = JSON.parse(existing.notes); } catch(err) {}
+                }
+
+                // Estructura de la orden de repaso
+                const reworkOrder = {
+                    id: 'rw_' + Date.now(),
+                    date: new Date().toISOString(),
+                    comment: comment,
+                    locationStr: locationStr,
+                    lat: coords ? coords.lat : null,
+                    lng: coords ? coords.lng : null,
+                    photos: currentReworkPhotos,
+                    resolved: false
+                };
+
+                existingNotesObj.active_rework = reworkOrder;
+                if (!Array.isArray(existingNotesObj.repass_history)) {
+                    existingNotesObj.repass_history = [];
+                }
+
+                const payload = {
+                    segment_id: segId,
+                    status: 'repaso',
+                    notes: JSON.stringify(existingNotesObj),
+                    updated_at: new Date().toISOString()
+                };
+
+                if (existing) {
+                    payload.id = existing.id;
+                    if (existing.team_id) payload.team_id = existing.team_id;
+                }
+
+                const { error } = await supabaseClient.from('work_logs').upsert(payload);
+                if (error) throw error;
+
+                closeReworkModal();
+                alert("¡Orden de repaso registrada con éxito! La carretera ha pasado a estado REPASO (naranja) y el equipo podrá ver las fotos, ubicación y comentarios.");
+                loadSegmentsAndLogs();
+            } catch (err) {
+                alert("Error al guardar orden de repaso: " + err.message);
+            }
         }
 
         async function assignTramoToTeam(segmentId, teamId) {

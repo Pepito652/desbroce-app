@@ -1904,16 +1904,55 @@ function openRoadDetail(tramoId, focusMap = true) {
                         <span><strong>Estado:</strong> <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span></span>
                     </div>
                     
+                    <!-- Banner de Repaso Solicitado por Inspector / Oficina -->
+                    ${tramo.activeRework ? `
+                        <div style="margin: 8px 0; background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.4); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 6px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong style="font-size: 0.85rem; color: #f97316; display: flex; align-items: center; gap: 6px;">
+                                    <i data-lucide="alert-triangle" style="width: 16px; height: 16px;"></i> ORDEN DE REPASO
+                                </strong>
+                                <span style="font-size: 0.65rem; color: #cbd5e1;">${new Date(tramo.activeRework.date).toLocaleDateString()}</span>
+                            </div>
+                            
+                            <p style="font-size: 0.8rem; color: #f3f4f6; margin: 0; line-height: 1.35;">
+                                ${tramo.activeRework.comment || 'Repaso solicitado en este tramo.'}
+                            </p>
+
+                            <!-- Miniaturas de Fotos Adjuntas -->
+                            ${(tramo.activeRework.photos && tramo.activeRework.photos.length > 0) ? `
+                                <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;">
+                                    ${tramo.activeRework.photos.map((p, idx) => `
+                                        <img src="${p}" onclick="openPhotoModal('${p}')" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid rgba(249,115,22,0.5); cursor: pointer;" title="Ver foto ampliada">
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+
+                            <!-- Botones de Acción de Repaso -->
+                            <div style="display: flex; gap: 6px; margin-top: 6px;">
+                                ${(tramo.activeRework.lat && tramo.activeRework.lng) ? `
+                                    <a href="https://www.google.com/maps/dir/?api=1&destination=${tramo.activeRework.lat},${tramo.activeRework.lng}" target="_blank" rel="noopener noreferrer"
+                                       style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 6px; background: #3b82f6; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 0.75rem;">
+                                        <i data-lucide="navigation" style="width: 13px; height: 13px;"></i> Ir al Punto Repaso
+                                    </a>
+                                ` : ''}
+                                <button onclick="resolveTramoRework('${tramo.id}')"
+                                        style="flex: 1.2; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 6px; background: #10b981; color: #fff; border: none; border-radius: 6px; font-weight: bold; font-size: 0.75rem; cursor: pointer;">
+                                    <i data-lucide="check-circle" style="width: 13px; height: 13px;"></i> Repaso Solventado
+                                </button>
+                            </div>
+                        </div>
+                    ` : ''}
+
                     <!-- Control de Márgenes -->
                     <div style="margin: 10px 0 8px 0; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px;">
                         <strong style="display: block; margin-bottom: 6px; font-size: 0.75rem; color: #fff;">Márgenes de Carretera:</strong>
                         <div style="display: flex; gap: 6px; justify-content: space-between;">
                             <button onclick="toggleMarginStatusPopup('${tramo.id}', 'right')" 
-                                    style="flex: 1; font-size: 0.85rem; padding: 12px 8px; border: 1px solid ${rightMarginColor}; background: ${tramo.rightMarginStatus === 'completed' ? 'rgba(16,185,129,0.1)' : 'transparent'}; color: ${rightMarginColor}; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s;">
+                                     style="flex: 1; font-size: 0.85rem; padding: 12px 8px; border: 1px solid ${rightMarginColor}; background: ${tramo.rightMarginStatus === 'completed' ? 'rgba(16,185,129,0.1)' : 'transparent'}; color: ${rightMarginColor}; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s;">
                                 Der: ${rightMarginLabel}
                             </button>
                             <button onclick="toggleMarginStatusPopup('${tramo.id}', 'left')" 
-                                    style="flex: 1; font-size: 0.85rem; padding: 12px 8px; border: 1px solid ${leftMarginColor}; background: ${tramo.leftMarginStatus === 'completed' ? 'rgba(16,185,129,0.1)' : 'transparent'}; color: ${leftMarginColor}; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s;">
+                                     style="flex: 1; font-size: 0.85rem; padding: 12px 8px; border: 1px solid ${leftMarginColor}; background: ${tramo.leftMarginStatus === 'completed' ? 'rgba(16,185,129,0.1)' : 'transparent'}; color: ${leftMarginColor}; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s;">
                                 Izq: ${leftMarginLabel}
                             </button>
                         </div>
@@ -5934,6 +5973,8 @@ async function loadAssignedSegments(userId) {
             let dateComp = log ? log.updated_at : null;
             let weekComp = null;
             let cloudAlerts = [];
+            let activeReworkObj = null;
+            let repassHistoryList = [];
 
             if (log) {
                 if (log.status === 'completado') {
@@ -5957,8 +5998,14 @@ async function loadAssignedSegments(userId) {
                         if (parsedNotes.week) weekComp = parsedNotes.week;
                         if (parsedNotes.date) dateComp = parsedNotes.date;
                         if (Array.isArray(parsedNotes.alerts)) cloudAlerts = parsedNotes.alerts;
+                        if (parsedNotes.active_rework) activeReworkObj = parsedNotes.active_rework;
+                        if (Array.isArray(parsedNotes.repass_history)) repassHistoryList = parsedNotes.repass_history;
                     } catch(e) {}
                 }
+            }
+
+            if (log && log.status === 'repaso') {
+                localStatus = 'repaso';
             }
 
             // Si hay un estado local modificado pendiente de subir, priorizar el estado del operario
@@ -5971,7 +6018,10 @@ async function loadAssignedSegments(userId) {
             }
 
             const chosenWeek = weekComp || (localStatus === 'completed' ? 'W34-2026' : null);
-            const chosenColor = localStatus === 'completed' ? getWeekColor(chosenWeek) : (localStatus === 'partial' ? '#f59e0b' : '#6366f1');
+            let chosenColor = '#6366f1';
+            if (localStatus === 'completed') chosenColor = getWeekColor(chosenWeek);
+            else if (localStatus === 'repaso') chosenColor = '#f97316';
+            else if (localStatus === 'partial') chosenColor = '#f59e0b';
 
             newTramos.push({
                 id: seg.id,
@@ -5987,6 +6037,8 @@ async function loadAssignedSegments(userId) {
                 color: chosenColor,
                 weekNumber: 1,
                 weekCompleted: chosenWeek,
+                activeRework: activeReworkObj,
+                repassHistory: repassHistoryList,
                 observaciones: (existingLocal && existingLocal.observaciones && existingLocal.observaciones.length > 0) ? existingLocal.observaciones : cloudAlerts,
                 mapLayer: null
             });
@@ -6145,15 +6197,71 @@ function cancelEarthDrawMode() {
     logDebug("Modo de trazado manual cancelado.");
 }
 
-async function finishEarthDrawMode() {
+function finishEarthDrawMode() {
     if (earthDrawPoints.length < 2) {
         alert("Debes añadir al menos 2 puntos para crear una carretera.");
         return;
     }
 
-    let defaultName = `Tramo Extra ${new Date().toLocaleDateString()}`;
-    const roadName = prompt("Introduce el nombre o referencia de este tramo extra:", defaultName);
-    if (!roadName || !roadName.trim()) return;
+    let totalMeters = 0;
+    for (let i = 0; i < earthDrawPoints.length - 1; i++) {
+        const p1 = L.latLng(earthDrawPoints[i]);
+        const p2 = L.latLng(earthDrawPoints[i+1]);
+        totalMeters += p1.distanceTo(p2);
+    }
+    const finalMeters = Math.round(totalMeters);
+
+    const lengthText = finalMeters >= 1000 ? `${(finalMeters / 1000).toFixed(2)} km (${finalMeters} m)` : `${finalMeters} metros`;
+    const lengthTextEl = document.getElementById('saveManualTramoLengthText');
+    if (lengthTextEl) lengthTextEl.innerText = lengthText;
+
+    // Rellenar opciones de planos cargados
+    const planSelect = document.getElementById('manualTramoPlanSelect');
+    if (planSelect) {
+        planSelect.innerHTML = '';
+        if (state.loadedFiles && state.loadedFiles.length > 0) {
+            state.loadedFiles.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f.name;
+                opt.innerText = f.name;
+                planSelect.appendChild(opt);
+            });
+        }
+        const generalOpt = document.createElement('option');
+        generalOpt.value = 'Tramos Extras / Sin Plano';
+        generalOpt.innerText = 'Tramos Extras / Sin Plano';
+        planSelect.appendChild(generalOpt);
+    }
+
+    const nameInput = document.getElementById('manualTramoNameInput');
+    if (nameInput) {
+        nameInput.value = `Ramal Extra ${new Date().toLocaleDateString()}`;
+    }
+
+    const modal = document.getElementById('saveManualTramoModalOverlay');
+    if (modal) {
+        modal.style.display = 'flex';
+        if (window.lucide) window.lucide.createIcons();
+    }
+}
+
+function closeSaveManualTramoModal() {
+    const modal = document.getElementById('saveManualTramoModalOverlay');
+    if (modal) modal.style.display = 'none';
+}
+
+async function handleConfirmSaveManualTramo(e) {
+    if (e) e.preventDefault();
+
+    const nameInput = document.getElementById('manualTramoNameInput');
+    const planSelect = document.getElementById('manualTramoPlanSelect');
+    const roadName = nameInput ? nameInput.value.trim() : '';
+    const selectedPlan = planSelect ? planSelect.value : 'Tramos Extras / Sin Plano';
+
+    if (!roadName) {
+        alert("Introduce un nombre para el tramo.");
+        return;
+    }
 
     let totalMeters = 0;
     for (let i = 0; i < earthDrawPoints.length - 1; i++) {
@@ -6169,10 +6277,23 @@ async function finishEarthDrawMode() {
     const { week, year } = getISOWeekAndYear(today);
     const weekStr = `W${week}-${year}`;
 
+    // Buscar si ya tenemos un fileId para ese plano en local
+    let fileObj = state.loadedFiles.find(f => f.name === selectedPlan);
+    let targetFileId = fileObj ? fileObj.id : ('file_' + Date.now());
+
+    if (!fileObj) {
+        fileObj = {
+            id: targetFileId,
+            name: selectedPlan,
+            timestamp: Date.now()
+        };
+        state.loadedFiles.push(fileObj);
+    }
+
     const newRoadObj = {
         id: newTramoId,
-        name: roadName.trim() + " [Extra]",
-        fileId: "tramos_manuales",
+        name: roadName + " [Extra]",
+        fileId: targetFileId,
         coordinates: earthDrawPoints.map(p => [...p]),
         originalCoordinates: earthDrawPoints.map(p => [...p]),
         length: finalMeters,
@@ -6191,12 +6312,14 @@ async function finishEarthDrawMode() {
     saveToLocalStorage();
     renderTramosOnMap();
     updateTramosList();
+    updateLoadedFilesList();
     updateStats();
 
-    // Sincronizar inmediatamente con la nube en Supabase si está autenticado
+    // Sincronizar con Supabase asignándolo al file_name correspondiente
     if (typeof window.queueTramoForSync === 'function') {
         window.queueTramoForSync(newTramoId, {
             name: newRoadObj.name,
+            file_name: selectedPlan,
             kml_data: JSON.stringify(earthDrawPoints),
             length_meters: finalMeters,
             status: 'completed',
@@ -6208,9 +6331,84 @@ async function finishEarthDrawMode() {
         });
     }
 
+    closeSaveManualTramoModal();
     cancelEarthDrawMode();
-    alert(`¡Carretera guardada con éxito!\nLongitud registrada: ${finalMeters} metros.`);
-    logDebug(`Carretera manual creada: ${newRoadObj.name} (${finalMeters} m).`, "success");
+    alert(`¡Carretera guardada con éxito en "${selectedPlan}"!\nLongitud: ${finalMeters} metros.`);
+    logDebug(`Carretera manual creada: ${newRoadObj.name} en plano '${selectedPlan}' (${finalMeters} m).`, "success");
+}
+
+// --- RESOLUCIÓN DE REPASOS Y VISOR DE FOTOS ---
+
+function openPhotoModal(imgSrc) {
+    let modal = document.getElementById('photoViewerModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'photoViewerModal';
+        modal.className = 'custom-dialog-overlay';
+        modal.style.zIndex = '20002';
+        modal.onclick = () => modal.style.display = 'none';
+        modal.innerHTML = `
+            <div class="custom-dialog-card animate-scale-up" style="max-width: 90vw; max-height: 85vh; padding: 8px; background: rgba(0,0,0,0.9); border: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+                <button onclick="document.getElementById('photoViewerModal').style.display='none'" style="position: absolute; top: 6px; right: 10px; background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; z-index: 10;">×</button>
+                <img id="photoViewerImg" src="" style="max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 6px;">
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    const imgEl = document.getElementById('photoViewerImg');
+    if (imgEl) imgEl.src = imgSrc;
+    modal.style.display = 'flex';
+}
+
+async function resolveTramoRework(tramoId) {
+    const tramo = state.tramos.find(t => t.id === tramoId);
+    if (!tramo) return;
+
+    if (!confirm(`¿Confirmas que el repaso de "${tramo.name}" ha sido completado y solventado?`)) return;
+
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0];
+    const { week, year } = getISOWeekAndYear(today);
+    const weekStr = `W${week}-${year}`;
+
+    // Mover activeRework a repassHistory con resolved_at
+    if (tramo.activeRework) {
+        tramo.activeRework.resolved = true;
+        tramo.activeRework.resolved_at = today.toISOString();
+        if (!Array.isArray(tramo.repassHistory)) tramo.repassHistory = [];
+        tramo.repassHistory.push(tramo.activeRework);
+        tramo.activeRework = null;
+    }
+
+    tramo.status = 'completed';
+    tramo.rightMarginStatus = 'completed';
+    tramo.leftMarginStatus = 'completed';
+    tramo.dateCompleted = dateStr;
+    tramo.weekCompleted = weekStr;
+    tramo.color = getWeekColor(weekStr);
+
+    saveToLocalStorage(tramoId);
+    renderTramosOnMap();
+    updateTramosList();
+    updateStats();
+    closeRoadDetail();
+
+    // Sincronizar en la nube devolviendo el estado a completado y conservando el historial
+    if (typeof window.queueTramoForSync === 'function') {
+        window.queueTramoForSync(tramo.id, {
+            status: 'completado',
+            rightMarginStatus: 'completed',
+            leftMarginStatus: 'completed',
+            weekCompleted: weekStr,
+            dateCompleted: dateStr,
+            active_rework: null,
+            repass_history: tramo.repassHistory,
+            observaciones: tramo.observaciones || []
+        });
+    }
+
+    alert("¡Repaso registrado como solventado! El tramo ha vuelto a estar completado.");
+    logDebug(`Repaso solventado en tramo '${tramo.name}'.`, "success");
 }
 
 // Exponer funciones globalmente
@@ -6225,4 +6423,8 @@ window.addEarthDrawPoint = addEarthDrawPoint;
 window.undoEarthDrawPoint = undoEarthDrawPoint;
 window.cancelEarthDrawMode = cancelEarthDrawMode;
 window.finishEarthDrawMode = finishEarthDrawMode;
+window.closeSaveManualTramoModal = closeSaveManualTramoModal;
+window.handleConfirmSaveManualTramo = handleConfirmSaveManualTramo;
+window.openPhotoModal = openPhotoModal;
+window.resolveTramoRework = resolveTramoRework;
 

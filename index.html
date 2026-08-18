@@ -358,6 +358,41 @@
     <!-- Context Panel / Selected Road Popup (Fijo en la raíz del body para evitar conflictos flexbox) -->
     <div class="road-detail-overlay" id="roadDetailOverlay"></div>
 
+    <!-- Modal de Guardado de Tramo Manual (Asignación a Plano/Lote) -->
+    <div id="saveManualTramoModalOverlay" class="custom-dialog-overlay" style="display: none; z-index: 10001;">
+        <div class="custom-dialog-card animate-scale-up" style="max-width: 380px; padding: 1.5rem; text-align: left; align-items: stretch; gap: 0.85rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 1.1rem; font-weight: bold; margin: 0; color: #fff; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="pen-tool" style="width: 18px; height: 18px; color: var(--accent);"></i> Guardar Tramo Extra
+                </h3>
+                <button onclick="closeSaveManualTramoModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.25rem; cursor: pointer; padding: 4px;">×</button>
+            </div>
+
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">
+                Se han medido <strong id="saveManualTramoLengthText" style="color: var(--accent);">-</strong> de carretera.
+            </p>
+
+            <form id="saveManualTramoForm" name="saveManualTramoForm" onsubmit="handleConfirmSaveManualTramo(event)" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label for="manualTramoNameInput" style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">Nombre o Referencia</label>
+                    <input type="text" id="manualTramoNameInput" name="manualTramoNameInput" required placeholder="Ej. Ramal cementerio / Enlace N-634" style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-family: var(--font-family); font-size: 0.85rem; box-sizing: border-box;">
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label for="manualTramoPlanSelect" style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">Asociar al Plano / Lote</label>
+                    <select id="manualTramoPlanSelect" name="manualTramoPlanSelect" required style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-family: var(--font-family); font-size: 0.85rem; box-sizing: border-box;">
+                        <!-- Opciones dinámicas de planos -->
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-top: 0.5rem;">
+                    <button type="button" onclick="closeSaveManualTramoModal()" class="btn btn-secondary btn-sm" style="flex: 1; padding: 0.6rem;">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-sm" style="flex: 1.5; padding: 0.6rem; font-weight: bold;">Guardar Tramo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal Flotante de Autenticación / Registro (Supabase) -->
     <div id="authModalOverlay" class="custom-dialog-overlay" style="display: none;">
         <div class="custom-dialog-card animate-scale-up" style="max-width: 340px; padding: 1.5rem; text-align: left; align-items: stretch; gap: 0.75rem;">
