@@ -2067,6 +2067,16 @@ function toggleTramoStatusPopup(tramoId) {
 
         saveToLocalStorage(tramoId);
         
+        // Sincronización directa e inmediata con la nube
+        if (typeof window.queueTramoForSync === 'function') {
+            window.queueTramoForSync(tramo.id, {
+                status: tramo.status,
+                rightMarginStatus: tramo.rightMarginStatus,
+                leftMarginStatus: tramo.leftMarginStatus,
+                comment: (tramo.observaciones && tramo.observaciones.length > 0) ? tramo.observaciones.map(o => o.text).join(' | ') : ''
+            });
+        }
+
         // Re-renderizar mapa y listas
         renderTramosOnMap();
         updateUI();
