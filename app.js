@@ -4164,7 +4164,7 @@ function saveToLocalStorage(modifiedTramoId = null) {
     }, 200);
 }
 
-function loadFromLocalStorage() {
+function loadFromLocalStorage(shouldFitBounds = false) {
     try {
         const key = getLocalStorageKey();
         const rawData = localStorage.getItem(key);
@@ -4222,8 +4222,17 @@ function loadFromLocalStorage() {
         if (state.fileLoaded && state.tramos.length > 0) {
             stabilizeRouteOrder();
             if (map && tramosLayerGroup) {
+                const savedCenter = map.getCenter();
+                const savedZoom = map.getZoom();
+
                 renderTramosOnMap();
-                fitMapToBounds();
+
+                if (shouldFitBounds && isFirstMapLoad) {
+                    fitMapToBounds();
+                    isFirstMapLoad = false;
+                } else if (savedCenter && savedZoom) {
+                    map.setView(savedCenter, savedZoom, { animate: false });
+                }
             }
             adjustDefaultFilter();
             updateUI();

@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2522';
+const CACHE_NAME = 'road-clearing-cache-v0.1.12-2523';
 const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Preservación absoluta del zoom, centro y vista del mapa móvil durante la sincronización automática en tiempo real.';
+const UPDATE_NOTES = 'Versión 0.1.12: Eliminación total de reseteos de zoom durante la sincronización de caché local y nube.';
 
 const ASSETS = [
   './',
