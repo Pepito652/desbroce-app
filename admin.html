@@ -171,6 +171,7 @@
 
             <nav class="admin-tabs-nav">
                 <button class="admin-tab-btn active" data-tab="panelResumen"><i data-lucide="layout-dashboard" style="width: 16px; height: 16px;"></i>Resumen</button>
+                <button class="admin-tab-btn" data-tab="panelArchivos"><i data-lucide="folder-up" style="width: 16px; height: 16px;"></i>Archivos y Planos</button>
                 <button class="admin-tab-btn" data-tab="panelEquipos"><i data-lucide="users" style="width: 16px; height: 16px;"></i>Equipos</button>
                 <button class="admin-tab-btn" data-tab="panelMaquinaria"><i data-lucide="truck" style="width: 16px; height: 16px;"></i>Maquinaria</button>
                 <button class="admin-tab-btn" data-tab="panelUsuarios"><i data-lucide="user-plus" style="width: 16px; height: 16px;"></i>Operarios</button>
@@ -264,6 +265,65 @@
                                     <li style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 2rem 0;">Ningún tramo cargado en la base de datos.</li>
                                 </ul>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN: ARCHIVOS Y PLANOS (SUBIDA Y ASIGNACIÓN MASIVA/FLEXIBLE) -->
+            <section class="admin-panel-content" id="panelArchivos">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <div>
+                        <h2 style="font-weight: 700; font-size: 1.5rem; letter-spacing: -0.5px; margin: 0;">Archivos y Planimetría</h2>
+                        <p style="color: var(--text-secondary); font-size: 0.8rem; margin: 4px 0 0 0;">Sube archivos KML/KMZ maestros y distribuye sus tramos entre uno o varios equipos de trabajo.</p>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <!-- Tarjeta 1: Subida de Archivo Maestro -->
+                    <div class="card" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <h3>Subir Archivo KML / KMZ</h3>
+                        <p class="card-desc">Carga el plano general de carreteras. Puedes asignarlo completo a un equipo de inicio o dejar los tramos sin asignar para distribuirlos luego.</p>
+                        
+                        <div class="form-group">
+                            <label for="masterUploadInitialTeam">Asignación inicial (Opcional):</label>
+                            <select id="masterUploadInitialTeam">
+                                <option value="">Sin asignar (Asignar tramos manualmente)</option>
+                            </select>
+                        </div>
+
+                        <!-- Zona Drag & Drop -->
+                        <div id="masterKmlDropArea" style="border: 2px dashed rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 2rem 1rem; text-align: center; background: rgba(16, 185, 129, 0.02); cursor: pointer; transition: var(--transition);">
+                            <i data-lucide="cloud-upload" style="width: 36px; height: 36px; color: var(--accent); margin-bottom: 8px;"></i>
+                            <h4 style="margin: 0; font-size: 0.9rem; color: #fff;">Arrastra aquí tu KML o KMZ</h4>
+                            <p style="margin: 4px 0 12px 0; font-size: 0.75rem; color: var(--text-secondary);">o haz clic para buscar en tu dispositivo</p>
+                            <input type="file" id="masterKmlFileInput" accept=".kml,.kmz" style="display: none;" onchange="handleMasterKmlUpload(event)">
+                            <button type="button" onclick="document.getElementById('masterKmlFileInput').click()" class="btn btn-secondary btn-sm">Seleccionar Archivo</button>
+                        </div>
+
+                        <!-- Progreso de Subida -->
+                        <div id="masterUploadProgress" style="display: none; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 4px;">
+                                <span id="masterUploadStatusText">Procesando carreteras...</span>
+                                <span id="masterUploadPercent" style="color: var(--accent); font-weight: 600;">0%</span>
+                            </div>
+                            <div class="progress-bar-container" style="height: 6px;">
+                                <div class="progress-bar" id="masterUploadProgressBar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tarjeta 2: Distribución y Asignación Flexible de Planos -->
+                    <div class="card" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h3 style="margin: 0;">Planos y Archivos en Base de Datos</h3>
+                                <p class="card-desc" style="margin: 2px 0 0 0;">Asigna archivos enteros o reparte tramos específicos entre distintos equipos.</p>
+                            </div>
+                        </div>
+
+                        <div id="masterFilesManagerList" style="display: flex; flex-direction: column; gap: 12px; max-height: 520px; overflow-y: auto; padding-right: 4px;">
+                            <p class="card-desc" style="text-align: center; padding: 2rem 0;">Cargando archivos...</p>
                         </div>
                     </div>
                 </div>
@@ -627,6 +687,36 @@
                     const files = dt.files;
                     if (files && files.length > 0) {
                         handleTeamKmlFiles(files[0]);
+                    }
+                }, false);
+            }
+
+            // Configurar Drag & Drop de la Sección Maestra de Archivos y Planos
+            const masterDropArea = document.getElementById('masterKmlDropArea');
+            if (masterDropArea) {
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    masterDropArea.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        masterDropArea.style.borderColor = 'var(--accent)';
+                        masterDropArea.style.background = 'rgba(16, 185, 129, 0.08)';
+                    }, false);
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    masterDropArea.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        masterDropArea.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                        masterDropArea.style.background = 'rgba(16, 185, 129, 0.02)';
+                    }, false);
+                });
+
+                masterDropArea.addEventListener('drop', (e) => {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    if (files && files.length > 0) {
+                        handleMasterKmlFiles(files[0]);
                     }
                 }, false);
             }
@@ -1385,16 +1475,31 @@
 
         function updateAdminTeamFilterDropdown() {
             const select = document.getElementById('adminTeamFilterSelect');
-            if (!select) return;
-            const currentVal = select.value || currentAdminTeamFilter;
-            select.innerHTML = '<option value="all">Todos los Equipos</option>';
-            teams.forEach(t => {
-                const opt = document.createElement('option');
-                opt.value = t.id;
-                opt.innerText = `Equipo: ${t.name}`;
-                if (t.id === currentVal) opt.selected = true;
-                select.appendChild(opt);
-            });
+            if (select) {
+                const currentVal = select.value || currentAdminTeamFilter;
+                select.innerHTML = '<option value="all">Todos los Equipos</option>';
+                teams.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.innerText = t.name;
+                    if (t.id === currentVal) opt.selected = true;
+                    select.appendChild(opt);
+                });
+            }
+
+            // Actualizar también el selector del panel de subida de archivos maestros
+            const masterSelect = document.getElementById('masterUploadInitialTeam');
+            if (masterSelect) {
+                const curMVal = masterSelect.value || '';
+                masterSelect.innerHTML = '<option value="">Sin asignar (Asignar tramos manualmente)</option>';
+                teams.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.innerText = `Asignar todo a: ${t.name}`;
+                    if (t.id === curMVal) opt.selected = true;
+                    masterSelect.appendChild(opt);
+                });
+            }
         }
 
         function handleAdminTeamFilterChange(teamId) {
@@ -1405,6 +1510,14 @@
         // --- MAPA Y ASIGNACIONES ---
 
         function renderSegmentsOnMapAndList(shouldFitBounds = false) {
+            // 1. Guardar qué carpetas/archivos <details> tiene el usuario abiertos para no cerrárselos
+            const openDetailsSet = new Set();
+            const existingDetails = document.querySelectorAll('#adminTramosList details[open]');
+            existingDetails.forEach(d => {
+                const name = d.getAttribute('data-filename');
+                if (name) openDetailsSet.add(name);
+            });
+
             // Guardar estado de popup abierto si existe
             let openPopupLatLng = null;
             let openPopupContent = null;
@@ -1423,34 +1536,29 @@
 
             segmentsLayerGroup.clearLayers();
             const list = document.getElementById('adminTramosList');
-            list.innerHTML = '';
+            if (list) list.innerHTML = '';
 
             let completedCount = 0;
             let totalFilteredCount = 0;
 
             if (segments.length === 0) {
-                list.innerHTML = '<li style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 2rem 0;">Ningún tramo cargado en la base de datos.</li>';
+                if (list) list.innerHTML = '<li style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 2rem 0;">Ningún tramo cargado en la base de datos.</li>';
+                renderMasterFilesManager({});
                 return;
             }
 
             // Agrupar segmentos por archivo aplicando filtro de equipo si corresponde
             const filesMap = {};
+            const allFilesMapForMaster = {}; // Mapa sin filtro para el panel de archivos y planos
+
             segments.forEach(seg => {
                 const log = workLogs.find(l => l.segment_id === seg.id);
                 const assignedTeamId = log ? log.team_id : null;
-
-                // Filtrar según el equipo seleccionado
-                if (currentAdminTeamFilter !== 'all' && assignedTeamId !== currentAdminTeamFilter) {
-                    return; // Omitir este tramo si no coincide con el equipo
-                }
-
-                totalFilteredCount++;
                 const status = log ? log.status : 'pendiente';
 
                 let color = '#9ca3af';
                 if (status === 'completado') {
                     color = '#10b981';
-                    completedCount++;
                 } else if (status === 'en_progreso') {
                     color = '#fbbf24';
                 } else if (status === 'incidencia') {
@@ -1474,6 +1582,19 @@
 
                 const teamObj = teams.find(t => t.id === assignedTeamId);
                 const teamName = teamObj ? teamObj.name : 'Sin Asignar';
+
+                // Añadir siempre al mapa completo para la pestaña Archivos y Planos
+                const masterFName = seg.file_name || "Tramos sueltos / Sin archivo";
+                if (!allFilesMapForMaster[masterFName]) allFilesMapForMaster[masterFName] = [];
+                allFilesMapForMaster[masterFName].push({ seg, log, status, color, leftMargin, rightMargin, week, alertsCount: alerts.length, teamName, assignedTeamId });
+
+                // Filtrar según el equipo seleccionado en el panel de resumen
+                if (currentAdminTeamFilter !== 'all' && assignedTeamId !== currentAdminTeamFilter) {
+                    return; // Omitir este tramo de la vista resumida si no coincide con el filtro
+                }
+
+                totalFilteredCount++;
+                if (status === 'completado') completedCount++;
 
                 if (seg.kml_data) {
                     try {
@@ -1531,7 +1652,7 @@
                 if (!filesMap[fName]) {
                     filesMap[fName] = [];
                 }
-                filesMap[fName].push({ seg, log, status, color, leftMargin, rightMargin, week, alertsCount: alerts.length, teamName });
+                filesMap[fName].push({ seg, log, status, color, leftMargin, rightMargin, week, alertsCount: alerts.length, teamName, assignedTeamId });
             });
 
             // Encuadrar SOLO si es primera carga o si el usuario hizo un cambio explícito de equipo
@@ -1555,12 +1676,16 @@
 
             const totalBasis = totalFilteredCount > 0 ? totalFilteredCount : segments.length;
             const progress = Math.round((completedCount / totalBasis) * 100) || 0;
-            document.getElementById('metricsPercent').innerText = `${progress}%`;
-            document.getElementById('metricsProgressBar').style.width = `${progress}%`;
+            const metricsP = document.getElementById('metricsPercent');
+            const metricsPB = document.getElementById('metricsProgressBar');
+            if (metricsP) metricsP.innerText = `${progress}%`;
+            if (metricsPB) metricsPB.style.width = `${progress}%`;
+
+            // Renderizar lista en panel de Resumen (sidebar de archivos)
             const filesListContainer = document.getElementById('adminUploadedFilesList');
             if (filesListContainer) {
                 filesListContainer.innerHTML = '';
-                const uniqueFiles = Object.keys(filesMap).filter(f => f !== "Tramos sueltos / Sin archivo");
+                const uniqueFiles = Object.keys(allFilesMapForMaster).filter(f => f !== "Tramos sueltos / Sin archivo");
                 
                 if (uniqueFiles.length > 0) {
                     uniqueFiles.forEach(fName => {
@@ -1584,79 +1709,89 @@
                 }
             }
 
-            Object.keys(filesMap).forEach(fName => {
-                const details = document.createElement('details');
-                details.style.marginBottom = '10px';
-                details.style.background = 'rgba(255,255,255,0.02)';
-                details.style.border = '1px solid var(--border-color)';
-                details.style.borderRadius = '6px';
-                details.style.overflow = 'hidden';
+            // Renderizar acordeones de tramos en Resumen preservando el estado abierto (open)
+            if (list) {
+                Object.keys(filesMap).forEach(fName => {
+                    const details = document.createElement('details');
+                    details.setAttribute('data-filename', fName);
+                    if (openDetailsSet.has(fName)) {
+                        details.open = true; // Preservar abierto
+                    }
+                    details.style.marginBottom = '10px';
+                    details.style.background = 'rgba(255,255,255,0.02)';
+                    details.style.border = '1px solid var(--border-color)';
+                    details.style.borderRadius = '6px';
+                    details.style.overflow = 'hidden';
 
-                const summary = document.createElement('summary');
-                summary.style.padding = '8px 12px';
-                summary.style.fontWeight = '600';
-                summary.style.color = 'var(--accent)';
-                summary.style.cursor = 'pointer';
-                summary.style.fontSize = '0.75rem';
-                summary.style.display = 'flex';
-                summary.style.justifyContent = 'space-between';
-                summary.style.alignItems = 'center';
-                summary.innerHTML = `<span>📂 ${fName}</span> <span style="font-size:0.65rem; color:var(--text-secondary); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:10px;">${filesMap[fName].length} tramos</span>`;
-                details.appendChild(summary);
+                    const summary = document.createElement('summary');
+                    summary.style.padding = '8px 12px';
+                    summary.style.fontWeight = '600';
+                    summary.style.color = 'var(--accent)';
+                    summary.style.cursor = 'pointer';
+                    summary.style.fontSize = '0.75rem';
+                    summary.style.display = 'flex';
+                    summary.style.justifyContent = 'space-between';
+                    summary.style.alignItems = 'center';
+                    summary.innerHTML = `<span>📂 ${fName}</span> <span style="font-size:0.65rem; color:var(--text-secondary); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:10px;">${filesMap[fName].length} tramos</span>`;
+                    details.appendChild(summary);
 
-                const ul = document.createElement('ul');
-                ul.style.listStyle = 'none';
-                ul.style.padding = '8px 12px';
-                ul.style.margin = '0';
-                ul.style.display = 'flex';
-                ul.style.flexDirection = 'column';
-                ul.style.gap = '8px';
-                ul.style.borderTop = '1px solid var(--border-color)';
+                    const ul = document.createElement('ul');
+                    ul.style.listStyle = 'none';
+                    ul.style.padding = '8px 12px';
+                    ul.style.margin = '0';
+                    ul.style.display = 'flex';
+                    ul.style.flexDirection = 'column';
+                    ul.style.gap = '8px';
+                    ul.style.borderTop = '1px solid var(--border-color)';
 
-                filesMap[fName].forEach(item => {
-                    let teamOpts = `<option value="">Sin asignar</option>`;
-                    teams.forEach(t => {
-                        const selected = item.log && item.log.team_id === t.id ? 'selected' : '';
-                        teamOpts += `<option value="${t.id}" ${selected}>${t.name}</option>`;
+                    filesMap[fName].forEach(item => {
+                        let teamOpts = `<option value="">Sin asignar</option>`;
+                        teams.forEach(t => {
+                            const selected = item.assignedTeamId === t.id ? 'selected' : '';
+                            teamOpts += `<option value="${t.id}" ${selected}>${t.name}</option>`;
+                        });
+
+                        const li = document.createElement('li');
+                        li.style.background = 'rgba(255,255,255,0.01)';
+                        li.style.borderLeft = `3px solid ${item.color}`;
+                        li.style.padding = '6px 8px';
+                        li.style.borderRadius = '4px';
+                        li.style.fontSize = '0.7rem';
+                        
+                        const leftBadge = item.leftMargin === 'completed' ? '<span style="color:#10b981;">Izq: Finalizado</span>' : '<span style="color:#71717a;">Izq: Pend</span>';
+                        const rightBadge = item.rightMargin === 'completed' ? '<span style="color:#10b981;">Der: Finalizado</span>' : '<span style="color:#71717a;">Der: Pend</span>';
+                        const alertsBadge = item.alertsCount > 0 ? `<span style="background:rgba(239,68,68,0.2); color:#ef4444; padding:1px 4px; border-radius:3px; font-size:0.6rem;">⚠️ ${item.alertsCount}</span>` : '';
+                        const weekBadge = item.week ? `<span style="background:rgba(99,102,241,0.15); color:#818cf8; padding:1px 4px; border-radius:3px; font-size:0.6rem;">${item.week}</span>` : '';
+
+                        li.innerHTML = `
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
+                                <strong style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;" title="${item.seg.name}">${item.seg.name}</strong>
+                                <div style="display:flex; gap:4px; align-items:center;">
+                                    ${weekBadge}
+                                    ${alertsBadge}
+                                    <span style="font-size:0.65rem; text-transform:uppercase; font-weight:bold; color:${item.color};">${item.status}</span>
+                                </div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom: 4px; font-size: 0.65rem;">
+                                ${leftBadge} | ${rightBadge}
+                            </div>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-size:0.65rem; color:var(--text-secondary);">Equipo:</span>
+                                <select onchange="assignTramoToTeam('${item.seg.id}', this.value)" style="flex:1; padding:2px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:4px; color:#fff; font-size:0.65rem; font-family:var(--font-family);">
+                                    ${teamOpts}
+                                </select>
+                            </div>
+                        `;
+                        ul.appendChild(li);
                     });
 
-                    const li = document.createElement('li');
-                    li.style.background = 'rgba(255,255,255,0.01)';
-                    li.style.borderLeft = `3px solid ${item.color}`;
-                    li.style.padding = '6px 8px';
-                    li.style.borderRadius = '4px';
-                    li.style.fontSize = '0.7rem';
-                    
-                    const leftBadge = item.leftMargin === 'completed' ? '<span style="color:#10b981;">Izq: Finalizado</span>' : '<span style="color:#71717a;">Izq: Pend</span>';
-                    const rightBadge = item.rightMargin === 'completed' ? '<span style="color:#10b981;">Der: Finalizado</span>' : '<span style="color:#71717a;">Der: Pend</span>';
-                    const alertsBadge = item.alertsCount > 0 ? `<span style="background:rgba(239,68,68,0.2); color:#ef4444; padding:1px 4px; border-radius:3px; font-size:0.6rem;">⚠️ ${item.alertsCount}</span>` : '';
-                    const weekBadge = item.week ? `<span style="background:rgba(99,102,241,0.15); color:#818cf8; padding:1px 4px; border-radius:3px; font-size:0.6rem;">${item.week}</span>` : '';
-
-                    li.innerHTML = `
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
-                            <strong style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;" title="${item.seg.name}">${item.seg.name}</strong>
-                            <div style="display:flex; gap:4px; align-items:center;">
-                                ${weekBadge}
-                                ${alertsBadge}
-                                <span style="font-size:0.65rem; text-transform:uppercase; font-weight:bold; color:${item.color};">${item.status}</span>
-                            </div>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; margin-bottom: 4px; font-size: 0.65rem;">
-                            ${leftBadge} | ${rightBadge}
-                        </div>
-                        <div style="display:flex; align-items:center; gap:6px;">
-                            <span style="font-size:0.65rem; color:var(--text-secondary);">Equipo:</span>
-                            <select onchange="assignTramoToTeam('${item.seg.id}', this.value)" style="flex:1; padding:2px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:4px; color:#fff; font-size:0.65rem; font-family:var(--font-family);">
-                                ${teamOpts}
-                            </select>
-                        </div>
-                    `;
-                    ul.appendChild(li);
+                    details.appendChild(ul);
+                    list.appendChild(details);
                 });
+            }
 
-                details.appendChild(ul);
-                list.appendChild(details);
-            });
+            // Renderizar la vista de gestión integral de planos en la sección "Archivos y Planos"
+            renderMasterFilesManager(allFilesMapForMaster);
 
             if (window.lucide) window.lucide.createIcons();
         }
@@ -1953,6 +2088,313 @@
             }
         }
 
+        // --- GESTIÓN INTEGRAL DE ARCHIVOS Y PLANOS (SUBIDA Y ASIGNACIÓN FLEXIBLE) ---
+
+        function renderMasterFilesManager(allFilesMap) {
+            const container = document.getElementById('masterFilesManagerList');
+            if (!container) return;
+
+            const fileNames = Object.keys(allFilesMap).filter(f => f !== "Tramos sueltos / Sin archivo");
+            
+            if (fileNames.length === 0) {
+                container.innerHTML = '<p class="card-desc" style="text-align: center; padding: 2rem 0;">Ningún archivo subido aún. Arrastra tu primer KML/KMZ a la izquierda para empezar.</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+
+            fileNames.forEach(fName => {
+                const tramos = allFilesMap[fName] || [];
+                const totalTramos = tramos.length;
+                const totalKm = (tramos.reduce((acc, curr) => acc + (curr.seg.length_meters || 0), 0) / 1000).toFixed(1);
+                
+                // Conteo de asignaciones por equipo
+                const teamCountMap = {};
+                let unassignedCount = 0;
+                tramos.forEach(t => {
+                    if (t.assignedTeamId) {
+                        teamCountMap[t.teamName] = (teamCountMap[t.teamName] || 0) + 1;
+                    } else {
+                        unassignedCount++;
+                    }
+                });
+
+                let distributionBadges = '';
+                if (unassignedCount > 0) {
+                    distributionBadges += `<span style="background:rgba(255,255,255,0.06); color:var(--text-secondary); padding:2px 6px; border-radius:4px; font-size:0.65rem;">Sin asignar: ${unassignedCount}</span> `;
+                }
+                Object.keys(teamCountMap).forEach(tN => {
+                    distributionBadges += `<span style="background:rgba(16,185,129,0.12); color:var(--accent); border:1px solid rgba(16,185,129,0.2); padding:2px 6px; border-radius:4px; font-size:0.65rem;">${tN}: ${teamCountMap[tN]}</span> `;
+                });
+
+                let massAssignOptions = `<option value="">-- Asignar TODO el archivo a... --</option>`;
+                teams.forEach(t => {
+                    massAssignOptions += `<option value="${t.id}">${t.name}</option>`;
+                });
+                massAssignOptions += `<option value="UNASSIGN">Desasignar todos los tramos</option>`;
+
+                const card = document.createElement('div');
+                card.style.background = 'rgba(255,255,255,0.02)';
+                card.style.border = '1px solid var(--border-color)';
+                card.style.borderRadius = '8px';
+                card.style.padding = '12px';
+                card.style.display = 'flex';
+                card.style.flexDirection = 'column';
+                card.style.gap = '10px';
+
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+                        <div>
+                            <strong style="font-size:0.9rem; color:#fff; display:flex; align-items:center; gap:6px;">📂 ${fName}</strong>
+                            <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:2px;">
+                                Total: <strong>${totalTramos} carreteras</strong> (${totalKm} km)
+                            </div>
+                        </div>
+                        <button onclick="deleteKmlFile('${fName}')" class="btn btn-danger btn-sm" style="padding: 4px 8px; font-size: 0.7rem; display: flex; align-items: center; gap: 4px;">
+                            <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i> Borrar Plano
+                        </button>
+                    </div>
+
+                    <div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">
+                        <span style="font-size:0.7rem; color:var(--text-secondary); margin-right:4px;">Distribución:</span>
+                        ${distributionBadges}
+                    </div>
+
+                    <!-- Asignación Masiva y Desglose por tramo -->
+                    <div style="display:flex; gap:8px; align-items:center; background:rgba(0,0,0,0.2); padding:6px 10px; border-radius:6px;">
+                        <span style="font-size:0.7rem; color:var(--text-secondary); white-space:nowrap;">Asignar todo el plano:</span>
+                        <select onchange="handleMassAssignFile('${fName}', this.value)" style="flex:1; padding:4px 8px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:4px; color:#fff; font-size:0.75rem;">
+                            ${massAssignOptions}
+                        </select>
+                    </div>
+
+                    <!-- Acordeón para ver/cambiar tramo a tramo si se desea repartir -->
+                    <details style="border-top:1px solid rgba(255,255,255,0.05); padding-top:6px;">
+                        <summary style="font-size:0.75rem; color:var(--accent); cursor:pointer; font-weight:500;">
+                            Ver / Editar tramos individuales de este plano (${totalTramos})
+                        </summary>
+                        <div style="margin-top:8px; max-height:200px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right:4px;">
+                            ${tramos.map(item => {
+                                let indOpts = `<option value="">Sin asignar</option>`;
+                                teams.forEach(t => {
+                                    const sel = item.assignedTeamId === t.id ? 'selected' : '';
+                                    indOpts += `<option value="${t.id}" ${sel}>${t.name}</option>`;
+                                });
+                                const trKm = (item.seg.length_meters / 1000).toFixed(1);
+                                return `
+                                    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:0.7rem; background:rgba(255,255,255,0.01); padding:4px 8px; border-radius:4px; border-left:3px solid ${item.color};">
+                                        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px;" title="${item.seg.name}">🛣️ ${item.seg.name} (${trKm}km)</span>
+                                        <select onchange="assignTramoToTeam('${item.seg.id}', this.value)" style="padding:2px 4px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:4px; color:#fff; font-size:0.65rem;">
+                                            ${indOpts}
+                                        </select>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </details>
+                `;
+
+                container.appendChild(card);
+            });
+
+            if (window.lucide) window.lucide.createIcons();
+        }
+
+        async function handleMassAssignFile(fileName, targetTeamId) {
+            if (!targetTeamId) return;
+
+            try {
+                // Obtener todos los tramos de este archivo
+                const { data: segs, error: fetchErr } = await supabaseClient
+                    .from('segments')
+                    .select('id')
+                    .eq('file_name', fileName);
+
+                if (fetchErr) throw fetchErr;
+                if (!segs || segs.length === 0) return;
+
+                const segIds = segs.map(s => s.id);
+
+                if (targetTeamId === 'UNASSIGN') {
+                    if (!confirm(`¿Desasignar los ${segIds.length} tramos del archivo "${fileName}"?`)) return;
+                    const { error } = await supabaseClient
+                        .from('work_logs')
+                        .delete()
+                        .in('segment_id', segIds);
+                    if (error) throw error;
+                } else {
+                    const selectedTeam = teams.find(t => t.id === targetTeamId);
+                    const teamName = selectedTeam ? selectedTeam.name : 'el equipo';
+                    if (!confirm(`¿Asignar todos los ${segIds.length} tramos del archivo "${fileName}" a ${teamName}?`)) return;
+
+                    // Para cada tramo, hacer un upsert para asignar el equipo
+                    for (const sId of segIds) {
+                        const { data: existing } = await supabaseClient
+                            .from('work_logs')
+                            .select('id')
+                            .eq('segment_id', sId)
+                            .maybeSingle();
+
+                        const payload = {
+                            segment_id: sId,
+                            team_id: targetTeamId,
+                            status: 'pendiente'
+                        };
+                        if (existing) payload.id = existing.id;
+
+                        await supabaseClient.from('work_logs').upsert(payload);
+                    }
+                }
+
+                loadSegmentsAndLogs();
+            } catch (err) {
+                alert("Error en asignación masiva: " + err.message);
+            }
+        }
+
+        function handleMasterKmlUpload(event) {
+            const file = event.target.files[0];
+            if (file) handleMasterKmlFiles(file);
+        }
+
+        function handleMasterKmlFiles(file) {
+            const targetTeamId = document.getElementById('masterUploadInitialTeam').value || null;
+            const extension = file.name.split('.').pop().toLowerCase();
+            const reader = new FileReader();
+
+            const pBar = document.getElementById('masterUploadProgress');
+            const pText = document.getElementById('masterUploadStatusText');
+            const pPerc = document.getElementById('masterUploadPercent');
+            const pLine = document.getElementById('masterUploadProgressBar');
+
+            pBar.style.display = 'block';
+            pText.innerText = 'Leyendo archivo...';
+            pPerc.innerText = '10%';
+            pLine.style.width = '10%';
+
+            if (extension === 'kmz') {
+                reader.onload = function(event) {
+                    JSZip.loadAsync(event.target.result).then(zip => {
+                        const kmlFileKey = Object.keys(zip.files).find(key => key.toLowerCase().endsWith('.kml'));
+                        if (!kmlFileKey) throw new Error("No se encontró ningún archivo .KML dentro del .KMZ");
+                        return zip.files[kmlFileKey].async('string');
+                    }).then(kmlText => {
+                        processMasterKmlAndUpload(kmlText, file.name, targetTeamId);
+                    }).catch(err => {
+                        alert("Error al leer KMZ: " + err.message);
+                        pBar.style.display = 'none';
+                    });
+                };
+                reader.readAsArrayBuffer(file);
+            } else if (extension === 'kml') {
+                reader.onload = function(event) {
+                    processMasterKmlAndUpload(event.target.result, file.name, targetTeamId);
+                };
+                reader.readAsText(file);
+            } else {
+                alert("Formato no soportado. Por favor, sube un archivo .kml o .kmz");
+                pBar.style.display = 'none';
+            }
+        }
+
+        async function processMasterKmlAndUpload(kmlText, fileName, targetTeamId) {
+            const pBar = document.getElementById('masterUploadProgress');
+            const pText = document.getElementById('masterUploadStatusText');
+            const pPerc = document.getElementById('masterUploadPercent');
+            const pLine = document.getElementById('masterUploadProgressBar');
+
+            try {
+                pText.innerText = 'Analizando geometrías y tramos...';
+                pPerc.innerText = '30%';
+                pLine.style.width = '30%';
+
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(kmlText, 'text/xml');
+                const placemarks = xmlDoc.getElementsByTagName('Placemark');
+
+                if (placemarks.length === 0) {
+                    alert("No se encontraron tramos lineales en el archivo.");
+                    pBar.style.display = 'none';
+                    return;
+                }
+
+                const uploadBatch = [];
+                for (let i = 0; i < placemarks.length; i++) {
+                    const pm = placemarks[i];
+                    let name = "Tramo sin nombre";
+                    const nameNode = pm.getElementsByTagName('name')[0];
+                    if (nameNode) name = nameNode.textContent.trim();
+
+                    const coordsNode = pm.getElementsByTagName('coordinates')[0];
+                    if (!coordsNode) continue;
+
+                    const coordText = coordsNode.textContent.trim();
+                    const coordinates = parseKMLCoordinates(coordText);
+                    if (coordinates.length < 2) continue;
+
+                    const lengthMeters = calculateLineLength(coordinates);
+
+                    uploadBatch.push({
+                        name: name,
+                        kml_data: JSON.stringify(coordinates),
+                        length_meters: lengthMeters,
+                        file_name: fileName
+                    });
+                }
+
+                if (uploadBatch.length === 0) {
+                    alert("No se encontraron tramos con coordenadas válidas.");
+                    pBar.style.display = 'none';
+                    return;
+                }
+
+                pText.innerText = `Subiendo ${uploadBatch.length} tramos a la base de datos...`;
+                pPerc.innerText = '60%';
+                pLine.style.width = '60%';
+
+                // Subir tramos a tabla segments
+                const { data: insertedSegments, error: segErr } = await supabaseClient
+                    .from('segments')
+                    .insert(uploadBatch)
+                    .select('id');
+
+                if (segErr) throw segErr;
+
+                // Si se seleccionó un equipo inicial, asignar los tramos a ese equipo
+                if (targetTeamId) {
+                    pText.innerText = 'Asignando tramos al equipo seleccionado...';
+                    pPerc.innerText = '85%';
+                    pLine.style.width = '85%';
+
+                    const logsBatch = insertedSegments.map(seg => ({
+                        segment_id: seg.id,
+                        team_id: targetTeamId,
+                        status: 'pendiente'
+                    }));
+
+                    const { error: logErr } = await supabaseClient
+                        .from('work_logs')
+                        .insert(logsBatch);
+
+                    if (logErr) throw logErr;
+                }
+
+                pText.innerText = '¡Completado con éxito!';
+                pPerc.innerText = '100%';
+                pLine.style.width = '100%';
+
+                setTimeout(() => {
+                    pBar.style.display = 'none';
+                    alert(`¡Plano "${fileName}" cargado con éxito!\nSe han importado ${uploadBatch.length} tramos.`);
+                    loadSegmentsAndLogs();
+                }, 600);
+
+            } catch (err) {
+                alert("Error al procesar KML/KMZ: " + err.message);
+                pBar.style.display = 'none';
+            }
+        }
+
         // Analizador de coordenadas KML
         function parseKMLCoordinates(coordText) {
             const coords = [];
@@ -1994,6 +2436,9 @@
         
         window.handleTeamKmlUpload = handleTeamKmlUpload;
         window.handleTeamKmlFiles = handleTeamKmlFiles;
+        window.handleMasterKmlUpload = handleMasterKmlUpload;
+        window.handleMasterKmlFiles = handleMasterKmlFiles;
+        window.handleMassAssignFile = handleMassAssignFile;
     </script>
 </body>
 </html>
