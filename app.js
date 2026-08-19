@@ -147,25 +147,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Inicialización del Mapa Leaflet con tema oscuro
 function initMap() {
-    // Parche para sincronizar la capa vectorial en tiempo real durante el pinch-zoom de leaflet-rotate
-    L.Renderer.include({
-        getEvents: function() {
-            var events = L.extend(L.Renderer.prototype.getEvents.apply(this, arguments), { rotate: this._update });
-            if (this._zoomAnimated) {
-                events.zoomanim = this._onAnimZoom;
-            }
-            return events;
-        },
-        _onAnimZoom: function(ev) {
-            if (this._map && this._map._rotate) {
-                this._updateTransform(ev.center, ev.zoom);
-            }
-        }
-    });
-
     // Coordenadas por defecto (Centro de España por si no hay datos)
     map = L.map('map', {
-        preferCanvas: false,
+        preferCanvas: true,
         zoomControl: false,
         maxZoom: 21,
         minZoom: 5,
@@ -175,10 +159,7 @@ function initMap() {
             closeOnZeroBearing: false,
             position: 'bottomleft'
         },
-        zoomAnimation: true,
-        zoomAnimationThreshold: 4,
-        fadeAnimation: true,
-        markerZoomAnimation: true
+        zoomAnimation: false
     }).setView([40.416775, -3.703790], 6);
 
     // Añadir el control de zoom en la parte inferior izquierda

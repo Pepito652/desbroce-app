@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.13-2532';
+const CACHE_NAME = 'road-clearing-cache-v0.1.13-2533';
 const VERSION = '0.1.13';
-const UPDATE_NOTES = 'Versión 0.1.13: Sincronización en vivo del vector transform durante el pinch-zoom multitáctil para escalado fluido y sin retrasos de carreteras.';
+const UPDATE_NOTES = 'Versión 0.1.13: Corrección inmediata de excepción _removePath y estabilización completa de sincronización con Supabase.';
 
 const ASSETS = [
   './',
