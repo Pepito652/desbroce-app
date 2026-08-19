@@ -1401,7 +1401,11 @@ function updateStats() {
     let completedMeters = 0;
     let todayCompletedMeters = 0;
 
-    const todayStr = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    const now = new Date();
+    const localYear = now.getFullYear();
+    const localMonth = String(now.getMonth() + 1).padStart(2, '0');
+    const localDay = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${localYear}-${localMonth}-${localDay}`; // YYYY-MM-DD local
 
     state.tramos.forEach(t => {
         // Comprobar si el archivo de este tramo está oculto
@@ -1417,11 +1421,15 @@ function updateStats() {
             completedMeters += t.length * 0.5;
         }
 
-        // Calcular kilómetros completados hoy (por cada margen)
-        if (t.rightMarginStatus === 'completed' && t.rightMarginDate === todayStr) {
+        // Calcular kilómetros de la jornada hoy de forma robusta
+        const tramoDateStr = t.dateCompleted ? t.dateCompleted.split('T')[0] : '';
+        const rMarginDateStr = t.rightMarginDate ? t.rightMarginDate.split('T')[0] : '';
+        const lMarginDateStr = t.leftMarginDate ? t.leftMarginDate.split('T')[0] : '';
+
+        if (t.rightMarginStatus === 'completed' && (rMarginDateStr === todayStr || (!rMarginDateStr && tramoDateStr === todayStr))) {
             todayCompletedMeters += t.length * 0.5;
         }
-        if (t.leftMarginStatus === 'completed' && t.leftMarginDate === todayStr) {
+        if (t.leftMarginStatus === 'completed' && (lMarginDateStr === todayStr || (!lMarginDateStr && tramoDateStr === todayStr))) {
             todayCompletedMeters += t.length * 0.5;
         }
     });
@@ -5897,14 +5905,14 @@ function welcomeActionLocal() {
 let mapHasFittedInitialData = false;
 
 // Descargar tramos asignados al equipo del operario desde Supabase (Smart Cache)
-async function loadAssignedSegments(userId) {
+async function loadAssignedSegments(userId, isSilent = false) {
     if (!supabaseClient) return;
 
-    // 1. Cargar inmediatamente desde la caché local si existe (para respuesta instantánea offline)
-    loadFromLocalStorage();
+    // Si el operario está en medio de un modo interactivo (trazado manual, división de tramo o popup activo), solo actualizar datos en memoria sin interrumpir la UI
+    const isUserBusy = state.isEarthDrawActive || state.isSplitMode || state.isObsMode;
 
     try {
-        logDebug("Sincronizando carreteras asignadas con la oficina...");
+        if (!isSilent) logDebug("Sincronizando carreteras asignadas con la oficina...");
         
         // 2. Obtener el equipo del usuario
         const { data: memberData, error: memberErr } = await supabaseClient
@@ -5914,12 +5922,12 @@ async function loadAssignedSegments(userId) {
             .maybeSingle();
 
         if (memberErr) {
-            logDebug("Error consultando equipo: " + memberErr.message, "error");
+            if (!isSilent) logDebug("Error consultando equipo: " + memberErr.message, "error");
             return;
         }
 
         if (!memberData || !memberData.team_id) {
-            logDebug("No tienes ningún equipo de trabajo asignado en la oficina.", "warn");
+            if (!isSilent) logDebug("No tienes ningún equipo de trabajo asignado en la oficina.", "warn");
             return;
         }
 
@@ -5931,12 +5939,12 @@ async function loadAssignedSegments(userId) {
             .is('deleted_at', null);
 
         if (logsErr) {
-            logDebug("Error descargando partes de trabajo: " + logsErr.message, "error");
+            if (!isSilent) logDebug("Error descargando partes de trabajo: " + logsErr.message, "error");
             return;
         }
 
         if (!logsData || logsData.length === 0) {
-            logDebug("Tu equipo no tiene tramos de carretera asignados hoy.", "info");
+            if (!isSilent) logDebug("Tu equipo no tiene tramos de carretera asignados hoy.", "info");
             return;
         }
 
@@ -5950,7 +5958,7 @@ async function loadAssignedSegments(userId) {
             .is('deleted_at', null);
 
         if (segsErr) {
-            logDebug("Error descargando geometrías: " + segsErr.message, "error");
+            if (!isSilent) logDebug("Error descargando geometrías: " + segsErr.message, "error");
             return;
         }
 
@@ -6061,19 +6069,18 @@ async function loadAssignedSegments(userId) {
         state.fileLoaded = true;
 
         saveToLocalStorage();
-        if (map && tramosLayerGroup) {
-            // Guardar posición, zoom y estado de popup del usuario antes de redibujar
+
+        // Solo refrescar capas si el operario no está en modo de edición interactivo
+        if (!isUserBusy && map && tramosLayerGroup) {
             const savedCenter = map.getCenter();
             const savedZoom = map.getZoom();
 
             renderTramosOnMap();
 
             if (!mapHasFittedInitialData && newTramos.length > 0) {
-                // Primer encuadre automático al abrir la app con tramos
                 fitMapToBounds();
                 mapHasFittedInitialData = true;
             } else if (mapHasFittedInitialData && savedCenter && savedZoom) {
-                // Actualizaciones en segundo plano: preservar exactamente el zoom y posición del usuario
                 map.setView(savedCenter, savedZoom, { animate: false });
             }
         }
@@ -6081,9 +6088,11 @@ async function loadAssignedSegments(userId) {
         updateLoadedFilesList();
         updateStats();
 
-        logDebug(`Carreteras sincronizadas con éxito (${newTramos.length} tramos).`, "success");
+        if (!isSilent) {
+            logDebug(`Carreteras sincronizadas (${newTramos.length} tramos).`, "success");
+        }
     } catch (err) {
-        logDebug("Fallo en sincronización inteligente: " + err.message, "error");
+        if (!isSilent) logDebug("Fallo en sincronización: " + err.message, "error");
     }
 }
 

@@ -110,9 +110,17 @@ async function checkSessionState() {
                 document.getElementById('userProfileTeam').innerText = "Sin equipo asignado";
             }
 
-            // Cambiar icono de cabecera a conectado (verde)
-            if (headerIcon) headerIcon.setAttribute('data-lucide', 'user-check');
-            if (headerBtn) headerBtn.style.borderColor = 'var(--accent)';
+            // Actualizar icono de usuario (monigote verde si está conectado)
+            if (headerIcon) {
+                headerIcon.style.color = '#10b981';
+            }
+            if (headerBtn) {
+                headerBtn.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                headerBtn.title = `Conectado como: ${profile?.full_name || session.user.email}`;
+            }
+
+            // Actualizar indicador de nube a conectado en verde
+            updateCloudConnectionStatus(true);
 
             // Lanzar sincronización inicial de fondo
             triggerOfflineSync();
@@ -123,14 +131,44 @@ async function checkSessionState() {
             if (userView) userView.style.display = 'none';
             if (btnSkip) btnSkip.style.display = 'block';
 
-            if (headerIcon) headerIcon.setAttribute('data-lucide', 'user');
-            if (headerBtn) headerBtn.style.borderColor = 'var(--border-color)';
+            if (headerIcon) {
+                headerIcon.style.color = '#a1a1aa';
+            }
+            if (headerBtn) {
+                headerBtn.style.borderColor = 'var(--border-color)';
+                headerBtn.title = "Iniciar Sesión / Mi Cuenta";
+            }
+
+            // Indicador de nube en modo local
+            updateCloudConnectionStatus(false);
         }
 
         if (window.refreshLucideIcons) refreshLucideIcons();
     } catch (e) {
         console.error("Error al comprobar sesión:", e);
     }
+}
+
+// Función para actualizar el icono de la nube en la barra superior
+function updateCloudConnectionStatus(isConnected) {
+    const cloudContainer = document.getElementById('headerCloudStatus');
+    const cloudIcon = document.getElementById('headerCloudIcon');
+    if (!cloudContainer || !cloudIcon) return;
+
+    if (isConnected && navigator.onLine) {
+        cloudContainer.style.color = '#10b981';
+        cloudContainer.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+        cloudContainer.style.background = 'rgba(16, 185, 129, 0.08)';
+        cloudContainer.title = "Nube Conectada: Sincronización en tiempo real activa";
+        cloudIcon.setAttribute('data-lucide', 'cloud');
+    } else {
+        cloudContainer.style.color = '#71717a';
+        cloudContainer.style.borderColor = 'var(--border-color)';
+        cloudContainer.style.background = 'rgba(255, 255, 255, 0.03)';
+        cloudContainer.title = "Modo Local: Sin conexión a la nube (los datos se guardan en el móvil)";
+        cloudIcon.setAttribute('data-lucide', 'cloud-off');
+    }
+    if (window.refreshLucideIcons) refreshLucideIcons();
 }
 
 // Iniciar sesión
@@ -382,41 +420,32 @@ function initRealtimeSync(userId) {
         realtimeChannel = supabaseClient
             .channel('desbroce-app-realtime-' + userId)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'work_logs' }, (payload) => {
-                console.log("[Realtime] Cambio detectado en asignaciones de trabajo (work_logs):", payload);
+                console.log("[Realtime] Cambio en asignaciones de trabajo:", payload);
                 if (typeof loadAssignedSegments === 'function') {
-                    loadAssignedSegments(userId);
+                    loadAssignedSegments(userId, true); // true = silencioso
                 }
             })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'segments' }, (payload) => {
-                console.log("[Realtime] Cambio detectado en tramos / geometrías (segments):", payload);
+                console.log("[Realtime] Cambio en geometrías de tramos:", payload);
                 if (typeof loadAssignedSegments === 'function') {
-                    loadAssignedSegments(userId);
+                    loadAssignedSegments(userId, true); // true = silencioso
                 }
             })
             .subscribe((status) => {
-                console.log("[Realtime] Estado de suscripción en vivo:", status);
+                console.log("[Realtime] Estado canal en vivo:", status);
             });
     } catch (err) {
         console.warn("[Realtime] Fallo al iniciar canal de tiempo real:", err);
     }
-
-    // 3. Polling silencioso de respaldo cada 20 segundos
-    if (realtimePollInterval) clearInterval(realtimePollInterval);
-    realtimePollInterval = setInterval(() => {
-        if (navigator.onLine && typeof loadAssignedSegments === 'function') {
-            loadAssignedSegments(userId);
-        }
-    }, 20000);
 }
 
-// 4. Auto-recarga inmediata al desbloquear la pantalla o volver a poner la app en primer plano
+// 3. Auto-recarga inmediata al desbloquear la pantalla o volver a poner la app en primer plano
 document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState === 'visible' && supabaseClient) {
         try {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session && typeof loadAssignedSegments === 'function') {
-                console.log("[App] Volviendo a primer plano -> Sincronizando tramos con la oficina...");
-                loadAssignedSegments(session.user.id);
+                loadAssignedSegments(session.user.id, true);
             }
         } catch (e) {}
     }
@@ -424,15 +453,21 @@ document.addEventListener('visibilitychange', async () => {
 
 // Escuchar cambios de red de forma nativa para disparar sincronizaciones pendientes
 window.addEventListener('online', () => {
-    console.log("[Red] Conexión recuperada. Disparando cola de sincronización...");
+    console.log("[Red] Conexión recuperada.");
+    updateCloudConnectionStatus(true);
     triggerOfflineSync();
     if (supabaseClient) {
         supabaseClient.auth.getSession().then(({ data: { session } }) => {
             if (session && typeof loadAssignedSegments === 'function') {
-                loadAssignedSegments(session.user.id);
+                loadAssignedSegments(session.user.id, true);
             }
         });
     }
+});
+
+window.addEventListener('offline', () => {
+    console.log("[Red] Sin conexión a Internet. Pasando a modo local.");
+    updateCloudConnectionStatus(false);
 });
 
 // Al cargar el documento, evaluar si mostramos la pantalla de bienvenida o recuperamos la sesión

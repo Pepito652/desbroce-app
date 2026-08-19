@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.13-2528';
+const CACHE_NAME = 'road-clearing-cache-v0.1.13-2529';
 const VERSION = '0.1.13';
-const UPDATE_NOTES = 'Versión 0.1.13: Estandarización de componentes de formulario (id/name), eliminación de bucles de diagnóstico residuales, optimización de batería y robustecimiento de sincronización offline-first.';
+const UPDATE_NOTES = 'Versión 0.1.13: Icono de nube con estado de conexión en vivo, monigote verde con sesión activa, cálculo preciso de Jornada y Total Plano, y sincronización de fondo no intrusiva.';
 
 const ASSETS = [
   './',

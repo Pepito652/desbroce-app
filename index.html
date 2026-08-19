@@ -75,8 +75,12 @@
                     <span id="debugWarningDot" style="width: 8px; height: 8px; border-radius: 50%; background-color: #10b981; display: inline-block; margin-left: 0.5rem; flex-shrink: 0; cursor: pointer; transition: transform 0.2s;" title="Ver consola de diagnóstico" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='scale(1)'"></span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
+                    <!-- Indicador de Estado de Conexión Nube (Supabase) -->
+                    <div id="headerCloudStatus" style="width: 34px; height: 34px; border-radius: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; color: #71717a; transition: var(--transition);" title="Modo Local (Sin conexión con oficina)">
+                        <i id="headerCloudIcon" data-lucide="cloud-off" style="width: 16px; height: 16px;"></i>
+                    </div>
                     <!-- Botón Perfil/Login en Cabecera -->
-                    <button id="btnHeaderAuth" onclick="openAuthModal()" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: var(--text-primary); width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition);" title="Iniciar Sesión / Mi Cuenta">
+                    <button id="btnHeaderAuth" onclick="openAuthModal()" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: #a1a1aa; width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition);" title="Iniciar Sesión / Mi Cuenta">
                         <i id="headerAuthIcon" data-lucide="user" style="width: 16px; height: 16px;"></i>
                     </button>
                     <button class="close-sidebar-btn" id="closeSidebar" aria-label="Cerrar Panel" style="position: static; font-size: 1.5rem; background: none; border: none; color: var(--text-secondary); cursor: pointer;">×</button>
@@ -116,9 +120,9 @@
                             <span class="stat-value-sub" id="statsTodayKm" style="color: #10b981; font-weight: bold;">0.0 km</span>
                         </div>
                     </div>
-                    <!-- Tarjeta 3: Kilómetros Totales -->
+                    <!-- Tarjeta 3: Kilómetros Totales del Plano -->
                     <div class="carousel-card" id="cardTotal">
-                        <span class="stat-label">Total Ruta</span>
+                        <span class="stat-label">Total Plano</span>
                         <div class="carousel-card-body">
                             <span class="stat-value-sub" id="statsTotalKm">0.0 km</span>
                         </div>
