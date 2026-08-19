@@ -149,16 +149,13 @@ document.addEventListener('DOMContentLoaded', () => {
 function initMap() {
     // Coordenadas por defecto (Centro de España por si no hay datos)
     map = L.map('map', {
-        preferCanvas: true,
+        preferCanvas: false,
         zoomControl: false,
         maxZoom: 21,
         minZoom: 5,
-        rotate: true,
-        touchRotate: true,
-        rotateControl: {
-            closeOnZeroBearing: false,
-            position: 'bottomleft'
-        },
+        rotate: false,
+        touchRotate: false,
+        rotateControl: false,
         zoomAnimation: true,
         fadeAnimation: true,
         markerZoomAnimation: true
