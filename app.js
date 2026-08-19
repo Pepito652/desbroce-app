@@ -159,7 +159,9 @@ function initMap() {
             closeOnZeroBearing: false,
             position: 'bottomleft'
         },
-        zoomAnimation: false
+        zoomAnimation: true,
+        fadeAnimation: true,
+        markerZoomAnimation: true
     }).setView([40.416775, -3.703790], 6);
 
     // Añadir el control de zoom en la parte inferior izquierda

@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.13-2533';
+const CACHE_NAME = 'road-clearing-cache-v0.1.13-2534';
 const VERSION = '0.1.13';
-const UPDATE_NOTES = 'Versión 0.1.13: Corrección inmediata de excepción _removePath y estabilización completa de sincronización con Supabase.';
+const UPDATE_NOTES = 'Versión 0.1.13: Integración nativa de zoomanim en leaflet-rotate.js para escalado continuo de carreteras en tiempo real durante el pinch-zoom.';
 
 const ASSETS = [
   './',

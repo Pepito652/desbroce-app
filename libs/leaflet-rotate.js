@@ -562,7 +562,15 @@
          * @listens L.Map~rotate
          */
         getEvents: function() {
-            return L.extend(rendererProto.getEvents.apply(this, arguments), { rotate: this._update });
+            var events = L.extend(rendererProto.getEvents.apply(this, arguments), { rotate: this._update });
+            if (this._zoomAnimated) {
+                events.zoomanim = this._onAnimZoom;
+            }
+            return events;
+        },
+
+        _onAnimZoom: function(ev) {
+            this._updateTransform(ev.center, ev.zoom);
         },
 
         /**
