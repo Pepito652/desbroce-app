@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function initMap() {
     // Coordenadas por defecto (Centro de España por si no hay datos)
     map = L.map('map', {
-        preferCanvas: true,
+        preferCanvas: false,
         zoomControl: false,
         maxZoom: 21,
         minZoom: 5,
@@ -1676,15 +1676,16 @@ function updateTramosList() {
         `;
 
         item.addEventListener('click', () => {
-            // Destacar temporalmente la línea
-            const currentWeight = tramo.mapLayer.options.weight;
-            tramo.mapLayer.setStyle({ weight: currentWeight + 4 });
-            setTimeout(() => {
-                tramo.mapLayer.setStyle({ weight: currentWeight });
-            }, 1000);
-
-            // Abrir detalle (centrará automáticamente por defecto)
+            // Abrir detalle del tramo
             openRoadDetail(tramo.id);
+
+            // En dispositivos móviles, ocultar automáticamente el menú lateral para mostrar el mapa y el detalle
+            if (window.innerWidth <= 768) {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar && sidebar.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                }
+            }
         });
 
         container.appendChild(item);
@@ -1862,32 +1863,55 @@ window.completeTramoQuick = completeTramoQuick;
 
 // --- DETALLE DE TRAMOS Y COMPLETAR ---
 
+// Restaurar estilo determinista del tramo resaltado anterior
+function restoreHighlightedTramoStyle() {
+    if (!highlightedLayer) return;
+    try {
+        const tramo = state.tramos.find(t => t.mapLayer === highlightedLayer);
+        if (tramo) {
+            const isCompleted = tramo.status === 'completed';
+            const isPartial = tramo.status === 'partial';
+            const isBlocked = isTramoFullyBlocked(tramo);
+
+            let color = getPendingColor();
+            let dashArray = '10, 10';
+            if (isBlocked) {
+                color = getBlockedColor();
+                dashArray = '4, 4';
+            } else if (isCompleted) {
+                color = tramo.color || COLOR_COMPLETED_DEFAULT;
+                dashArray = null;
+            } else if (isPartial) {
+                color = getPartialColor();
+                dashArray = '15, 8';
+            }
+
+            highlightedLayer.setStyle({
+                color: color,
+                weight: isBlocked ? 5.5 : (isCompleted ? 6 : (isPartial ? 5.5 : 5)),
+                opacity: isBlocked ? 0.95 : (isCompleted ? 0.9 : 0.85),
+                dashArray: dashArray
+            });
+        }
+    } catch(e) {
+        console.warn("Error al restaurar estilo de tramo:", e);
+    }
+    highlightedLayer = null;
+}
+
 // Destacar el tramo seleccionado en el mapa
 function selectAndHighlightTramo(tramo) {
-    if (highlightedLayer) {
-        try {
-            highlightedLayer.setStyle(originalStyle);
-        } catch(e) {
-            console.warn("No se pudo restaurar estilo del tramo anterior:", e);
-        }
-    }
+    restoreHighlightedTramoStyle();
 
     const polyline = tramo.mapLayer;
     if (!polyline) return;
 
     highlightedLayer = polyline;
-    
-    // Guardar el estilo original antes de modificarlo
-    originalStyle = {
-        color: polyline.options.color,
-        weight: polyline.options.weight,
-        opacity: polyline.options.opacity
-    };
 
-    // Cambiar color a amarillo dorado de selección con mayor grosor
+    // Cambiar color a amarillo dorado de selección con mayor grosor destacado
     polyline.setStyle({
         color: '#ffd700',
-        weight: 9,
+        weight: 8.5,
         opacity: 1.0
     });
 }
@@ -2090,10 +2114,7 @@ function openRoadDetail(tramoId, focusMap = true) {
 
 function closeRoadDetail() {
     try {
-        if (highlightedLayer) {
-            highlightedLayer.setStyle(originalStyle);
-            highlightedLayer = null;
-        }
+        restoreHighlightedTramoStyle();
         state.selectedTramoId = null;
 
         // Desactivar foco activo para prevenir tirones y auto-scroll de accesibilidad en navegadores móviles

@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.13-2530';
+const CACHE_NAME = 'road-clearing-cache-v0.1.13-2531';
 const VERSION = '0.1.13';
-const UPDATE_NOTES = 'Versión 0.1.13: Escalado de líneas continuo a 60 FPS durante el zoom táctil en móviles y bloqueo de cierres accidentales del menú lateral.';
+const UPDATE_NOTES = 'Versión 0.1.13: Cierre automático de menú en móvil al seleccionar tramo, renderizado SVG para zoom continuo sin retrasos y restauración determinista de grosores.';
 
 const ASSETS = [
   './',
