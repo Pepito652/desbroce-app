@@ -649,6 +649,11 @@
                 <input type="hidden" id="editOpId" name="editOpId">
 
                 <div class="form-group">
+                    <label for="editOpEmail">Correo Electrónico (Login)</label>
+                    <input type="email" id="editOpEmail" name="editOpEmail" readonly disabled style="width: 100%; padding: 0.6rem 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; color: #60a5fa; cursor: not-allowed;">
+                </div>
+
+                <div class="form-group">
                     <label for="editOpName">Nombre Completo</label>
                     <input type="text" id="editOpName" name="editOpName" required style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff;">
                 </div>
@@ -670,8 +675,51 @@
                     </select>
                 </div>
 
+                <div style="background: rgba(59,130,246,0.08); border: 1px dashed rgba(59,130,246,0.3); padding: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.72rem; color: #93c5fd;">¿Operario con acceso bloqueado?</span>
+                    <button type="button" onclick="handleAdminResetOperatorPassword()" class="btn btn-secondary btn-sm" style="font-size: 0.7rem; padding: 3px 8px; background: rgba(59,130,246,0.2); color: #60a5fa; border: 1px solid rgba(59,130,246,0.4);">🔑 Nueva Contraseña</button>
+                </div>
+
                 <div style="display: flex; gap: 8px; margin-top: 0.5rem;">
                     <button type="button" onclick="closeEditOperatorModal()" class="btn btn-secondary btn-sm" style="flex: 1; padding: 0.6rem;">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-sm" style="flex: 1.2; padding: 0.6rem;">Guardar Cambios</button>
+                </div>
+    <!-- Modal de Edición de Ficha de Maquinaria (Admin) -->
+    <div id="editMachineryModalOverlay" class="custom-dialog-overlay" style="display: none; z-index: 9999;">
+        <div class="custom-dialog-card animate-scale-up" style="max-width: 400px; padding: 1.5rem; text-align: left; align-items: stretch; gap: 0.85rem; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 1.1rem; font-weight: bold; margin: 0; color: #fff; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="truck" style="width: 18px; height: 18px; color: var(--accent);"></i> Editar Maquinaria
+                </h3>
+                <button onclick="closeEditMachineryModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.25rem; cursor: pointer; padding: 4px;">×</button>
+            </div>
+
+            <form id="editMachineryForm" name="editMachineryForm" onsubmit="handleSaveEditedMachinery(event)" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <input type="hidden" id="editMachineryId" name="editMachineryId">
+
+                <div class="form-group">
+                    <label for="editMachineryType">Tipo de Máquina</label>
+                    <select id="editMachineryType" name="editMachineryType" required style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff;">
+                        <option value="tractor">Tractor</option>
+                        <option value="dumper">Dumper</option>
+                        <option value="limpiacunetas">Limpiacunetas</option>
+                        <option value="vehiculo_transporte">Vehículo Transporte</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="editMachineryModel">Modelo / Marca</label>
+                    <input type="text" id="editMachineryModel" name="editMachineryModel" required style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff;">
+                </div>
+
+                <div class="form-group">
+                    <label for="editMachineryPlate">Matrícula</label>
+                    <input type="text" id="editMachineryPlate" name="editMachineryPlate" required style="width: 100%; padding: 0.6rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff;">
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-top: 0.5rem;">
+                    <button type="button" onclick="closeEditMachineryModal()" class="btn btn-secondary btn-sm" style="flex: 1; padding: 0.6rem;">Cancelar</button>
                     <button type="submit" class="btn btn-primary btn-sm" style="flex: 1.2; padding: 0.6rem;">Guardar Cambios</button>
                 </div>
             </form>
@@ -1089,15 +1137,69 @@
                     card.style.padding = '0.75rem';
                     card.innerHTML = `
                         <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <strong style="color:#fff; font-size:0.85rem; text-transform:capitalize;">${item.type} - ${item.model}</strong>
-                            <button onclick="deleteMachinery('${item.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.8rem;">Eliminar</button>
+                            <div>
+                                <strong style="color:#fff; font-size:0.85rem; text-transform:capitalize;">${item.type} - ${item.model}</strong>
+                                <p style="font-size:0.75rem; color:var(--text-secondary); margin:2px 0 0 0;">Matrícula: <strong style="color:#60a5fa;">${item.license_plate}</strong></p>
+                            </div>
+                            <div style="display:flex; gap:6px; align-items:center;">
+                                <button onclick="openEditMachineryModal('${item.id}')" title="Editar máquina" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-color); border-radius:4px; padding:4px 6px; cursor:pointer;">
+                                    <i data-lucide="pencil" style="width: 14px; height: 14px; color: var(--accent); vertical-align: middle;"></i>
+                                </button>
+                                <button onclick="deleteMachinery('${item.id}')" title="Dar de baja máquina" style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); border-radius:4px; padding:4px 6px; cursor:pointer;">
+                                    <i data-lucide="trash-2" style="width: 14px; height: 14px; color: var(--danger); vertical-align: middle;"></i>
+                                </button>
+                            </div>
                         </div>
-                        <p style="font-size:0.75rem; color:var(--text-secondary); margin:2px 0 0 0;">Matrícula: <strong>${item.license_plate}</strong></p>
                     `;
                     container.appendChild(card);
                 });
             } else {
                 container.innerHTML = '<p class="card-desc">No hay maquinaria registrada.</p>';
+            }
+        }
+
+        function openEditMachineryModal(mId) {
+            const item = machinery.find(m => m.id === mId);
+            if (!item) return;
+
+            document.getElementById('editMachineryId').value = mId;
+            document.getElementById('editMachineryType').value = item.type;
+            document.getElementById('editMachineryModel').value = item.model;
+            document.getElementById('editMachineryPlate').value = item.license_plate;
+
+            const modal = document.getElementById('editMachineryModalOverlay');
+            if (modal) {
+                modal.style.display = 'flex';
+                if (window.lucide) window.lucide.createIcons();
+            }
+        }
+
+        function closeEditMachineryModal() {
+            const modal = document.getElementById('editMachineryModalOverlay');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function handleSaveEditedMachinery(e) {
+            if (e) e.preventDefault();
+
+            const mId = document.getElementById('editMachineryId').value;
+            const type = document.getElementById('editMachineryType').value;
+            const model = document.getElementById('editMachineryModel').value;
+            const plate = document.getElementById('editMachineryPlate').value;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('machinery')
+                    .update({ type: type, model: model, license_plate: plate })
+                    .eq('id', mId);
+
+                if (error) throw error;
+
+                closeEditMachineryModal();
+                alert("¡Ficha de maquinaria actualizada con éxito!");
+                loadMachinery();
+            } catch (err) {
+                alert("Error al actualizar maquinaria: " + err.message);
             }
         }
 
@@ -1167,11 +1269,18 @@
                     card.className = 'card';
                     card.style.background = 'rgba(255,255,255,0.02)';
                     card.style.padding = '0.75rem';
+                    const emailText = op.email || op.user_email || 'Sin correo asociado';
                     card.innerHTML = `
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div>
-                                <strong style="color:#fff; font-size:0.85rem;">${op.full_name}</strong>
-                                <span style="font-size:0.7rem; color:var(--text-secondary); text-transform:capitalize; margin-left: 8px; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px;">${op.role}</span>
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    <strong style="color:#fff; font-size:0.85rem;">${op.full_name}</strong>
+                                    <span style="font-size:0.7rem; color:var(--text-secondary); text-transform:capitalize; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px;">${op.role}</span>
+                                </div>
+                                <div style="font-size:0.72rem; color:#60a5fa; margin-top:3px; display:flex; align-items:center; gap:4px;">
+                                    <i data-lucide="mail" style="width: 12px; height: 12px; color: #60a5fa;"></i>
+                                    <span>${emailText}</span>
+                                </div>
                             </div>
                             <div style="display:flex; gap:6px; align-items:center;">
                                 <button onclick="openEditOperatorModal('${op.id}')" class="btn-remove-file" title="Editar ficha de operario" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-color); border-radius:4px; padding:4px 6px; cursor:pointer;">
@@ -1199,6 +1308,7 @@
             if (!op) return;
 
             document.getElementById('editOpId').value = opId;
+            document.getElementById('editOpEmail').value = op.email || op.user_email || 'Sin correo asignado';
             document.getElementById('editOpName').value = op.full_name;
             document.getElementById('editOpRole').value = op.role;
 

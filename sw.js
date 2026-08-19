@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.13-2539';
+const CACHE_NAME = 'road-clearing-cache-v0.1.13-2540';
 const VERSION = '0.1.13';
-const UPDATE_NOTES = 'Versión 0.1.13: Corrección de SyntaxError en auth-sync.js para restauración completa de la carga de datos en el Dashboard de administración.';
+const UPDATE_NOTES = 'Versión 0.1.13: Visualización de emails de operarios, modal de edición completa de maquinaria e iconografía unificada Lucide.';
 
 const ASSETS = [
   './',
