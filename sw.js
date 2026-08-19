@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.13-2537';
+const CACHE_NAME = 'road-clearing-cache-v0.1.13-2538';
 const VERSION = '0.1.13';
-const UPDATE_NOTES = 'Versión 0.1.13: Enrutamiento inteligente por rol: los usuarios con rol admin/encargado acceden directamente a la interfaz completa de oficina (admin.html).';
+const UPDATE_NOTES = 'Versión 0.1.13: Corrección de redirección en panel de administración y destrucción completa de sesión al cerrar usuario.';
 
 const ASSETS = [
   './',

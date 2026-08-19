@@ -203,8 +203,8 @@ async function handleLoginSubmit(event) {
 
                 const userRole = profile ? profile.role : 'peon';
 
-                if (userRole === 'admin' || userRole === 'encargado') {
-                    // Si es jefe o administrador, redirigir directamente al panel de oficina
+                if ((userRole === 'admin' || userRole === 'encargado') && !window.location.pathname.includes('admin.html')) {
+                    // Si es jefe o administrador y no está aún en admin.html, redirigir al panel de oficina
                     window.location.href = './admin.html';
                     return;
                 }
@@ -235,29 +235,16 @@ async function handleLogout() {
     if (!supabaseClient) return;
 
     try {
+        localStorage.removeItem('desbroce_user_session');
         const { error } = await supabaseClient.auth.signOut();
         if (!error) {
-            checkSessionState();
-            closeAuthModal();
-            
-            // Forzar volver a mostrar pantalla de bienvenida
-            const welcomeOverlay = document.getElementById('welcomeScreenOverlay');
-            if (welcomeOverlay) {
-                welcomeOverlay.classList.remove('fade-out');
-                welcomeOverlay.style.display = 'flex';
-            }
-
-            // Recargar datos locales aislados del invitado
-            if (typeof loadFromLocalStorage === 'function') {
-                loadFromLocalStorage();
-            }
-
-            if (typeof appAlert === 'function') {
-                appAlert("Sesión cerrada correctamente.", "info");
-            }
+            // Si estamos en admin.html o index.html, redirigir limpiamente a la raíz del sitio
+            window.location.href = './';
         }
     } catch (e) {
         console.error("Error al cerrar sesión:", e);
+    }
+}
     }
 }
 
@@ -518,7 +505,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .single();
 
             const userRole = profile ? profile.role : 'peon';
-            if (userRole === 'admin' || userRole === 'encargado') {
+            if ((userRole === 'admin' || userRole === 'encargado') && !window.location.pathname.includes('admin.html')) {
                 window.location.href = './admin.html';
                 return;
             }
