@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.13-2529';
+const CACHE_NAME = 'road-clearing-cache-v0.1.13-2530';
 const VERSION = '0.1.13';
-const UPDATE_NOTES = 'Versión 0.1.13: Icono de nube con estado de conexión en vivo, monigote verde con sesión activa, cálculo preciso de Jornada y Total Plano, y sincronización de fondo no intrusiva.';
+const UPDATE_NOTES = 'Versión 0.1.13: Escalado de líneas continuo a 60 FPS durante el zoom táctil en móviles y bloqueo de cierres accidentales del menú lateral.';
 
 const ASSETS = [
   './',

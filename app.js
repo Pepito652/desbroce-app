@@ -159,7 +159,10 @@ function initMap() {
             closeOnZeroBearing: false,
             position: 'bottomleft'
         },
-        zoomAnimation: false
+        zoomAnimation: true,
+        zoomAnimationThreshold: 4,
+        fadeAnimation: true,
+        markerZoomAnimation: true
     }).setView([40.416775, -3.703790], 6);
 
     // Añadir el control de zoom en la parte inferior izquierda
@@ -386,6 +389,13 @@ function initMap() {
 function initEventListeners() {
     try {
         // Navegación de pestañas
+        const tabsNav = document.querySelector('.tabs-nav');
+        if (tabsNav) {
+            ['touchstart', 'touchmove', 'touchend'].forEach(evt => {
+                tabsNav.addEventListener(evt, e => e.stopPropagation(), { passive: true });
+            });
+        }
+
         const tabs = document.querySelectorAll('.tab-btn');
         tabs.forEach(tab => {
             tab.addEventListener('click', (e) => {
@@ -396,6 +406,9 @@ function initEventListeners() {
                 tab.classList.add('active');
                 const targetId = tab.getAttribute('data-tab');
                 document.getElementById(targetId).classList.add('active');
+            });
+            ['touchstart', 'touchmove', 'touchend'].forEach(evt => {
+                tab.addEventListener(evt, e => e.stopPropagation(), { passive: true });
             });
         });
 
@@ -503,7 +516,7 @@ function initEventListeners() {
 
 
 
-        // Soporte para cerrar el menú lateral deslizándolo hacia la izquierda (gesto táctil)
+        // Soporte para cerrar el menú lateral deslizándolo hacia la izquierda (gesto táctil deliberado)
         if (sidebar) {
             let touchStartX = 0;
             let touchStartY = 0;
@@ -513,6 +526,8 @@ function initEventListeners() {
             sidebar.addEventListener('touchstart', (e) => {
                 touchStartX = e.touches[0].clientX;
                 touchStartY = e.touches[0].clientY;
+                touchEndX = touchStartX;
+                touchEndY = touchStartY;
             }, { passive: true });
 
             sidebar.addEventListener('touchmove', (e) => {
@@ -520,16 +535,27 @@ function initEventListeners() {
                 touchEndY = e.touches[0].clientY;
             }, { passive: true });
 
-            sidebar.addEventListener('touchend', () => {
+            sidebar.addEventListener('touchend', (e) => {
+                // Si el toque provino de un botón, tab o input interactivo, ignorar swipe
+                if (e.target && (e.target.closest('.tab-btn') || e.target.closest('.btn-filter') || e.target.closest('input') || e.target.closest('select') || e.target.closest('button'))) {
+                    touchStartX = 0;
+                    touchEndX = 0;
+                    return;
+                }
+
                 const diffX = touchStartX - touchEndX;
                 const diffY = Math.abs(touchStartY - touchEndY);
                 
-                // El gesto debe ser predominantemente horizontal y superar un umbral de 50px
-                if (diffX > 50 && diffX > diffY) {
+                // El gesto debe ser un deslizamiento claro a la izquierda (> 80px) y horizontal
+                if (diffX > 80 && diffX > (diffY * 1.5)) {
                     if (sidebar.classList.contains('active') && window.innerWidth <= 768) {
                         sidebar.classList.remove('active');
                     }
                 }
+                touchStartX = 0;
+                touchEndX = 0;
+                touchStartY = 0;
+                touchEndY = 0;
             }, { passive: true });
 
             // Evitar que el deslizamiento del panel de estadísticas superior (carrusel) burbujee al sidebar y lo cierre
@@ -599,14 +625,24 @@ function initEventListeners() {
         document.getElementById('resetAppBtn').addEventListener('click', clearAllData);
 
         // Buscador y filtros de tramos
-        document.getElementById('searchTramo').addEventListener('input', updateTramosList);
+        const searchTramoInput = document.getElementById('searchTramo');
+        if (searchTramoInput) {
+            searchTramoInput.addEventListener('input', updateTramosList);
+            ['click', 'touchstart', 'touchmove', 'touchend'].forEach(evt => {
+                searchTramoInput.addEventListener(evt, e => e.stopPropagation(), { passive: true });
+            });
+        }
         
         const filterButtons = document.querySelectorAll('.btn-filter');
         filterButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 filterButtons.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 updateTramosList();
+            });
+            ['touchstart', 'touchmove', 'touchend'].forEach(evt => {
+                btn.addEventListener(evt, e => e.stopPropagation(), { passive: true });
             });
         });
 
