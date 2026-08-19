@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.13-2540';
+const CACHE_NAME = 'road-clearing-cache-v0.1.13-2541';
 const VERSION = '0.1.13';
-const UPDATE_NOTES = 'Versión 0.1.13: Visualización de emails de operarios, modal de edición completa de maquinaria e iconografía unificada Lucide.';
+const UPDATE_NOTES = 'Versión 0.1.13: Mantenimiento del grosor nativo al seleccionar tramos y persistencia de emails en perfiles de operarios.';
 
 const ASSETS = [
   './',

@@ -1904,10 +1904,15 @@ function selectAndHighlightTramo(tramo) {
 
     highlightedLayer = polyline;
 
-    // Cambiar color a amarillo dorado de selección con mayor grosor destacado
+    const isCompleted = tramo.status === 'completed';
+    const isPartial = tramo.status === 'partial';
+    const isBlocked = isTramoFullyBlocked(tramo);
+    const nativeWeight = isBlocked ? 5.5 : (isCompleted ? 6 : (isPartial ? 5.5 : 5));
+
+    // Cambiar solo el color al dorado de selección manteniendo el grosor nativo exacto
     polyline.setStyle({
         color: '#ffd700',
-        weight: 8.5,
+        weight: nativeWeight,
         opacity: 1.0
     });
 }

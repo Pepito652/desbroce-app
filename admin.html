@@ -1237,10 +1237,10 @@
                 if (error) throw error;
 
                 if (data && data.user) {
-                    // Actualizar o insertar fila en la tabla profiles
+                    // Actualizar o insertar fila en la tabla profiles conservando el correo
                     const { error: profErr } = await supabaseClient
                         .from('profiles')
-                        .upsert({ id: data.user.id, role: role, full_name: name }, { onConflict: 'id' });
+                        .upsert({ id: data.user.id, email: email, role: role, full_name: name }, { onConflict: 'id' });
 
                     if (profErr) throw profErr;
                 }
