@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.13-2531';
+const CACHE_NAME = 'road-clearing-cache-v0.1.13-2532';
 const VERSION = '0.1.13';
-const UPDATE_NOTES = 'Versión 0.1.13: Cierre automático de menú en móvil al seleccionar tramo, renderizado SVG para zoom continuo sin retrasos y restauración determinista de grosores.';
+const UPDATE_NOTES = 'Versión 0.1.13: Sincronización en vivo del vector transform durante el pinch-zoom multitáctil para escalado fluido y sin retrasos de carreteras.';
 
 const ASSETS = [
   './',
