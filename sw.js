@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.13-2538';
+const CACHE_NAME = 'road-clearing-cache-v0.1.13-2539';
 const VERSION = '0.1.13';
-const UPDATE_NOTES = 'Versión 0.1.13: Corrección de redirección en panel de administración y destrucción completa de sesión al cerrar usuario.';
+const UPDATE_NOTES = 'Versión 0.1.13: Corrección de SyntaxError en auth-sync.js para restauración completa de la carga de datos en el Dashboard de administración.';
 
 const ASSETS = [
   './',

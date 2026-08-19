@@ -245,8 +245,6 @@ async function handleLogout() {
         console.error("Error al cerrar sesión:", e);
     }
 }
-    }
-}
 
 // --- COLA DE SINCRONIZACIÓN OFFLINE-FIRST ---
 
