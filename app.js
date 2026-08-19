@@ -5347,6 +5347,7 @@ async function handleObsManualClick(tramo, latlng) {
                 type: obsData.type,
                 label: obsData.label,
                 comment: obsData.comment,
+                photo: obsData.photo || null,
                 date: Date.now()
             };
             tramo.observaciones = tramo.observaciones || [];
@@ -5417,10 +5418,24 @@ function appObservationDialog(title = "Registrar Alerta") {
                 </div>
                 
                 <!-- Comentario libre (Opcional) -->
-                <div style="margin-bottom: 16px;">
+                <div style="margin-bottom: 12px;">
                     <label style="display: block; font-size: 0.75rem; color: #a1a1aa; margin-bottom: 6px; font-weight: 500;">Comentario u Observaciones (Opcional):</label>
-                    <textarea id="obsComment" rows="2" placeholder="Escribe aquí los detalles del obstáculo..." 
+                    <textarea id="obsComment" name="obsComment" rows="2" placeholder="Escribe aquí los detalles del obstáculo..." 
                               style="width: 100%; background: #27272a; border: 1px solid #52525b; border-radius: 8px; color: #fff; padding: 8px; font-size: 0.82rem; font-family: 'Outfit', sans-serif; resize: none; box-sizing: border-box; outline: none;"></textarea>
+                </div>
+
+                <!-- Adjuntar Foto de la Alerta (Cámara / Galería) -->
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 0.75rem; color: #a1a1aa; margin-bottom: 6px; font-weight: 500;">Fotografía de la Incidencia / Alerta:</label>
+                    <input type="file" id="obsPhotoInput" name="obsPhotoInput" accept="image/*" capture="environment" style="display: none;">
+                    <button type="button" id="btnTriggerObsPhoto" 
+                            style="width: 100%; padding: 10px; background: rgba(59, 130, 246, 0.1); border: 1px dashed #3b82f6; border-radius: 8px; color: #60a5fa; font-size: 0.8rem; font-weight: 600; font-family: 'Outfit', sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        📷 Tomar Foto / Adjuntar Imagen
+                    </button>
+                    <div id="obsPhotoPreviewContainer" style="display: none; margin-top: 8px; text-align: center; position: relative;">
+                        <img id="obsPhotoPreview" style="max-height: 110px; border-radius: 6px; border: 1px solid var(--border-color); object-fit: cover;">
+                        <button type="button" id="btnRemoveObsPhoto" style="position: absolute; top: 4px; right: 20%; background: rgba(239, 68, 68, 0.9); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-weight: bold; font-size: 0.75rem;">×</button>
+                    </div>
                 </div>
                 
                 <!-- Opciones de Impacto de Desbroce -->
@@ -5447,6 +5462,37 @@ function appObservationDialog(title = "Registrar Alerta") {
         `;
         
         document.body.appendChild(modal);
+
+        // Lógica de foto en alerta
+        let obsPhotoBase64 = null;
+        const photoInput = modal.querySelector('#obsPhotoInput');
+        const triggerBtn = modal.querySelector('#btnTriggerObsPhoto');
+        const previewContainer = modal.querySelector('#obsPhotoPreviewContainer');
+        const previewImg = modal.querySelector('#obsPhotoPreview');
+        const removePhotoBtn = modal.querySelector('#btnRemoveObsPhoto');
+
+        triggerBtn.onclick = () => photoInput.click();
+
+        photoInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    obsPhotoBase64 = evt.target.result;
+                    previewImg.src = obsPhotoBase64;
+                    previewContainer.style.display = 'block';
+                    triggerBtn.innerText = "📷 Cambiar Fotografía";
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        removePhotoBtn.onclick = () => {
+            obsPhotoBase64 = null;
+            photoInput.value = '';
+            previewContainer.style.display = 'none';
+            triggerBtn.innerText = "📷 Tomar Foto / Adjuntar Imagen";
+        };
         
         // Manejador del grid de tipos de obstáculo
         const typeButtons = modal.querySelectorAll('.btn-obs-type');
@@ -5513,7 +5559,8 @@ function appObservationDialog(title = "Registrar Alerta") {
                     type: selectedType,
                     label: selectedLabel,
                     comment: comment,
-                    action: selectedAction
+                    action: selectedAction,
+                    photo: obsPhotoBase64
                 });
             }, 200);
         };

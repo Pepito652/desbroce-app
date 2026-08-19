@@ -477,25 +477,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    // Escuchar eventos de sesión en tiempo real (expiración de token, deslogeo, refresco)
+    try {
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            console.log("[Auth] Evento de estado de autenticación:", event);
+            if (event === 'SIGNED_OUT' || (event === 'USER_UPDATED' && !session)) {
+                // Si la sesión expiró o se cerró la cuenta, forzar despliegue de la pantalla de bienvenida
+                localStorage.removeItem('desbroce_user_session');
+                const welcomeOverlay = document.getElementById('welcomeScreenOverlay');
+                if (welcomeOverlay) {
+                    welcomeOverlay.style.setProperty('display', 'flex', 'important');
+                }
+            }
+        });
+    } catch(e) {}
+
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
-            // Ya está logueado, ocultar pantalla de bienvenida de inmediato
+            localStorage.setItem('desbroce_user_session', 'true');
             const welcomeOverlay = document.getElementById('welcomeScreenOverlay');
             if (welcomeOverlay) {
                 welcomeOverlay.style.display = 'none';
             }
             checkSessionState();
-            // Cargar tramos asignados de forma automática y arrancar canal en tiempo real
             if (typeof loadAssignedSegments === 'function') {
                 loadAssignedSegments(session.user.id);
             }
             initRealtimeSync(session.user.id);
         } else {
-            // Mostrar pantalla de bienvenida interactiva
+            // Mostrar pantalla de bienvenida interactiva obligatoria
+            localStorage.removeItem('desbroce_user_session');
             const welcomeOverlay = document.getElementById('welcomeScreenOverlay');
             if (welcomeOverlay) {
-                welcomeOverlay.style.display = 'flex';
+                welcomeOverlay.style.setProperty('display', 'flex', 'important');
             }
         }
     } catch (e) {

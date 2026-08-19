@@ -34,6 +34,17 @@
         </div>
     </div>
 
+    <!-- Script de comprobación síncrona previo para evitar parpadeo si ya hay sesión -->
+    <script>
+        (function() {
+            try {
+                const hasLocalSession = localStorage.getItem('sb-amowklcahxlqxgkvcumg-auth-token') || localStorage.getItem('desbroce_user_session');
+                if (hasLocalSession) {
+                    document.write('<style>#welcomeScreenOverlay { display: none !important; }</style>');
+                }
+            } catch(e) {}
+        })();
+    </script>
     <!-- Pantalla de Bienvenida Premium e Interactiva -->
     <div id="welcomeScreenOverlay" class="welcome-screen-overlay">
         <div class="welcome-card-container">

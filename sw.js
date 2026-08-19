@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.13-2535';
+const CACHE_NAME = 'road-clearing-cache-v0.1.13-2536';
 const VERSION = '0.1.13';
-const UPDATE_NOTES = 'Versión 0.1.13: Transición a zoom multitáctil nativo SVG para un escalado de carreteras ultra-fluido y sin retrasos en móviles.';
+const UPDATE_NOTES = 'Versión 0.1.13: Captura de fotos en alertas de mapa, eliminación de parpadeos en inicio con sesión guardada y bloqueo completo ante token caducado.';
 
 const ASSETS = [
   './',
