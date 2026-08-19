@@ -192,15 +192,30 @@ async function handleLoginSubmit(event) {
             if (typeof appAlert === 'function') appAlert("Error de acceso: " + error.message, 'error');
         } else {
             closeAuthModal();
-            checkSessionState();
-            
-            // Iniciar sincronización Realtime con el ID del usuario
+
+            // Comprobar rol del usuario para enrutamiento inteligente
             if (data.session && data.session.user) {
+                const { data: profile } = await supabaseClient
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', data.session.user.id)
+                    .single();
+
+                const userRole = profile ? profile.role : 'peon';
+
+                if (userRole === 'admin' || userRole === 'encargado') {
+                    // Si es jefe o administrador, redirigir directamente al panel de oficina
+                    window.location.href = './admin.html';
+                    return;
+                }
+
                 initRealtimeSync(data.session.user.id);
                 if (typeof loadAssignedSegments === 'function') {
                     loadAssignedSegments(data.session.user.id);
                 }
             }
+
+            checkSessionState();
 
             if (typeof loadFromLocalStorage === 'function') {
                 loadFromLocalStorage();
@@ -495,6 +510,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
+            // Verificar si la cuenta es de administrador o encargado para redirigir a oficina
+            const { data: profile } = await supabaseClient
+                .from('profiles')
+                .select('role')
+                .eq('id', session.user.id)
+                .single();
+
+            const userRole = profile ? profile.role : 'peon';
+            if (userRole === 'admin' || userRole === 'encargado') {
+                window.location.href = './admin.html';
+                return;
+            }
+
             localStorage.setItem('desbroce_user_session', 'true');
             const welcomeOverlay = document.getElementById('welcomeScreenOverlay');
             if (welcomeOverlay) {
