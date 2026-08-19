@@ -198,7 +198,7 @@
                         <div style="display: flex; align-items: center; gap: 6px; background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 8px;">
                             <i data-lucide="filter" style="width: 14px; height: 14px; color: var(--accent);"></i>
                             <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">Equipo:</span>
-                            <select id="adminTeamFilterSelect" onchange="handleAdminTeamFilterChange(this.value)" style="background: transparent; border: none; color: #fff; font-size: 0.8rem; font-weight: 600; cursor: pointer; outline: none;">
+                            <select id="adminTeamFilterSelect" name="adminTeamFilterSelect" onchange="handleAdminTeamFilterChange(this.value)" style="background: transparent; border: none; color: #fff; font-size: 0.8rem; font-weight: 600; cursor: pointer; outline: none;">
                                 <option value="all">Todos los Equipos</option>
                             </select>
                         </div>
@@ -287,7 +287,7 @@
                         
                         <div class="form-group">
                             <label for="masterUploadInitialTeam">Asignación inicial (Opcional):</label>
-                            <select id="masterUploadInitialTeam">
+                            <select id="masterUploadInitialTeam" name="masterUploadInitialTeam">
                                 <option value="">Sin asignar (Asignar tramos manualmente)</option>
                             </select>
                         </div>
@@ -511,7 +511,7 @@
                         <div class="form-group" style="margin-bottom: 0;">
                             <label for="selectProfileToAssign">Añadir Operario al Equipo</label>
                             <div style="display: flex; gap: 8px;">
-                                <select id="selectProfileToAssign" style="flex: 1;"></select>
+                                <select id="selectProfileToAssign" name="selectProfileToAssign" style="flex: 1;"></select>
                                 <button onclick="assignProfileToTeam()" class="btn btn-primary btn-sm">Añadir</button>
                             </div>
                         </div>
@@ -531,7 +531,7 @@
                         <div class="form-group" style="margin-bottom: 0;">
                             <label for="selectMachineryToAssign">Asignar Máquina al Equipo</label>
                             <div style="display: flex; gap: 8px;">
-                                <select id="selectMachineryToAssign" style="flex: 1;"></select>
+                                <select id="selectMachineryToAssign" name="selectMachineryToAssign" style="flex: 1;"></select>
                                 <button onclick="assignMachineryToTeam()" class="btn btn-primary btn-sm">Asignar</button>
                             </div>
                         </div>

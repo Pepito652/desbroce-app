@@ -93,25 +93,6 @@
                         <button onclick="event.stopPropagation(); if(navigator.serviceWorker) { navigator.serviceWorker.getRegistrations().then(regs => { regs.forEach(r => r.unregister()); window.location.reload(true); }); } else { window.location.reload(true); }" style="background: #065f46; color: #fff; border: 1px solid #10b981; cursor: pointer; padding: 2px 6px; font-size: 9px; border-radius: 4px;">⬆️ Actualizar app</button>
                     </div>
                 </div>
-                <!-- Monitor de Rendimiento Temporal para Pruebas -->
-                <div id="perfMonitorContainer" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 8px; margin-bottom: 10px; font-size: 10px; color: #a1a1aa; display: flex; flex-direction: column; gap: 4px; line-height: 1.4;">
-                    <div style="font-weight: bold; color: #3b82f6; border-bottom: 1px solid rgba(59,130,246,0.2); padding-bottom: 2px; margin-bottom: 4px; display: flex; justify-content: space-between;">
-                        <span>⚙️ RENDIMIENTO EN TIEMPO REAL</span>
-                        <span id="perfStatusGps">GPS: Inactivo</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>Batería:</span> <strong id="perfBattery" style="color: #fff;">Cargando...</strong>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>Cómputo CPU GPS:</span> <strong id="perfCpuTime" style="color: #fff;">0.00 ms</strong>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>RAM JS Usada:</span> <strong id="perfRam" style="color: #fff;">0.0 MB</strong>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 4px; margin-top: 2px;">
-                        <span>Código de control:</span> <strong style="color: #60a5fa;">#2510</strong>
-                    </div>
-                </div>
                 <div id="appDebugLog" style="color: #e4e4e7; line-height: 1.3;">Ningún error registrado. La app está funcionando.</div>
             </div>
 
@@ -468,8 +449,11 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Módulo de Sincronización y Acceso -->
     <script src="auth-sync.js"></script>
+    <!-- Componentes Reutilizables de DesbroceApp -->
+    <script src="components/badges.js"></script>
+    <script src="components/form-controls.js"></script>
     <!-- Custom APP JS -->
-    <script src="app.js?v=0.1.11"></script>
+    <script src="app.js?v=0.1.13"></script>
     <!-- Grabación de Notas de Voz para Feedback (Desacoplado) -->
     <script src="feedback-recorder.js"></script>
 

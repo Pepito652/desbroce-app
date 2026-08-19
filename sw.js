@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.12-2527';
-const VERSION = '0.1.12';
-const UPDATE_NOTES = 'Versión 0.1.12: Modal interactivo y gestión guiada de permisos para el micrófono y grabación de notas de voz.';
+const CACHE_NAME = 'road-clearing-cache-v0.1.13-2528';
+const VERSION = '0.1.13';
+const UPDATE_NOTES = 'Versión 0.1.13: Estandarización de componentes de formulario (id/name), eliminación de bucles de diagnóstico residuales, optimización de batería y robustecimiento de sincronización offline-first.';
 
 const ASSETS = [
   './',

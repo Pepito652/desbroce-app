@@ -1457,15 +1457,15 @@ function updateLegend() {
 
     legendList.innerHTML = `
         <div class="legend-item">
-            <input type="color" class="color-picker-legend" value="${getPendingColor()}" onchange="changeSystemColor('pending', this.value)" title="Cambiar color de pendiente">
+            <input type="color" id="legend_color_pending" name="legend_color_pending" class="color-picker-legend" value="${getPendingColor()}" onchange="changeSystemColor('pending', this.value)" title="Cambiar color de pendiente">
             <span>Pendiente (Línea discontinua corta)</span>
         </div>
         <div class="legend-item">
-            <input type="color" class="color-picker-legend" value="${getPartialColor()}" onchange="changeSystemColor('partial', this.value)" title="Cambiar color de parcial">
+            <input type="color" id="legend_color_partial" name="legend_color_partial" class="color-picker-legend" value="${getPartialColor()}" onchange="changeSystemColor('partial', this.value)" title="Cambiar color de parcial">
             <span>Parcial (Línea discontinua larga)</span>
         </div>
         <div class="legend-item">
-            <input type="color" class="color-picker-legend" value="${getBlockedColor()}" onchange="changeSystemColor('blocked', this.value)" title="Cambiar color de bloqueados">
+            <input type="color" id="legend_color_blocked" name="legend_color_blocked" class="color-picker-legend" value="${getBlockedColor()}" onchange="changeSystemColor('blocked', this.value)" title="Cambiar color de bloqueados">
             <span style="font-weight: bold;">Bloqueado / Inaccesible (${blockedKmStr} km)</span>
         </div>
     `;
@@ -1487,7 +1487,7 @@ function updateLegend() {
 
     // Ordenar semanas y pintarlas
     const semanas = Object.keys(semanasMap).sort();
-    semanas.forEach(sem => {
+    semanas.forEach((sem, idx) => {
         const info = semanasMap[sem];
         const item = document.createElement('div');
         item.className = 'legend-item';
@@ -1512,8 +1512,9 @@ function updateLegend() {
         const dateRange = getWeekDateRangeString(sem);
         const dateRangeText = dateRange ? `<span style="font-size: 0.7rem; color: #a1a1aa; display: block; margin-top: 1px; font-weight: normal;">${dateRange}</span>` : '';
 
+        const safeSemId = sem.replace(/[^a-zA-Z0-9_-]/g, '_');
         item.innerHTML = `
-            <input type="color" class="color-picker-legend" value="${info.color}" onchange="changeWeekColor('${sem}', this.value)" title="Cambiar color de esta semana">
+            <input type="color" id="legend_color_w_${safeSemId}" name="legend_color_w_${safeSemId}" class="color-picker-legend" value="${info.color}" onchange="changeWeekColor('${sem}', this.value)" title="Cambiar color de esta semana">
             <span style="display: inline-flex; flex-direction: column; gap: 1px; line-height: 1.2;">
                 <span style="display: inline-flex; align-items: center; gap: 4px; font-weight: bold;">${label} (${kmStr} km) ${editButton}</span>
                 ${dateRangeText}
@@ -1960,8 +1961,8 @@ function openRoadDetail(tramoId, focusMap = true) {
 
                     ${(tramo.status === 'completed' || tramo.status === 'partial') ? `
                         <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px; margin-bottom: 8px;">
-                            <strong style="font-size: 0.72rem; color: #fff;">Semana de Desbroce:</strong>
-                            <select onchange="updateTramoWeek('${tramo.id}', this.value)"
+                            <label for="tramo_week_select_${tramo.id}" style="font-size: 0.72rem; color: #fff; font-weight: bold;">Semana de Desbroce:</label>
+                            <select id="tramo_week_select_${tramo.id}" name="tramo_week_select_${tramo.id}" onchange="updateTramoWeek('${tramo.id}', this.value)"
                                     style="background: #27272a; color: #fff; border: 1px solid #52525b; border-radius: 6px; padding: 6px 8px; font-size: 0.8rem; font-family: sans-serif; cursor: pointer; outline: none; width: 100%;">
                                 ${(() => {
                                     const weekOptions = new Set();
@@ -2356,7 +2357,7 @@ function showEditWeekModal(groupKey) {
                 </p>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
                     <label for="modalWeekDatePicker" style="color: #fff; font-size: 0.8rem; font-weight: 500;">Fecha de Desbroce:</label>
-                    <input type="date" id="modalWeekDatePicker" value="${defaultDate}" 
+                    <input type="date" id="modalWeekDatePicker" name="modalWeekDatePicker" value="${defaultDate}" 
                            style="background: #27272a; color: #fff; border: 1px solid #3f3f46; border-radius: 6px; padding: 8px; font-size: 0.9rem; cursor: pointer; outline: none;">
                 </div>
                 <div style="display: flex; gap: 8px; margin-top: 5px;">
@@ -4910,7 +4911,7 @@ function appPrompt(message, defaultValue = '', title = 'Introducir Datos') {
                 <div class="dialog-content" style="width: 100%;">
                     <h3 class="dialog-title" style="margin: 0 0 6px 0; font-family: 'Outfit', sans-serif;">${title}</h3>
                     <p class="dialog-message" style="margin: 0 0 12px 0; font-family: 'Outfit', sans-serif; font-size: 0.8rem; color: var(--text-secondary);">${message}</p>
-                    <input type="text" id="dialogPromptInput" value="${defaultValue}" style="width: 100%; padding: 0.5rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-family: 'Outfit', sans-serif; font-size: 0.85rem; box-sizing: border-box; text-align: center;">
+                    <input type="text" id="dialogPromptInput" name="dialogPromptInput" value="${defaultValue}" style="width: 100%; padding: 0.5rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-family: 'Outfit', sans-serif; font-size: 0.85rem; box-sizing: border-box; text-align: center;">
                 </div>
                 <div class="dialog-actions" style="width: 100%; display: flex; gap: 8px; margin-top: 12px;">
                     <button class="btn btn-secondary btn-dialog-cancel" style="flex: 1; font-family: 'Outfit', sans-serif;">Cancelar</button>
