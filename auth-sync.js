@@ -531,8 +531,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// Exponer funciones globales de sincronización para app.js
+// Exponer funciones globales de sincronización y autenticación para app.js e index.html
 window.queueTramoForSync = queueTramoForSync;
 window.triggerOfflineSync = triggerOfflineSync;
 window.initRealtimeSync = initRealtimeSync;
+window.openAuthModal = openAuthModal;
+window.closeAuthModal = closeAuthModal;
+window.checkSessionState = checkSessionState;
+window.welcomeActionAuth = welcomeActionAuth;
+window.welcomeActionLocal = welcomeActionLocal;
 

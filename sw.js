@@ -1,6 +1,6 @@
-const CACHE_NAME = 'road-clearing-cache-v0.1.13-2541';
+const CACHE_NAME = 'road-clearing-cache-v0.1.13-2542';
 const VERSION = '0.1.13';
-const UPDATE_NOTES = 'Versión 0.1.13: Mantenimiento del grosor nativo al seleccionar tramos y persistencia de emails en perfiles de operarios.';
+const UPDATE_NOTES = 'Versión 0.1.13: Eliminación de SyntaxError de export en componentes y garantía de exposición global de openAuthModal.';
 
 const ASSETS = [
   './',

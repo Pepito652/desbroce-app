@@ -3,7 +3,7 @@
  * Generador de controles de formulario con id, name, accesibilidad y estilos acordes
  */
 
-export function createSelectElement({ id, name, className = '', style = '', options = [], selectedValue = '', onChange = null, title = '' }) {
+function createSelectElement({ id, name, className = '', style = '', options = [], selectedValue = '', onChange = null, title = '' }) {
     const select = document.createElement('select');
     if (id) select.id = id;
     if (name) select.name = name;
@@ -28,7 +28,7 @@ export function createSelectElement({ id, name, className = '', style = '', opti
     return select;
 }
 
-export function createSelectHtml({ id, name, className = '', style = '', options = [], selectedValue = '', onchangeAttr = '', title = '' }) {
+function createSelectHtml({ id, name, className = '', style = '', options = [], selectedValue = '', onchangeAttr = '', title = '' }) {
     const idAttr = id ? `id="${id}"` : '';
     const nameAttr = name ? `name="${name}"` : '';
     const classAttr = className ? `class="${className}"` : '';
@@ -48,6 +48,8 @@ export function createSelectHtml({ id, name, className = '', style = '', options
 }
 
 if (typeof window !== 'undefined') {
+    window.createSelectElement = createSelectElement;
+    window.createSelectHtml = createSelectHtml;
     window.DesbroceForms = {
         createSelectElement,
         createSelectHtml
